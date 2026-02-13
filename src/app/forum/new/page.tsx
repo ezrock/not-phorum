@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { CldUploadWidget } from 'next-cloudinary';
 import Link from 'next/link';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, ImagePlus, X } from 'lucide-react';
+import { postThumb } from '@/lib/cloudinary';
 
 interface Category {
   id: number;
@@ -24,6 +26,7 @@ export default function NewTopicPage() {
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -60,7 +63,6 @@ export default function NewTopicPage() {
     setSubmitting(true);
 
     try {
-      // Create the topic
       const { data: topic, error: topicError } = await supabase
         .from('topics')
         .insert({
@@ -73,13 +75,13 @@ export default function NewTopicPage() {
 
       if (topicError) throw topicError;
 
-      // Create the first post
       const { error: postError } = await supabase
         .from('posts')
         .insert({
           topic_id: topic.id,
           author_id: currentUser!.id,
           content: content.trim(),
+          image_url: imageUrl || null,
         });
 
       if (postError) throw postError;
@@ -153,15 +155,48 @@ export default function NewTopicPage() {
             />
           </div>
 
-          <Button
-            type="submit"
-            variant="success"
-            disabled={submitting}
-            className="flex items-center gap-2"
-          >
-            <Send size={16} />
-            {submitting ? 'Luodaan...' : 'Luo aihe'}
-          </Button>
+          {imageUrl && (
+            <div className="relative inline-block">
+              <img src={postThumb(imageUrl)} alt="Liite" className="max-h-40 rounded-lg" />
+              <button
+                type="button"
+                onClick={() => setImageUrl('')}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <CldUploadWidget
+              uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+              options={{
+                maxFiles: 1,
+                resourceType: 'image',
+                folder: 'freakon/posts',
+              }}
+              onSuccess={(result: any) => {
+                setImageUrl(result.info.secure_url);
+              }}
+            >
+              {({ open }) => (
+                <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                  <ImagePlus size={16} />
+                  Lisää kuva
+                </Button>
+              )}
+            </CldUploadWidget>
+            <Button
+              type="submit"
+              variant="success"
+              disabled={submitting}
+              className="flex items-center gap-2"
+            >
+              <Send size={16} />
+              {submitting ? 'Luodaan...' : 'Luo aihe'}
+            </Button>
+          </div>
         </form>
       </Card>
     </div>

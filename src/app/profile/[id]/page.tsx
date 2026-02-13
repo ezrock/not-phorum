@@ -7,11 +7,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Calendar, Trophy } from 'lucide-react';
+import { profileMedium } from '@/lib/cloudinary';
 
 interface UserProfile {
   id: string;
   username: string;
   avatar: string;
+  profile_image_url: string | null;
   created_at: string;
 }
 
@@ -45,7 +47,7 @@ export default function PublicProfilePage() {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, username, avatar, created_at')
+        .select('id, username, avatar, profile_image_url, created_at')
         .eq('id', userId)
         .single();
 
@@ -140,7 +142,11 @@ export default function PublicProfilePage() {
       {/* Profile Header */}
       <Card className="mb-6">
         <div className="flex items-center gap-4">
-          <span className="text-7xl">{profile.avatar}</span>
+          {profile.profile_image_url ? (
+            <img src={profileMedium(profile.profile_image_url)} alt={profile.username} className="w-20 h-20 rounded-full object-cover" />
+          ) : (
+            <span className="text-7xl">{profile.avatar}</span>
+          )}
           <div>
             <h1 className="text-3xl font-bold">{profile.username}</h1>
             <p className="flex items-center gap-1 text-sm text-gray-500 mt-1">

@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Heart, MessageSquare, Edit2, Flag } from 'lucide-react';
+import { ArrowLeft, Heart, MessageSquare, Edit2, Flag, ImagePlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { CldUploadWidget } from 'next-cloudinary';
+import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
 
 interface Post {
   id: number;
@@ -14,10 +16,12 @@ interface Post {
   created_at: string;
   edited_at: string | null;
   likes: number;
+  image_url: string | null;
   author: {
     id: string;
     username: string;
     avatar: string;
+    profile_image_url: string | null;
     created_at: string;
   } | null;
 }
@@ -39,6 +43,7 @@ export default function TopicPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyContent, setReplyContent] = useState('');
+  const [replyImageUrl, setReplyImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -55,8 +60,8 @@ export default function TopicPage() {
         supabase
           .from('posts')
           .select(`
-            id, content, created_at, edited_at, likes,
-            author:profiles!author_id(id, username, avatar, created_at)
+            id, content, created_at, edited_at, likes, image_url,
+            author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
           `)
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true }),
@@ -84,16 +89,18 @@ export default function TopicPage() {
         topic_id: topicId,
         author_id: currentUser.id,
         content: replyContent.trim(),
+        image_url: replyImageUrl || null,
       })
       .select(`
-        id, content, created_at, edited_at, likes,
-        author:profiles!author_id(id, username, avatar, created_at)
+        id, content, created_at, edited_at, likes, image_url,
+        author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
       `)
       .single();
 
     if (!error && data) {
       setPosts((prev) => [...prev, data as Post]);
       setReplyContent('');
+      setReplyImageUrl('');
     }
     setSubmitting(false);
   };
@@ -182,7 +189,11 @@ export default function TopicPage() {
               <div className="flex gap-4">
                 {/* Author Info Sidebar */}
                 <Link href={`/profile/${post.author?.id}`} className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4 hover:opacity-80">
-                  <div className="text-5xl mb-2">{post.author?.avatar}</div>
+                  {post.author?.profile_image_url ? (
+                    <img src={profileThumb(post.author.profile_image_url)} alt={post.author.username} className="w-14 h-14 rounded-full object-cover mx-auto mb-2" />
+                  ) : (
+                    <div className="text-5xl mb-2">{post.author?.avatar}</div>
+                  )}
                   <p className="font-bold text-sm mb-1">{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
                     Liittynyt {post.author?.created_at ? formatDate(post.author.created_at) : ''}
@@ -217,6 +228,9 @@ export default function TopicPage() {
 
                   <div className="prose max-w-none mb-4">
                     <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+                    {post.image_url && (
+                      <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
@@ -246,15 +260,47 @@ export default function TopicPage() {
             className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 min-h-[150px] focus:border-yellow-400 focus:outline-none"
             placeholder="Kirjoita vastauksesi..."
           />
-          <Button
-            variant="success"
-            className="flex items-center gap-2"
-            onClick={handleReply}
-            disabled={submitting || !replyContent.trim()}
-          >
-            <MessageSquare size={16} />
-            {submitting ? 'Lähetetään...' : 'Lähetä vastaus'}
-          </Button>
+          {replyImageUrl && (
+            <div className="relative inline-block mb-4">
+              <img src={postThumb(replyImageUrl)} alt="Liite" className="max-h-40 rounded-lg" />
+              <button
+                type="button"
+                onClick={() => setReplyImageUrl('')}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <CldUploadWidget
+              uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+              options={{
+                maxFiles: 1,
+                resourceType: 'image',
+                folder: 'freakon/posts',
+              }}
+              onSuccess={(result: any) => {
+                setReplyImageUrl(result.info.secure_url);
+              }}
+            >
+              {({ open }) => (
+                <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                  <ImagePlus size={16} />
+                  Lisää kuva
+                </Button>
+              )}
+            </CldUploadWidget>
+            <Button
+              variant="success"
+              className="flex items-center gap-2"
+              onClick={handleReply}
+              disabled={submitting || !replyContent.trim()}
+            >
+              <MessageSquare size={16} />
+              {submitting ? 'Lähetetään...' : 'Lähetä vastaus'}
+            </Button>
+          </div>
         </Card>
       ) : (
         <Card className="mt-6 text-center">

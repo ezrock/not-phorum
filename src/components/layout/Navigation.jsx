@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home, MessageSquare, Users, LogIn, UserPlus } from 'lucide-react';
+import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
   const { currentUser, profile, logout } = useAuth();
@@ -41,7 +42,11 @@ export const Navigation = () => {
                 href="/profile"
                 className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-yellow-400 rounded hover:bg-gray-700"
               >
-                <span className="text-2xl">{profile.avatar}</span>
+                {profile.profile_image_url ? (
+                  <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <span className="text-2xl">{profile.avatar}</span>
+                )}
                 <span>{profile.username}</span>
               </Link>
               <button

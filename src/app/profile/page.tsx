@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Save } from 'lucide-react';
+import { CldUploadWidget } from 'next-cloudinary';
+import { Save, Camera, X } from 'lucide-react';
+import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
 
@@ -16,6 +18,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState(profile?.username || '');
   const [avatar, setAvatar] = useState(profile?.avatar || '🎮');
   const [email, setEmail] = useState(currentUser?.email || '');
+  const [profileImageUrl, setProfileImageUrl] = useState(profile?.profile_image_url || '');
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -33,15 +36,17 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
-      // Update profile table
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ username: username.trim(), avatar })
+        .update({
+          username: username.trim(),
+          avatar,
+          profile_image_url: profileImageUrl || null,
+        })
         .eq('id', currentUser.id);
 
       if (profileError) throw profileError;
 
-      // Update email if changed
       if (email !== currentUser.email) {
         const { error: emailError } = await supabase.auth.updateUser({
           email,
@@ -70,7 +75,11 @@ export default function ProfilePage() {
     <div className="max-w-2xl mx-auto mt-8 px-4 mb-12">
       <Card className="mb-6">
         <div className="flex items-center gap-4 mb-2">
-          <span className="text-6xl">{profile?.avatar}</span>
+          {profileImageUrl ? (
+            <img src={profileMedium(profileImageUrl)} alt={profile?.username} className="w-16 h-16 rounded-full object-cover" />
+          ) : (
+            <span className="text-6xl">{profile?.avatar}</span>
+          )}
           <div>
             <h1 className="text-3xl font-bold">{profile?.username}</h1>
             <p className="text-sm text-gray-500">
@@ -87,6 +96,51 @@ export default function ProfilePage() {
         {success && <Alert variant="success">{success}</Alert>}
 
         <form onSubmit={handleSaveProfile} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Profiilikuva
+            </label>
+            <div className="flex items-center gap-4">
+              {profileImageUrl ? (
+                <div className="relative">
+                  <img src={profileThumb(profileImageUrl)} alt="Profiilikuva" className="w-20 h-20 rounded-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setProfileImageUrl('')}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <span className="text-5xl">{avatar}</span>
+              )}
+              <CldUploadWidget
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                options={{
+                  maxFiles: 1,
+                  resourceType: 'image',
+                  folder: 'freakon/profiles',
+                  cropping: true,
+                  croppingAspectRatio: 1,
+                }}
+                onSuccess={(result: any) => {
+                  setProfileImageUrl(result.info.secure_url);
+                }}
+              >
+                {({ open }) => (
+                  <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                    <Camera size={16} />
+                    {profileImageUrl ? 'Vaihda kuva' : 'Lataa kuva'}
+                  </Button>
+                )}
+              </CldUploadWidget>
+            </div>
+            {!profileImageUrl && (
+              <p className="text-xs text-gray-400 mt-1">Profiilikuva korvaa emoji-avatarin</p>
+            )}
+          </div>
+
           <div>
             <label htmlFor="username" className="block text-sm font-medium mb-1">
               Käyttäjätunnus
@@ -116,7 +170,7 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              Avatar
+              Emoji-avatar
             </label>
             <div className="grid grid-cols-5 gap-2">
               {AVATAR_OPTIONS.map((emoji) => (
@@ -132,6 +186,9 @@ export default function ProfilePage() {
                 </button>
               ))}
             </div>
+            {profileImageUrl && (
+              <p className="text-xs text-gray-400 mt-1">Emoji-avatar näkyy varana jos profiilikuva poistetaan</p>
+            )}
           </div>
 
           <Button
