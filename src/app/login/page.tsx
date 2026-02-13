@@ -37,7 +37,7 @@ export default function LoginPage() {
       <Card>
         <h1 className="text-3xl font-bold mb-6">Kirjaudu sisään</h1>
 
-        {error && <Alert type="error" className="mb-4">{error}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -48,7 +48,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
               placeholder="esim@example.com"
             />
@@ -62,7 +62,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
             />
