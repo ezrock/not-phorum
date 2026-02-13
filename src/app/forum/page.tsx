@@ -1,18 +1,49 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
-import { mockCategories, mockTopics, mockUsers } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { MessageSquare, Eye, Pin, Lock, Plus } from 'lucide-react';
 
+interface Topic {
+  id: number;
+  title: string;
+  views: number;
+  reply_count: number;
+  is_pinned: boolean;
+  is_locked: boolean;
+  last_activity: string;
+  category: { name: string; icon: string } | null;
+  author: { username: string } | null;
+}
+
 export default function ForumPage() {
-  // Sort topics: pinned first, then by last activity
-  const sortedTopics = [...mockTopics].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
-  });
+  const { supabase } = useAuth();
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopics = async () => {
+      const { data, error } = await supabase
+        .from('topics')
+        .select(`
+          id, title, views, reply_count, is_pinned, is_locked, last_activity,
+          category:categories(name, icon),
+          author:profiles!author_id(username)
+        `)
+        .order('is_pinned', { ascending: false })
+        .order('last_activity', { ascending: false });
+
+      if (!error && data) {
+        setTopics(data as Topic[]);
+      }
+      setLoading(false);
+    };
+
+    fetchTopics();
+  }, [supabase]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -26,6 +57,16 @@ export default function ForumPage() {
     if (diffHours < 24) return `${diffHours}h sitten`;
     return `${diffDays} päivää sitten`;
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto mt-8 px-4">
+        <Card>
+          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
@@ -48,27 +89,28 @@ export default function ForumPage() {
         </div>
       </Card>
 
-      <div className="space-y-2">
-        {sortedTopics.map((topic) => {
-          const author = mockUsers.find((user) => user.id === topic.authorId);
-          const category = mockCategories.find((cat) => cat.id === topic.categoryId);
-
-          return (
+      {topics.length === 0 ? (
+        <Card>
+          <p className="text-center text-gray-500 py-8">
+            Ei vielä aiheita. Ole ensimmäinen ja aloita keskustelu!
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {topics.map((topic) => (
             <Link key={topic.id} href={`/forum/topic/${topic.id}`}>
               <Card className="hover:border-yellow-400 transition cursor-pointer py-3 px-4">
                 <div className="flex items-center gap-3">
-                  {/* Category Icon */}
                   <div className="flex-shrink-0 w-8 text-center">
-                    <div className="text-2xl">{category?.icon}</div>
+                    <div className="text-2xl">{topic.category?.icon}</div>
                   </div>
 
-                  {/* Topic Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      {topic.isPinned && (
+                      {topic.is_pinned && (
                         <Pin size={14} className="text-yellow-600 flex-shrink-0" fill="currentColor" />
                       )}
-                      {topic.isLocked && (
+                      {topic.is_locked && (
                         <Lock size={14} className="text-gray-500 flex-shrink-0" />
                       )}
                       <h3 className="text-lg font-bold text-gray-800 truncate">
@@ -78,14 +120,14 @@ export default function ForumPage() {
 
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="text-yellow-600 font-medium">
-                        {category?.name}
+                        {topic.category?.name}
                       </span>
                       <span className="truncate">
-                        {author?.username}
+                        {topic.author?.username}
                       </span>
                       <div className="flex items-center gap-1">
                         <MessageSquare size={12} />
-                        <span>{topic.replyCount}</span>
+                        <span>{topic.reply_count}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Eye size={12} />
@@ -94,18 +136,17 @@ export default function ForumPage() {
                     </div>
                   </div>
 
-                  {/* Last Activity */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-semibold text-gray-700">
-                      {formatDate(topic.lastActivity)}
+                      {formatDate(topic.last_activity)}
                     </p>
                   </div>
                 </div>
               </Card>
             </Link>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

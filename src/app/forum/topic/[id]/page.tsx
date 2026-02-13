@@ -1,20 +1,101 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
-import { mockCategories, mockTopics, mockPosts, mockUsers } from '@/lib/mockData';
 import Link from 'next/link';
 import { ArrowLeft, Heart, MessageSquare, Edit2, Flag } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface Post {
+  id: number;
+  content: string;
+  created_at: string;
+  edited_at: string | null;
+  likes: number;
+  author: {
+    id: string;
+    username: string;
+    avatar: string;
+    created_at: string;
+  } | null;
+}
+
+interface Topic {
+  id: number;
+  title: string;
+  views: number;
+  reply_count: number;
+  category: { name: string; icon: string } | null;
+}
+
 export default function TopicPage() {
   const params = useParams();
-  const { currentUser } = useAuth();
+  const { currentUser, supabase } = useAuth();
   const topicId = parseInt(params.id as string);
 
-  // Find the topic
-  const topic = mockTopics.find((t) => t.id === topicId);
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [topicRes, postsRes] = await Promise.all([
+        supabase
+          .from('topics')
+          .select(`
+            id, title, views, reply_count,
+            category:categories(name, icon)
+          `)
+          .eq('id', topicId)
+          .single(),
+        supabase
+          .from('posts')
+          .select(`
+            id, content, created_at, edited_at, likes,
+            author:profiles!author_id(id, username, avatar, created_at)
+          `)
+          .eq('topic_id', topicId)
+          .order('created_at', { ascending: true }),
+      ]);
+
+      if (!topicRes.error && topicRes.data) {
+        setTopic(topicRes.data as Topic);
+      }
+      if (!postsRes.error && postsRes.data) {
+        setPosts(postsRes.data as Post[]);
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [supabase, topicId]);
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('fi-FI', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fi-FI');
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto mt-8 px-4">
+        <Card>
+          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+        </Card>
+      </div>
+    );
+  }
 
   if (!topic) {
     return (
@@ -29,25 +110,6 @@ export default function TopicPage() {
     );
   }
 
-  const category = mockCategories.find((cat) => cat.id === topic.categoryId);
-
-  // Get posts for this topic
-  const topicPosts = mockPosts.filter((post) => post.topicId === topicId);
-  const sortedPosts = [...topicPosts].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('fi-FI', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4 mb-12">
       {/* Breadcrumb Navigation */}
@@ -56,7 +118,7 @@ export default function TopicPage() {
           Foorumi
         </Link>
         <span className="text-gray-400">/</span>
-        <span className="text-yellow-600">{category?.name}</span>
+        <span className="text-yellow-600">{topic.category?.name}</span>
         <span className="text-gray-400">/</span>
         <span className="text-gray-600">{topic.title}</span>
       </div>
@@ -65,13 +127,13 @@ export default function TopicPage() {
       <Card className="mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <span className="text-4xl">{category?.icon}</span>
+            <span className="text-4xl">{topic.category?.icon}</span>
             <div>
               <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="text-yellow-600 font-medium">{category?.name}</span>
+                <span className="text-yellow-600 font-medium">{topic.category?.name}</span>
                 <span>{topic.views} katselua</span>
-                <span>{topic.replyCount} vastausta</span>
+                <span>{topic.reply_count} vastausta</span>
               </div>
             </div>
           </div>
@@ -86,8 +148,7 @@ export default function TopicPage() {
 
       {/* Posts */}
       <div className="space-y-4">
-        {sortedPosts.map((post, index) => {
-          const author = mockUsers.find((user) => user.id === post.authorId);
+        {posts.map((post, index) => {
           const isOriginalPost = index === 0;
 
           return (
@@ -95,11 +156,10 @@ export default function TopicPage() {
               <div className="flex gap-4">
                 {/* Author Info Sidebar */}
                 <div className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4">
-                  <div className="text-5xl mb-2">{author?.avatar}</div>
-                  <p className="font-bold text-sm mb-1">{author?.username}</p>
-                  <p className="text-xs text-gray-500 mb-2">{author?.posts} viestiä</p>
+                  <div className="text-5xl mb-2">{post.author?.avatar}</div>
+                  <p className="font-bold text-sm mb-1">{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
-                    Liittynyt {author?.joinDate}
+                    Liittynyt {post.author?.created_at ? formatDate(post.author.created_at) : ''}
                   </p>
                 </div>
 
@@ -107,17 +167,17 @@ export default function TopicPage() {
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-3">
                     <div className="text-sm text-gray-500">
-                      {formatDateTime(post.createdAt)}
-                      {post.editedAt && (
+                      {formatDateTime(post.created_at)}
+                      {post.edited_at && (
                         <span className="ml-2 text-xs">
-                          (Muokattu: {formatDateTime(post.editedAt)})
+                          (Muokattu: {formatDateTime(post.edited_at)})
                         </span>
                       )}
                     </div>
 
                     {currentUser && (
                       <div className="flex gap-2">
-                        {currentUser.id === post.authorId && (
+                        {currentUser.id === post.author?.id && (
                           <button className="text-gray-500 hover:text-yellow-600">
                             <Edit2 size={16} />
                           </button>
