@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
 
@@ -20,7 +19,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +44,9 @@ export default function RegisterPage() {
 
     try {
       await register(email, password, username, avatar);
-      router.push('/forum');
+      window.location.href = '/forum';
     } catch (err: any) {
       setError(err.message || 'Rekisteröityminen epäonnistui');
-    } finally {
       setLoading(false);
     }
   };

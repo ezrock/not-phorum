@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +14,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +22,10 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/forum');
+      // Full page navigation ensures auth cookies are sent to middleware
+      window.location.href = '/forum';
     } catch (err: any) {
       setError(err.message || 'Kirjautuminen epäonnistui');
-    } finally {
       setLoading(false);
     }
   };
