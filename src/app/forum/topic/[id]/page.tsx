@@ -22,7 +22,7 @@ export default function TopicPage() {
         <Card>
           <h2 className="text-2xl font-bold">Aihetta ei löytynyt</h2>
           <Link href="/forum">
-            <Button className="mt-4">Takaisin foorumille</Button>
+            <Button className="mt-4" onClick={() => {}}>Takaisin foorumille</Button>
           </Link>
         </Card>
       </div>
@@ -76,7 +76,7 @@ export default function TopicPage() {
             </div>
           </div>
           <Link href="/forum">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => {}}>
               <ArrowLeft size={16} />
               Takaisin
             </Button>

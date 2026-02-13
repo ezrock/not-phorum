@@ -37,7 +37,11 @@ export default function ForumPage() {
               Tervetuloa keskustelemaan! Kaikki aiheet yhdessä näkymässä.
             </p>
           </div>
-          <Button variant="success" className="flex items-center gap-2">
+          <Button
+            variant="success"
+            className="flex items-center gap-2"
+            onClick={() => alert('Uuden aiheen luominen tulossa pian!')}
+          >
             <Plus size={20} />
             Uusi aihe
           </Button>
