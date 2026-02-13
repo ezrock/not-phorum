@@ -91,6 +91,12 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const refreshProfile = async () => {
+    if (currentUser) {
+      await fetchProfile(currentUser.id);
+    }
+  };
+
   const value = {
     currentUser,
     profile,
@@ -98,6 +104,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     register,
+    refreshProfile,
     supabase,
   };
 

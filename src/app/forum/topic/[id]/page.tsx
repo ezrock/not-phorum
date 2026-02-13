@@ -181,13 +181,13 @@ export default function TopicPage() {
             <Card key={post.id} className={isOriginalPost ? 'border-yellow-400 border-2' : ''}>
               <div className="flex gap-4">
                 {/* Author Info Sidebar */}
-                <div className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4">
+                <Link href={`/profile/${post.author?.id}`} className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4 hover:opacity-80">
                   <div className="text-5xl mb-2">{post.author?.avatar}</div>
                   <p className="font-bold text-sm mb-1">{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
                     Liittynyt {post.author?.created_at ? formatDate(post.author.created_at) : ''}
                   </p>
-                </div>
+                </Link>
 
                 {/* Post Content */}
                 <div className="flex-1">

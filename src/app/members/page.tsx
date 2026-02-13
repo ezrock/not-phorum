@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 import { Users } from 'lucide-react';
 
 interface Profile {
@@ -67,19 +68,21 @@ export default function MembersPage() {
 
       <div className="space-y-2">
         {members.map((member) => (
-          <Card key={member.id} className="py-3 px-4">
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">{member.avatar}</span>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-800">
-                  {member.username}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Liittynyt {formatDate(member.created_at)}
-                </p>
+          <Link key={member.id} href={`/profile/${member.id}`}>
+            <Card className="py-3 px-4 hover:border-yellow-400 transition cursor-pointer">
+              <div className="flex items-center gap-4">
+                <span className="text-3xl">{member.avatar}</span>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {member.username}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Liittynyt {formatDate(member.created_at)}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         ))}
 
         {members.length === 0 && (

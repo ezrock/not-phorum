@@ -57,8 +57,8 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect forum and members routes
-  if (!user && (request.nextUrl.pathname.startsWith('/forum') || request.nextUrl.pathname.startsWith('/members'))) {
+  // Protect forum, members and profile routes
+  if (!user && (request.nextUrl.pathname.startsWith('/forum') || request.nextUrl.pathname.startsWith('/members') || request.nextUrl.pathname.startsWith('/profile'))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
