@@ -173,7 +173,7 @@ export default function TopicPage() {
             Kirjaudu sisään vastataksesi tähän aiheeseen
           </p>
           <Link href="/login">
-            <Button>Kirjaudu sisään</Button>
+            <Button onClick={() => {}}>Kirjaudu sisään</Button>
           </Link>
         </Card>
       )}

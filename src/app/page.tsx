@@ -19,10 +19,10 @@ export default function Home() {
         {!currentUser && (
           <div className="flex gap-4">
             <Link href="/register">
-              <Button variant="success">Liity yhteisöön</Button>
+              <Button variant="success" onClick={() => {}}>Liity yhteisöön</Button>
             </Link>
             <Link href="/login">
-              <Button>Kirjaudu sisään</Button>
+              <Button onClick={() => {}}>Kirjaudu sisään</Button>
             </Link>
           </div>
         )}
