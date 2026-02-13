@@ -158,7 +158,11 @@ export default function TopicPage() {
             className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 min-h-[150px] focus:border-yellow-400 focus:outline-none"
             placeholder="Kirjoita vastauksesi..."
           />
-          <Button variant="success" className="flex items-center gap-2">
+          <Button
+            variant="success"
+            className="flex items-center gap-2"
+            onClick={() => alert('Vastauksen lähettäminen tulossa pian!')}
+          >
             <MessageSquare size={16} />
             Lähetä vastaus
           </Button>
