@@ -38,6 +38,8 @@ export default function TopicPage() {
   const [topic, setTopic] = useState<Topic | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [replyContent, setReplyContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,6 +73,30 @@ export default function TopicPage() {
 
     fetchData();
   }, [supabase, topicId]);
+
+  const handleReply = async () => {
+    if (!replyContent.trim() || !currentUser) return;
+    setSubmitting(true);
+
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({
+        topic_id: topicId,
+        author_id: currentUser.id,
+        content: replyContent.trim(),
+      })
+      .select(`
+        id, content, created_at, edited_at, likes,
+        author:profiles!author_id(id, username, avatar, created_at)
+      `)
+      .single();
+
+    if (!error && data) {
+      setPosts((prev) => [...prev, data as Post]);
+      setReplyContent('');
+    }
+    setSubmitting(false);
+  };
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -215,16 +241,19 @@ export default function TopicPage() {
         <Card className="mt-6">
           <h3 className="text-xl font-bold mb-4">Vastaa aiheeseen</h3>
           <textarea
+            value={replyContent}
+            onChange={(e) => setReplyContent(e.target.value)}
             className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 min-h-[150px] focus:border-yellow-400 focus:outline-none"
             placeholder="Kirjoita vastauksesi..."
           />
           <Button
             variant="success"
             className="flex items-center gap-2"
-            onClick={() => alert('Vastauksen lähettäminen tulossa pian!')}
+            onClick={handleReply}
+            disabled={submitting || !replyContent.trim()}
           >
             <MessageSquare size={16} />
-            Lähetä vastaus
+            {submitting ? 'Lähetetään...' : 'Lähetä vastaus'}
           </Button>
         </Card>
       ) : (

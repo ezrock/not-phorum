@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
       <Card className="mb-8">
-        <h2 className="text-3xl font-bold mb-4">Freak On!e</h2>
+        <h2 className="text-3xl font-bold mb-4">Freak On!</h2>
         <p className="text-gray-700 text-lg mb-4">
           Vuodesta 2004.
         </p>
