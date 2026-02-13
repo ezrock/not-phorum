@@ -27,10 +27,10 @@ export const Navigation = () => {
               <MessageSquare size={20} />
               Foorumi
             </Link>
-            <button className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
+            <Link href="/members" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
               <Users size={20} />
               Jäsenet
-            </button>
+            </Link>
           </div>
         </div>
 
