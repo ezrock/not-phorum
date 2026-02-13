@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
@@ -13,15 +13,30 @@ import { profileMedium, profileThumb } from '@/lib/cloudinary';
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
 
 export default function ProfilePage() {
-  const { currentUser, profile, supabase, refreshProfile } = useAuth();
+  const { currentUser, profile, loading, supabase, refreshProfile } = useAuth();
 
-  const [username, setUsername] = useState(profile?.username || '');
-  const [avatar, setAvatar] = useState(profile?.avatar || '🎮');
-  const [email, setEmail] = useState(currentUser?.email || '');
-  const [profileImageUrl, setProfileImageUrl] = useState(profile?.profile_image_url || '');
+  const [username, setUsername] = useState('');
+  const [avatar, setAvatar] = useState('🎮');
+  const [email, setEmail] = useState('');
+  const [profileImageUrl, setProfileImageUrl] = useState('');
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Sync form state when profile loads
+  useEffect(() => {
+    if (profile) {
+      setUsername(profile.username || '');
+      setAvatar(profile.avatar || '🎮');
+      setProfileImageUrl(profile.profile_image_url || '');
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (currentUser) {
+      setEmail(currentUser.email || '');
+    }
+  }, [currentUser]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +85,16 @@ export default function ProfilePage() {
       year: 'numeric',
     });
   };
+
+  if (loading || !profile) {
+    return (
+      <div className="max-w-2xl mx-auto mt-8 px-4">
+        <Card>
+          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto mt-8 px-4 mb-12">

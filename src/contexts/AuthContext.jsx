@@ -69,10 +69,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await supabase.auth.signOut();
     setCurrentUser(null);
     setProfile(null);
+    // Full page navigation to ensure cookies are cleared for middleware
+    window.location.href = '/';
   };
 
   const register = async (email, password, username, avatar) => {
