@@ -1,0 +1,169 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/Input';
+import { Alert } from '@/components/ui/Alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Send } from 'lucide-react';
+
+interface Category {
+  id: number;
+  name: string;
+  icon: string;
+}
+
+export default function NewTopicPage() {
+  const { currentUser, supabase } = useAuth();
+  const router = useRouter();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<number | ''>('');
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await supabase
+        .from('categories')
+        .select('id, name, icon')
+        .order('name');
+
+      if (data) setCategories(data);
+    };
+
+    fetchCategories();
+  }, [supabase]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!categoryId) {
+      setError('Valitse kategoria');
+      return;
+    }
+    if (title.trim().length < 3) {
+      setError('Otsikon pitää olla vähintään 3 merkkiä');
+      return;
+    }
+    if (content.trim().length < 1) {
+      setError('Kirjoita viestin sisältö');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      // Create the topic
+      const { data: topic, error: topicError } = await supabase
+        .from('topics')
+        .insert({
+          title: title.trim(),
+          category_id: categoryId,
+          author_id: currentUser!.id,
+        })
+        .select('id')
+        .single();
+
+      if (topicError) throw topicError;
+
+      // Create the first post
+      const { error: postError } = await supabase
+        .from('posts')
+        .insert({
+          topic_id: topic.id,
+          author_id: currentUser!.id,
+          content: content.trim(),
+        });
+
+      if (postError) throw postError;
+
+      router.push(`/forum/topic/${topic.id}`);
+    } catch (err: any) {
+      setError(err.message || 'Aiheen luominen epäonnistui');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto mt-8 px-4 mb-12">
+      <div className="mb-6">
+        <Link href="/forum" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
+          <ArrowLeft size={16} />
+          Takaisin foorumille
+        </Link>
+      </div>
+
+      <Card>
+        <h1 className="text-3xl font-bold mb-6">Uusi aihe</h1>
+
+        {error && <Alert variant="error">{error}</Alert>}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium mb-1">
+              Kategoria
+            </label>
+            <select
+              id="category"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+              className="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-yellow-400 focus:outline-none bg-white"
+              required
+            >
+              <option value="">Valitse kategoria...</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium mb-1">
+              Otsikko
+            </label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+              placeholder="Aiheen otsikko"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="content" className="block text-sm font-medium mb-1">
+              Viesti
+            </label>
+            <textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full border-2 border-gray-300 rounded-lg p-3 min-h-[200px] focus:border-yellow-400 focus:outline-none"
+              placeholder="Kirjoita viestisi..."
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="success"
+            disabled={submitting}
+            className="flex items-center gap-2"
+          >
+            <Send size={16} />
+            {submitting ? 'Luodaan...' : 'Luo aihe'}
+          </Button>
+        </form>
+      </Card>
+    </div>
+  );
+}
