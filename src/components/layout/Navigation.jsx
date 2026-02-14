@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, MessageSquare, Users, LogIn, UserPlus } from 'lucide-react';
+import { Home, MessageSquare, Users } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
   const { currentUser, profile, logout } = useAuth();
+
+  if (!currentUser || !profile) return null;
 
   return (
     <nav className="bg-yellow-400 p-4 border-b-4 border-gray-800">
@@ -36,44 +38,23 @@ export const Navigation = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {currentUser && profile ? (
-            <>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-yellow-400 rounded hover:bg-gray-700"
-              >
-                {profile.profile_image_url ? (
-                  <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-8 h-8 rounded-full object-cover" />
-                ) : (
-                  <span className="text-2xl">{profile.avatar}</span>
-                )}
-                <span>{profile.username}</span>
-              </Link>
-              <button
-                onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Kirjaudu ulos
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-yellow-400 rounded hover:bg-gray-700"
-              >
-                <LogIn size={20} />
-                Kirjaudu
-              </Link>
-              <Link
-                href="/register"
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                <UserPlus size={20} />
-                Rekisteröidy
-              </Link>
-            </>
-          )}
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-yellow-400 rounded hover:bg-gray-700"
+          >
+            {profile.profile_image_url ? (
+              <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <span className="text-2xl">{profile.avatar}</span>
+            )}
+            <span>{profile.username}</span>
+          </Link>
+          <button
+            onClick={logout}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Kirjaudu ulos
+          </button>
         </div>
       </div>
     </nav>

@@ -59,7 +59,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect forum, members and profile routes
   if (!user && (request.nextUrl.pathname.startsWith('/forum') || request.nextUrl.pathname.startsWith('/members') || request.nextUrl.pathname.startsWith('/profile'))) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return response
