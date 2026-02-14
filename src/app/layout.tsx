@@ -5,8 +5,8 @@ import { Footer } from '@/components/layout/Footer';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Freak On! Forum',
-  description: 'Suomalainen pelaajayhteisö vuodesta 2004',
+  title: 'Freak On!',
+  description: 'Vuodesta 2004',
 };
 
 export default function RootLayout({

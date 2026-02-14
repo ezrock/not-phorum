@@ -45,16 +45,22 @@ export default function Home() {
   return (
     <div className="flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 4rem)' }}>
       <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1
-            className="text-6xl font-bold text-gray-800 tracking-wider mb-2"
-            style={{ fontFamily: 'monospace' }}
-          >
-            FREAK ON!
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Vuodesta 2004
-          </p>
+        <div className="mb-8 flex justify-center">
+          <pre className="text-gray-800 leading-tight text-[0.45rem] sm:text-[0.55rem] md:text-xs overflow-hidden text-left">{
+`___________                      __     ________
+\\_   _____/______   ____ _____  |  | __ \\_____  \\   ____
+ |    __) \\_  __ \\_/ __ \\\\__  \\ |  |/ /  /   |   \\ /    \\
+ |     \\   |  | \\/\\  ___/ / __ \\|    <  /    |    \\   |  \\
+ \\___  /   |__|    \\___  >____  /__|_ \\ \\_______  /___|  /
+     \\/                \\/     \\/     \\/         \\/     \\/
+_______________  _______      _____
+\\_____  \\   _  \\ \\   _  \\    /  |  |
+ /  ____/  /_\\  \\/  /_\\  \\  /   |  |_  ______
+/       \\  \\_/   \\  \\_/   \\/    ^   / /_____/
+\\_______ \\_____  /\\_____  /\\____   |
+        \\/     \\/       \\/      |__|`
+        }
+        </pre>
         </div>
 
         <Card>
