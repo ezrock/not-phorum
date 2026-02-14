@@ -9,7 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
 
 export default function Home() {
-  const { currentUser, loading, login, supabase } = useAuth();
+  const { currentUser, loading, login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +29,6 @@ export default function Home() {
     setLoggingIn(true);
 
     try {
-      await supabase.auth.signOut();
       await login(email, password);
       window.location.href = '/forum';
     } catch (err: any) {
