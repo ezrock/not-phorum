@@ -54,7 +54,7 @@ export default function Home() {
             FREAK ON!
           </h1>
           <p className="text-gray-600 text-lg">
-            Suomalainen pelaajayhteisö vuodesta 2004
+            Vuodesta 2004
           </p>
         </div>
 
