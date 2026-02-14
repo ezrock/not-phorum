@@ -67,6 +67,8 @@ Goal
 - User can change their email address
 
 ## Search features
-- 
+- Real time filtering
+- Less prone to error (typos should not matter a lot)
+- Search from message content and thread names
 
 
