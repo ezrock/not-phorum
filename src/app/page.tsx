@@ -38,13 +38,13 @@ export default function Home() {
     }
   };
 
-  // Show nothing while checking auth state
-  if (loading || currentUser) {
+  // Hide the login form once we know the user is logged in (redirect is in progress)
+  if (!loading && currentUser) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+    <div className="flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 4rem)' }}>
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1
