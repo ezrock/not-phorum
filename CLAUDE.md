@@ -36,8 +36,8 @@ supabase/migrations/        # 001_initial_schema, 002_seed_categories, 003_add_i
 ## Supabase Tables
 - **profiles**: id, username, avatar, profile_image_url, created_at
 - **categories**: id, name, description, icon, slug, created_at (41 gaming categories)
-- **topics**: id, title, category_id, author_id, views, reply_count, is_pinned, is_locked, last_activity
-- **posts**: id, topic_id, author_id, content, image_url, created_at
+- **topics**: id, title, category_id, author_id, views, created_at
+- **posts**: id, topic_id, author_id, content, image_url, updated_at, created_at
 
 ## Key Patterns
 

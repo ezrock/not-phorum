@@ -18,7 +18,7 @@ RETURNS TABLE (
   author_avatar text,
   author_profile_image_url text,
   similarity_score real,
-  last_activity timestamptz
+  created_at timestamptz
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -38,7 +38,7 @@ BEGIN
     p.avatar AS author_avatar,
     p.profile_image_url AS author_profile_image_url,
     similarity(t.title, search_term) AS similarity_score,
-    t.last_activity
+    t.created_at
   FROM topics t
   JOIN categories c ON c.id = t.category_id
   JOIN profiles p ON p.id = t.author_id
@@ -59,7 +59,7 @@ BEGIN
     pr.avatar AS author_avatar,
     pr.profile_image_url AS author_profile_image_url,
     similarity(po.content, search_term) AS similarity_score,
-    t.last_activity
+    po.created_at
   FROM posts po
   JOIN topics t ON t.id = po.topic_id
   JOIN categories c ON c.id = t.category_id
@@ -67,7 +67,7 @@ BEGIN
   WHERE similarity(po.content, search_term) > 0.1
      OR po.content ILIKE '%' || search_term || '%'
 
-  ORDER BY similarity_score DESC, last_activity DESC
+  ORDER BY similarity_score DESC, created_at DESC
   LIMIT result_limit;
 END;
 $$;

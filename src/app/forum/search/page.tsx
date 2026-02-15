@@ -18,7 +18,7 @@ interface SearchResult {
   author_avatar: string;
   author_profile_image_url: string | null;
   similarity_score: number;
-  last_activity: string;
+  created_at: string;
 }
 
 function SearchContent() {

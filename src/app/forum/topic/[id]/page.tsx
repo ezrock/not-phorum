@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Heart, MessageSquare, Edit2, Flag, ImagePlus, X } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Edit2, Flag, ImagePlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -14,8 +14,7 @@ interface Post {
   id: number;
   content: string;
   created_at: string;
-  edited_at: string | null;
-  likes: number;
+  updated_at: string | null;
   image_url: string | null;
   author: {
     id: string;
@@ -30,7 +29,6 @@ interface Topic {
   id: number;
   title: string;
   views: number;
-  reply_count: number;
   category: { name: string; icon: string } | null;
 }
 
@@ -52,7 +50,7 @@ export default function TopicPage() {
         supabase
           .from('topics')
           .select(`
-            id, title, views, reply_count,
+            id, title, views,
             category:categories(name, icon)
           `)
           .eq('id', topicId)
@@ -60,7 +58,7 @@ export default function TopicPage() {
         supabase
           .from('posts')
           .select(`
-            id, content, created_at, edited_at, likes, image_url,
+            id, content, created_at, updated_at, image_url,
             author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
           `)
           .eq('topic_id', topicId)
@@ -92,7 +90,7 @@ export default function TopicPage() {
         image_url: replyImageUrl || null,
       })
       .select(`
-        id, content, created_at, edited_at, likes, image_url,
+        id, content, created_at, updated_at, image_url,
         author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
       `)
       .single();
@@ -166,7 +164,7 @@ export default function TopicPage() {
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <span className="text-yellow-600 font-medium">{topic.category?.name}</span>
                 <span>{topic.views} katselua</span>
-                <span>{topic.reply_count} vastausta</span>
+                <span>{posts.length} vastausta</span>
               </div>
             </div>
           </div>
@@ -205,9 +203,9 @@ export default function TopicPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="text-sm text-gray-500">
                       {formatDateTime(post.created_at)}
-                      {post.edited_at && (
+                      {post.updated_at && (
                         <span className="ml-2 text-xs">
-                          (Muokattu: {formatDateTime(post.edited_at)})
+                          (Muokattu: {formatDateTime(post.updated_at)})
                         </span>
                       )}
                     </div>
@@ -234,10 +232,6 @@ export default function TopicPage() {
                   </div>
 
                   <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
-                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600 transition">
-                      <Heart size={16} />
-                      <span>{post.likes}</span>
-                    </button>
                     <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-yellow-600 transition">
                       <MessageSquare size={16} />
                       <span>Vastaa</span>

@@ -5,16 +5,13 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { MessageSquare, Eye, Pin, Lock, Plus } from 'lucide-react';
+import { MessageSquare, Eye, Plus } from 'lucide-react';
 
 interface Topic {
   id: number;
   title: string;
   views: number;
-  reply_count: number;
-  is_pinned: boolean;
-  is_locked: boolean;
-  last_activity: string;
+  created_at: string;
   category: { name: string; icon: string } | null;
   author: { username: string } | null;
 }
@@ -29,12 +26,11 @@ export default function ForumPage() {
       const { data, error } = await supabase
         .from('topics')
         .select(`
-          id, title, views, reply_count, is_pinned, is_locked, last_activity,
+          id, title, views, created_at,
           category:categories(name, icon),
           author:profiles!author_id(username)
         `)
-        .order('is_pinned', { ascending: false })
-        .order('last_activity', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (!error && data) {
         setTopics(data as Topic[]);
@@ -109,12 +105,6 @@ export default function ForumPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      {topic.is_pinned && (
-                        <Pin size={14} className="text-yellow-600 flex-shrink-0" fill="currentColor" />
-                      )}
-                      {topic.is_locked && (
-                        <Lock size={14} className="text-gray-500 flex-shrink-0" />
-                      )}
                       <h3 className="text-lg font-bold text-gray-800 truncate">
                         {topic.title}
                       </h3>
@@ -128,10 +118,6 @@ export default function ForumPage() {
                         {topic.author?.username}
                       </span>
                       <div className="flex items-center gap-1">
-                        <MessageSquare size={12} />
-                        <span>{topic.reply_count}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
                         <Eye size={12} />
                         <span>{topic.views}</span>
                       </div>
@@ -140,7 +126,7 @@ export default function ForumPage() {
 
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-semibold text-gray-700">
-                      {formatDate(topic.last_activity)}
+                      {formatDate(topic.created_at)}
                     </p>
                   </div>
                 </div>
