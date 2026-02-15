@@ -193,7 +193,7 @@ export default function PublicProfilePage() {
               Jäsen {formatDate(profile.created_at)} alkaen
             </p>
             <div className="flex items-center gap-2 mt-2">
-              {profile.is_admin && (
+              {isCurrentUserAdmin && profile.is_admin && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded">
                   <Shield size={12} />
                   Admin

@@ -17,7 +17,7 @@ interface Profile {
 }
 
 export default function MembersPage() {
-  const { supabase } = useAuth();
+  const { supabase, profile: myProfile } = useAuth();
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +82,7 @@ export default function MembersPage() {
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     {member.username}
-                    {member.is_admin && (
+                    {myProfile?.is_admin && member.is_admin && (
                       <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-200 px-1.5 py-0.5 rounded">
                         <Shield size={10} />
                         Admin
