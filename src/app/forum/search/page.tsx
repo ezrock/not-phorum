@@ -52,8 +52,10 @@ function SearchContent() {
   }, [supabase]);
 
   useEffect(() => {
-    setSearchInput(query);
-    performSearch(query);
+    const timer = window.setTimeout(() => {
+      void performSearch(query);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [query, performSearch]);
 
   const handleSearch = (e: React.FormEvent) => {

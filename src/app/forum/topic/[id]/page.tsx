@@ -36,6 +36,17 @@ interface Topic {
   category: { name: string; icon: string } | null;
 }
 
+interface CloudinaryUploadResult {
+  info?: {
+    secure_url?: string;
+  };
+}
+
+function extractSecureUrl(result: unknown): string | null {
+  const typed = result as CloudinaryUploadResult;
+  return typed?.info?.secure_url ?? null;
+}
+
 export default function TopicPage() {
   const params = useParams();
   const { currentUser, supabase } = useAuth();
@@ -85,6 +96,11 @@ export default function TopicPage() {
     };
 
     fetchData();
+  }, [supabase, topicId]);
+
+  useEffect(() => {
+    if (!Number.isFinite(topicId)) return;
+    supabase.rpc('increment_topic_views', { target_topic_id: topicId });
   }, [supabase, topicId]);
 
   const handleReply = async () => {
@@ -294,7 +310,12 @@ export default function TopicPage() {
                       <CldUploadWidget
                         uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                         options={{ maxFiles: 1, resourceType: 'image', folder: 'freakon/posts' }}
-                        onSuccess={(result: any) => setEditImageUrl(result.info.secure_url)}
+                        onSuccess={(result: unknown) => {
+                          const secureUrl = extractSecureUrl(result);
+                          if (secureUrl) {
+                            setEditImageUrl(secureUrl);
+                          }
+                        }}
                       >
                         {({ open }) => (
                           <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
@@ -428,8 +449,11 @@ export default function TopicPage() {
                 resourceType: 'image',
                 folder: 'freakon/posts',
               }}
-              onSuccess={(result: any) => {
-                setReplyImageUrl(result.info.secure_url);
+              onSuccess={(result: unknown) => {
+                const secureUrl = extractSecureUrl(result);
+                if (secureUrl) {
+                  setReplyImageUrl(secureUrl);
+                }
               }}
             >
               {({ open }) => (

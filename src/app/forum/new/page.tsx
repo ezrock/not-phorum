@@ -21,8 +21,19 @@ interface Category {
   parent_id: number | null;
 }
 
+interface CloudinaryUploadResult {
+  info?: {
+    secure_url?: string;
+  };
+}
+
+function extractSecureUrl(result: unknown): string | null {
+  const typed = result as CloudinaryUploadResult;
+  return typed?.info?.secure_url ?? null;
+}
+
 export default function NewTopicPage() {
-  const { currentUser, supabase } = useAuth();
+  const { supabase } = useAuth();
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -70,32 +81,21 @@ export default function NewTopicPage() {
     setSubmitting(true);
 
     try {
-      const { data: topic, error: topicError } = await supabase
-        .from('topics')
-        .insert({
-          title: title.trim(),
-          category_id: categoryId,
-          author_id: currentUser!.id,
-        })
-        .select('id')
-        .single();
+      const { data: topicIdResult, error: createError } = await supabase.rpc('create_topic_with_post', {
+        input_category_id: categoryId,
+        input_title: title.trim(),
+        input_content: content.trim(),
+        input_image_url: imageUrl || null,
+      });
 
-      if (topicError) throw topicError;
+      if (createError || typeof topicIdResult !== 'number') {
+        throw createError ?? new Error('Aiheen luominen epäonnistui');
+      }
 
-      const { error: postError } = await supabase
-        .from('posts')
-        .insert({
-          topic_id: topic.id,
-          author_id: currentUser!.id,
-          content: content.trim(),
-          image_url: imageUrl || null,
-        });
-
-      if (postError) throw postError;
-
-      router.push(`/forum/topic/${topic.id}`);
-    } catch (err: any) {
-      setError(err.message || 'Aiheen luominen epäonnistui');
+      router.push(`/forum/topic/${topicIdResult}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Aiheen luominen epäonnistui';
+      setError(message);
       setSubmitting(false);
     }
   };
@@ -191,8 +191,11 @@ export default function NewTopicPage() {
                 resourceType: 'image',
                 folder: 'freakon/posts',
               }}
-              onSuccess={(result: any) => {
-                setImageUrl(result.info.secure_url);
+              onSuccess={(result: unknown) => {
+                const secureUrl = extractSecureUrl(result);
+                if (secureUrl) {
+                  setImageUrl(secureUrl);
+                }
               }}
             >
               {({ open }) => (

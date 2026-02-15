@@ -31,8 +31,9 @@ export default function Home() {
     try {
       await login(email, password);
       window.location.href = '/forum';
-    } catch (err: any) {
-      setError(err.message || 'Kirjautuminen epäonnistui');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Kirjautuminen epäonnistui';
+      setError(message);
       setLoggingIn(false);
     }
   };

@@ -37,6 +37,25 @@ interface CategoryStat {
   count: number;
 }
 
+interface PostCategoryRow {
+  topic: {
+    category: {
+      name: string;
+      icon: string;
+    } | null;
+  } | null;
+}
+
+function safeHttpUrl(rawUrl: string | null): string | null {
+  if (!rawUrl) return null;
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -105,8 +124,8 @@ export default function PublicProfilePage() {
 
       if (postData) {
         const catCounts: Record<string, CategoryStat> = {};
-        for (const post of postData) {
-          const topic = post.topic as any;
+        for (const post of postData as PostCategoryRow[]) {
+          const topic = post.topic;
           const cat = topic?.category;
           if (cat?.name) {
             if (!catCounts[cat.name]) {
@@ -152,10 +171,10 @@ export default function PublicProfilePage() {
     setTogglingAdmin(true);
 
     const newValue = !profile.is_admin;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_admin: newValue })
-      .eq('id', profile.id);
+    const { error } = await supabase.rpc('set_user_admin', {
+      target_user_id: profile.id,
+      make_admin: newValue,
+    });
 
     if (!error) {
       setProfile({ ...profile, is_admin: newValue });
@@ -166,6 +185,7 @@ export default function PublicProfilePage() {
 
   const isCurrentUserAdmin = myProfile?.is_admin;
   const isLastAdmin = profile?.is_admin && adminCount <= 1;
+  const profileLink = safeHttpUrl(profile?.link_url ?? null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fi-FI', {
@@ -231,15 +251,15 @@ export default function PublicProfilePage() {
                   Admin
                 </span>
               )}
-              {profile.link_url && (
+              {profileLink && (
                 <a
-                  href={profile.link_url}
+                  href={profileLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
                 >
                   <LinkIcon size={12} />
-                  {profile.link_description || profile.link_url}
+                  {profile.link_description || profileLink}
                 </a>
               )}
             </div>
@@ -265,65 +285,41 @@ export default function PublicProfilePage() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <MessageSquare size={20} className="text-yellow-600" />
-              <span className="text-3xl font-bold">{postCount}</span>
-            </div>
-            <p className="text-sm text-gray-500">Viestiä</p>
+      <Card className="mb-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <MessageSquare size={18} className="text-yellow-600" />
+            <span className="text-sm text-gray-500 flex-1">Viestiä</span>
+            <span className="font-bold">{postCount}</span>
           </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <MessageSquare size={20} className="text-yellow-600" />
-              <span className="text-3xl font-bold">{topicCount}</span>
-            </div>
-            <p className="text-sm text-gray-500">Aloitettua aihetta</p>
+          <div className="flex items-center gap-3">
+            <MessageSquare size={18} className="text-yellow-600" />
+            <span className="text-sm text-gray-500 flex-1">Aloitettua aihetta</span>
+            <span className="font-bold">{topicCount}</span>
           </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <LogIn size={20} className="text-yellow-600" />
-              <span className="text-3xl font-bold">{profile.login_count}</span>
-            </div>
-            <p className="text-sm text-gray-500">Kirjautumista</p>
+          <div className="flex items-center gap-3">
+            <LogIn size={18} className="text-yellow-600" />
+            <span className="text-sm text-gray-500 flex-1">Kirjautumista</span>
+            <span className="font-bold">{profile.login_count}</span>
           </div>
-        </Card>
-      </div>
-
-      {/* Top Topics */}
-      {(mostPopularTopic || mostActiveTopic) && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
           {mostPopularTopic && (
-            <Link href={`/forum/topic/${mostPopularTopic.id}`}>
-              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
-                <div className="flex items-center gap-2 mb-2">
-                  <Eye size={16} className="text-yellow-600" />
-                  <span className="text-sm font-medium text-gray-500">Suosituin aihe</span>
-                </div>
-                <p className="font-bold text-sm line-clamp-2">{mostPopularTopic.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{mostPopularTopic.views} katselua</p>
-              </Card>
+            <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+              <Eye size={18} className="text-yellow-600" />
+              <span className="text-sm text-gray-500 flex-shrink-0">Suosituin aihe</span>
+              <span className="font-bold text-sm text-right flex-1 truncate">{mostPopularTopic.title}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{mostPopularTopic.views} katselua</span>
             </Link>
           )}
           {mostActiveTopic && (
-            <Link href={`/forum/topic/${mostActiveTopic.id}`}>
-              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 size={16} className="text-yellow-600" />
-                  <span className="text-sm font-medium text-gray-500">Aktiivisin aihe</span>
-                </div>
-                <p className="font-bold text-sm line-clamp-2">{mostActiveTopic.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{mostActiveTopic.reply_count} vastausta</p>
-              </Card>
+            <Link href={`/forum/topic/${mostActiveTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+              <BarChart3 size={18} className="text-yellow-600" />
+              <span className="text-sm text-gray-500 flex-shrink-0">Aktiivisin aihe</span>
+              <span className="font-bold text-sm text-right flex-1 truncate">{mostActiveTopic.title}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{mostActiveTopic.reply_count} vastausta</span>
             </Link>
           )}
         </div>
-      )}
+      </Card>
 
       {/* Signature */}
       {profile.signature && profile.show_signature && (

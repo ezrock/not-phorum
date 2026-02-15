@@ -45,8 +45,9 @@ export default function RegisterPage() {
     try {
       await register(email, password, username, avatar);
       window.location.href = '/forum';
-    } catch (err: any) {
-      setError(err.message || 'Rekisteröityminen epäonnistui');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Rekisteröityminen epäonnistui';
+      setError(message);
       setLoading(false);
     }
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 const AuthContext = createContext();
@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   // Fetch user profile
-  const fetchProfile = async (userId) => {
+  const fetchProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
     if (!error && data) {
       setProfile(data);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     // Get initial session
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile, supabase.auth]);
 
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
 
     // Increment login count (fire-and-forget)
     if (data.user) {
-      supabase.rpc('increment_login_count', { user_id: data.user.id });
+      supabase.rpc('increment_login_count', { target_user_id: data.user.id });
     }
 
     return data;

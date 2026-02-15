@@ -13,6 +13,27 @@ import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
 
+interface CloudinaryUploadResult {
+  info?: {
+    secure_url?: string;
+  };
+}
+
+function extractSecureUrl(result: unknown): string | null {
+  const typed = result as CloudinaryUploadResult;
+  return typed?.info?.secure_url ?? null;
+}
+
+function isSafeHttpUrl(rawUrl: string): boolean {
+  if (!rawUrl.trim()) return true;
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function ProfilePage() {
   const { currentUser, profile, loading, supabase, refreshProfile } = useAuth();
 
@@ -91,6 +112,10 @@ export default function ProfilePage() {
       setError('Käyttäjätunnuksen tulee olla vähintään 3 merkkiä');
       return;
     }
+    if (!isSafeHttpUrl(linkUrl)) {
+      setError('Linkin pitää alkaa http:// tai https://');
+      return;
+    }
 
     setSaving(true);
 
@@ -120,8 +145,9 @@ export default function ProfilePage() {
 
       await refreshProfile();
       setSuccess('Profiili päivitetty!');
-    } catch (err: any) {
-      setError(err.message || 'Profiilin päivitys epäonnistui');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Profiilin päivitys epäonnistui';
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -152,8 +178,9 @@ export default function ProfilePage() {
       setPasswordSuccess('Salasana vaihdettu!');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      setPasswordError(err.message || 'Salasanan vaihto epäonnistui');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Salasanan vaihto epäonnistui';
+      setPasswordError(message);
     } finally {
       setSavingPassword(false);
     }
@@ -196,64 +223,41 @@ export default function ProfilePage() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <MessageSquare size={20} className="text-yellow-600" />
-              <span className="text-3xl font-bold">{postCount}</span>
-            </div>
-            <p className="text-sm text-gray-500">Viestiä</p>
+      <Card className="mb-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <MessageSquare size={18} className="text-yellow-600" />
+            <span className="text-sm text-gray-500 flex-1">Viestiä</span>
+            <span className="font-bold">{postCount}</span>
           </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <MessageSquare size={20} className="text-yellow-600" />
-              <span className="text-3xl font-bold">{topicCount}</span>
-            </div>
-            <p className="text-sm text-gray-500">Aloitettua aihetta</p>
+          <div className="flex items-center gap-3">
+            <MessageSquare size={18} className="text-yellow-600" />
+            <span className="text-sm text-gray-500 flex-1">Aloitettua aihetta</span>
+            <span className="font-bold">{topicCount}</span>
           </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <LogIn size={20} className="text-yellow-600" />
-              <span className="text-3xl font-bold">{profile?.login_count || 0}</span>
-            </div>
-            <p className="text-sm text-gray-500">Kirjautumista</p>
+          <div className="flex items-center gap-3">
+            <LogIn size={18} className="text-yellow-600" />
+            <span className="text-sm text-gray-500 flex-1">Kirjautumista</span>
+            <span className="font-bold">{profile?.login_count || 0}</span>
           </div>
-        </Card>
-      </div>
-
-      {(mostPopularTopic || mostActiveTopic) && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
           {mostPopularTopic && (
-            <Link href={`/forum/topic/${mostPopularTopic.id}`}>
-              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
-                <div className="flex items-center gap-2 mb-2">
-                  <Eye size={16} className="text-yellow-600" />
-                  <span className="text-sm font-medium text-gray-500">Suosituin aihe</span>
-                </div>
-                <p className="font-bold text-sm line-clamp-2">{mostPopularTopic.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{mostPopularTopic.views} katselua</p>
-              </Card>
+            <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+              <Eye size={18} className="text-yellow-600" />
+              <span className="text-sm text-gray-500 flex-shrink-0">Suosituin aihe</span>
+              <span className="font-bold text-sm text-right flex-1 truncate">{mostPopularTopic.title}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{mostPopularTopic.views} katselua</span>
             </Link>
           )}
           {mostActiveTopic && (
-            <Link href={`/forum/topic/${mostActiveTopic.id}`}>
-              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 size={16} className="text-yellow-600" />
-                  <span className="text-sm font-medium text-gray-500">Aktiivisin aihe</span>
-                </div>
-                <p className="font-bold text-sm line-clamp-2">{mostActiveTopic.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{mostActiveTopic.reply_count} vastausta</p>
-              </Card>
+            <Link href={`/forum/topic/${mostActiveTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+              <BarChart3 size={18} className="text-yellow-600" />
+              <span className="text-sm text-gray-500 flex-shrink-0">Aktiivisin aihe</span>
+              <span className="font-bold text-sm text-right flex-1 truncate">{mostActiveTopic.title}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{mostActiveTopic.reply_count} vastausta</span>
             </Link>
           )}
         </div>
-      )}
+      </Card>
 
       <Card>
         <h2 className="text-xl font-bold mb-4">Muokkaa profiilia</h2>
@@ -290,8 +294,11 @@ export default function ProfilePage() {
                   cropping: true,
                   croppingAspectRatio: 1,
                 }}
-                onSuccess={(result: any) => {
-                  setProfileImageUrl(result.info.secure_url);
+                onSuccess={(result: unknown) => {
+                  const secureUrl = extractSecureUrl(result);
+                  if (secureUrl) {
+                    setProfileImageUrl(secureUrl);
+                  }
                 }}
               >
                 {({ open }) => (
