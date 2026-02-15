@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Users } from 'lucide-react';
+import { Users, Shield } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 interface Profile {
@@ -13,6 +13,7 @@ interface Profile {
   avatar: string;
   profile_image_url: string | null;
   created_at: string;
+  is_admin: boolean;
 }
 
 export default function MembersPage() {
@@ -24,7 +25,7 @@ export default function MembersPage() {
     const fetchMembers = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, avatar, profile_image_url, created_at')
+        .select('id, username, avatar, profile_image_url, created_at, is_admin')
         .order('created_at', { ascending: true });
 
       if (!error && data) {
@@ -79,8 +80,14 @@ export default function MembersPage() {
                   <span className="text-3xl">{member.avatar}</span>
                 )}
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-800">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     {member.username}
+                    {member.is_admin && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-200 px-1.5 py-0.5 rounded">
+                        <Shield size={10} />
+                        Admin
+                      </span>
+                    )}
                   </h3>
                   <p className="text-xs text-gray-500">
                     Liittynyt {formatDate(member.created_at)}

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon } from 'lucide-react';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
@@ -16,9 +16,14 @@ export default function ProfilePage() {
   const { currentUser, profile, loading, supabase, refreshProfile } = useAuth();
 
   const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [avatar, setAvatar] = useState('🎮');
   const [email, setEmail] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [signature, setSignature] = useState('');
+  const [showSignature, setShowSignature] = useState(true);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkDescription, setLinkDescription] = useState('');
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -33,8 +38,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       setUsername(profile.username || '');
+      setDisplayName(profile.display_name || '');
       setAvatar(profile.avatar || '🎮');
       setProfileImageUrl(profile.profile_image_url || '');
+      setSignature(profile.signature || '');
+      setShowSignature(profile.show_signature ?? true);
+      setLinkUrl(profile.link_url || '');
+      setLinkDescription(profile.link_description || '');
     }
   }, [profile]);
 
@@ -61,8 +71,13 @@ export default function ProfilePage() {
         .from('profiles')
         .update({
           username: username.trim(),
+          display_name: displayName.trim() || null,
           avatar,
           profile_image_url: profileImageUrl || null,
+          signature: signature.trim() || null,
+          show_signature: showSignature,
+          link_url: linkUrl.trim() || null,
+          link_description: linkDescription.trim() || null,
         })
         .eq('id', currentUser.id);
 
@@ -219,6 +234,19 @@ export default function ProfilePage() {
           </div>
 
           <div>
+            <label htmlFor="displayName" className="block text-sm font-medium mb-1">
+              Nimi
+            </label>
+            <Input
+              id="displayName"
+              value={displayName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
+              placeholder="Valinnainen näyttönimi"
+              maxLength={50}
+            />
+          </div>
+
+          <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
               Sähköposti
             </label>
@@ -229,6 +257,55 @@ export default function ProfilePage() {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
             />
+          </div>
+
+          <div>
+            <label htmlFor="signature" className="block text-sm font-medium mb-1">
+              Allekirjoitus
+            </label>
+            <textarea
+              id="signature"
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              className="w-full border-2 border-gray-300 rounded-lg p-3 min-h-[80px] focus:border-yellow-400 focus:outline-none"
+              placeholder="Näkyy viestien alla"
+              maxLength={200}
+            />
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                id="showSignature"
+                checked={showSignature}
+                onChange={(e) => setShowSignature(e.target.checked)}
+                className="w-4 h-4 accent-yellow-400"
+              />
+              <label htmlFor="showSignature" className="text-sm text-gray-600">
+                Näytä allekirjoitus viesteissä
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+              <LinkIcon size={14} />
+              Linkki
+            </label>
+            <div className="space-y-2">
+              <Input
+                id="linkUrl"
+                type="url"
+                value={linkUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkUrl(e.target.value)}
+                placeholder="https://..."
+              />
+              <Input
+                id="linkDescription"
+                value={linkDescription}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkDescription(e.target.value)}
+                placeholder="Linkin kuvaus (esim. Oma blogi)"
+                maxLength={50}
+              />
+            </div>
           </div>
 
           <div>

@@ -6,15 +6,21 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Calendar, Trophy } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 
 interface UserProfile {
   id: string;
   username: string;
+  display_name: string | null;
   avatar: string;
   profile_image_url: string | null;
   created_at: string;
+  is_admin: boolean;
+  signature: string | null;
+  show_signature: boolean;
+  link_url: string | null;
+  link_description: string | null;
 }
 
 interface CategoryStat {
@@ -26,7 +32,7 @@ interface CategoryStat {
 export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser, supabase } = useAuth();
+  const { currentUser, profile: myProfile, supabase } = useAuth();
   const userId = params.id as string;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -34,6 +40,8 @@ export default function PublicProfilePage() {
   const [topicCount, setTopicCount] = useState(0);
   const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminCount, setAdminCount] = useState(0);
+  const [togglingAdmin, setTogglingAdmin] = useState(false);
 
   // Redirect to own profile page if viewing self
   useEffect(() => {
@@ -47,13 +55,21 @@ export default function PublicProfilePage() {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, username, avatar, profile_image_url, created_at')
+        .select('id, username, display_name, avatar, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description')
         .eq('id', userId)
         .single();
 
       if (profileData) {
-        setProfile(profileData);
+        setProfile(profileData as UserProfile);
       }
+
+      // Count admins (for last-admin protection)
+      const { count: admins } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_admin', true);
+
+      setAdminCount(admins || 0);
 
       // Count posts
       const { count: posts } = await supabase
@@ -98,6 +114,26 @@ export default function PublicProfilePage() {
 
     fetchProfile();
   }, [supabase, userId]);
+
+  const handleToggleAdmin = async () => {
+    if (!profile) return;
+    setTogglingAdmin(true);
+
+    const newValue = !profile.is_admin;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_admin: newValue })
+      .eq('id', profile.id);
+
+    if (!error) {
+      setProfile({ ...profile, is_admin: newValue });
+      setAdminCount((prev) => prev + (newValue ? 1 : -1));
+    }
+    setTogglingAdmin(false);
+  };
+
+  const isCurrentUserAdmin = myProfile?.is_admin;
+  const isLastAdmin = profile?.is_admin && adminCount <= 1;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fi-FI', {
@@ -147,13 +183,52 @@ export default function PublicProfilePage() {
           ) : (
             <span className="text-7xl">{profile.avatar}</span>
           )}
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold">{profile.username}</h1>
+            {profile.display_name && (
+              <p className="text-sm text-gray-600">{profile.display_name}</p>
+            )}
             <p className="flex items-center gap-1 text-sm text-gray-500 mt-1">
               <Calendar size={14} />
               Jäsen {formatDate(profile.created_at)} alkaen
             </p>
+            <div className="flex items-center gap-2 mt-2">
+              {profile.is_admin && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded">
+                  <Shield size={12} />
+                  Admin
+                </span>
+              )}
+              {profile.link_url && (
+                <a
+                  href={profile.link_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                >
+                  <LinkIcon size={12} />
+                  {profile.link_description || profile.link_url}
+                </a>
+              )}
+            </div>
           </div>
+          {isCurrentUserAdmin && (
+            <div className="flex-shrink-0">
+              <button
+                onClick={handleToggleAdmin}
+                disabled={togglingAdmin || (isLastAdmin ?? false)}
+                className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition ${
+                  profile.is_admin
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                } ${(togglingAdmin || isLastAdmin) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={isLastAdmin ? 'Vähintään yksi admin tarvitaan' : ''}
+              >
+                <Shield size={16} />
+                {profile.is_admin ? 'Poista admin' : 'Tee admin'}
+              </button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -178,6 +253,13 @@ export default function PublicProfilePage() {
           </div>
         </Card>
       </div>
+
+      {/* Signature */}
+      {profile.signature && profile.show_signature && (
+        <Card className="mb-6">
+          <p className="text-sm text-gray-600 italic whitespace-pre-wrap">{profile.signature}</p>
+        </Card>
+      )}
 
       {/* Favourite Categories */}
       {favouriteCategories.length > 0 && (

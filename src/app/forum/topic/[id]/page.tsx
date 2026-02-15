@@ -23,6 +23,8 @@ interface Post {
     avatar: string;
     profile_image_url: string | null;
     created_at: string;
+    signature: string | null;
+    show_signature: boolean;
   } | null;
 }
 
@@ -66,7 +68,7 @@ export default function TopicPage() {
           .from('posts')
           .select(`
             id, content, created_at, updated_at, deleted_at, image_url,
-            author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
+            author:profiles!author_id(id, username, avatar, profile_image_url, created_at, signature, show_signature)
           `)
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true }),
@@ -374,6 +376,12 @@ export default function TopicPage() {
                         <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
                       )}
                     </div>
+
+                    {post.author?.signature && post.author?.show_signature && (
+                      <div className="pt-3 mt-3 border-t border-gray-200">
+                        <p className="text-xs text-gray-400 italic whitespace-pre-wrap">{post.author.signature}</p>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
                       <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-yellow-600 transition">
