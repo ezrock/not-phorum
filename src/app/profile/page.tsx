@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock, Link as LinkIcon } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3 } from 'lucide-react';
+import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
@@ -27,6 +28,11 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [postCount, setPostCount] = useState(0);
+  const [topicCount, setTopicCount] = useState(0);
+  const [mostPopularTopic, setMostPopularTopic] = useState<{ id: number; title: string; views: number } | null>(null);
+  const [mostActiveTopic, setMostActiveTopic] = useState<{ id: number; title: string; reply_count: number } | null>(null);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,6 +59,28 @@ export default function ProfilePage() {
       setEmail(currentUser.email || '');
     }
   }, [currentUser]);
+
+  // Fetch stats
+  useEffect(() => {
+    if (!currentUser) return;
+    const userId = currentUser.id;
+
+    const fetchStats = async () => {
+      const [postsRes, topicsRes, popularRes, activeRes] = await Promise.all([
+        supabase.from('posts').select('*', { count: 'exact', head: true }).eq('author_id', userId),
+        supabase.from('topics').select('*', { count: 'exact', head: true }).eq('author_id', userId),
+        supabase.from('topics').select('id, title, views').eq('author_id', userId).order('views', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('topics').select('id, title, reply_count').eq('author_id', userId).order('reply_count', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+
+      setPostCount(postsRes.count || 0);
+      setTopicCount(topicsRes.count || 0);
+      if (popularRes.data) setMostPopularTopic(popularRes.data);
+      if (activeRes.data) setMostActiveTopic(activeRes.data);
+    };
+
+    fetchStats();
+  }, [currentUser, supabase]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +194,66 @@ export default function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <Card>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <MessageSquare size={20} className="text-yellow-600" />
+              <span className="text-3xl font-bold">{postCount}</span>
+            </div>
+            <p className="text-sm text-gray-500">Viestiä</p>
+          </div>
+        </Card>
+        <Card>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <MessageSquare size={20} className="text-yellow-600" />
+              <span className="text-3xl font-bold">{topicCount}</span>
+            </div>
+            <p className="text-sm text-gray-500">Aloitettua aihetta</p>
+          </div>
+        </Card>
+        <Card>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <LogIn size={20} className="text-yellow-600" />
+              <span className="text-3xl font-bold">{profile?.login_count || 0}</span>
+            </div>
+            <p className="text-sm text-gray-500">Kirjautumista</p>
+          </div>
+        </Card>
+      </div>
+
+      {(mostPopularTopic || mostActiveTopic) && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {mostPopularTopic && (
+            <Link href={`/forum/topic/${mostPopularTopic.id}`}>
+              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye size={16} className="text-yellow-600" />
+                  <span className="text-sm font-medium text-gray-500">Suosituin aihe</span>
+                </div>
+                <p className="font-bold text-sm line-clamp-2">{mostPopularTopic.title}</p>
+                <p className="text-xs text-gray-500 mt-1">{mostPopularTopic.views} katselua</p>
+              </Card>
+            </Link>
+          )}
+          {mostActiveTopic && (
+            <Link href={`/forum/topic/${mostActiveTopic.id}`}>
+              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 size={16} className="text-yellow-600" />
+                  <span className="text-sm font-medium text-gray-500">Aktiivisin aihe</span>
+                </div>
+                <p className="font-bold text-sm line-clamp-2">{mostActiveTopic.title}</p>
+                <p className="text-xs text-gray-500 mt-1">{mostActiveTopic.reply_count} vastausta</p>
+              </Card>
+            </Link>
+          )}
+        </div>
+      )}
 
       <Card>
         <h2 className="text-xl font-bold mb-4">Muokkaa profiilia</h2>

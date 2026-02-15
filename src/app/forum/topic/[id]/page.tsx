@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
+import ReactMarkdown from 'react-markdown';
 
 interface Post {
   id: number;
@@ -371,7 +372,7 @@ export default function TopicPage() {
                     </div>
 
                     <div className="prose max-w-none mb-4">
-                      <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+                      <ReactMarkdown>{post.content}</ReactMarkdown>
                       {post.image_url && (
                         <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
                       )}

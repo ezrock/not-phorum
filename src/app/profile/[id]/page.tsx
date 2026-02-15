@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon, LogIn, Eye, BarChart3 } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 
 interface UserProfile {
@@ -21,6 +21,14 @@ interface UserProfile {
   show_signature: boolean;
   link_url: string | null;
   link_description: string | null;
+  login_count: number;
+}
+
+interface TopicStat {
+  id: number;
+  title: string;
+  views: number;
+  reply_count: number;
 }
 
 interface CategoryStat {
@@ -39,6 +47,8 @@ export default function PublicProfilePage() {
   const [postCount, setPostCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
   const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
+  const [mostPopularTopic, setMostPopularTopic] = useState<TopicStat | null>(null);
+  const [mostActiveTopic, setMostActiveTopic] = useState<TopicStat | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminCount, setAdminCount] = useState(0);
   const [togglingAdmin, setTogglingAdmin] = useState(false);
@@ -55,7 +65,7 @@ export default function PublicProfilePage() {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description')
+        .select('id, username, display_name, avatar, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count')
         .eq('id', userId)
         .single();
 
@@ -108,6 +118,28 @@ export default function PublicProfilePage() {
         const sorted = Object.values(catCounts).sort((a, b) => b.count - a.count);
         setFavouriteCategories(sorted.slice(0, 5));
       }
+
+      // Most popular topic (by views)
+      const { data: popularTopic } = await supabase
+        .from('topics')
+        .select('id, title, views, reply_count')
+        .eq('author_id', userId)
+        .order('views', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (popularTopic) setMostPopularTopic(popularTopic as TopicStat);
+
+      // Most active topic (by replies)
+      const { data: activeTopic } = await supabase
+        .from('topics')
+        .select('id, title, views, reply_count')
+        .eq('author_id', userId)
+        .order('reply_count', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeTopic) setMostActiveTopic(activeTopic as TopicStat);
 
       setLoading(false);
     };
@@ -233,7 +265,7 @@ export default function PublicProfilePage() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <Card>
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -252,7 +284,46 @@ export default function PublicProfilePage() {
             <p className="text-sm text-gray-500">Aloitettua aihetta</p>
           </div>
         </Card>
+        <Card>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <LogIn size={20} className="text-yellow-600" />
+              <span className="text-3xl font-bold">{profile.login_count}</span>
+            </div>
+            <p className="text-sm text-gray-500">Kirjautumista</p>
+          </div>
+        </Card>
       </div>
+
+      {/* Top Topics */}
+      {(mostPopularTopic || mostActiveTopic) && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {mostPopularTopic && (
+            <Link href={`/forum/topic/${mostPopularTopic.id}`}>
+              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye size={16} className="text-yellow-600" />
+                  <span className="text-sm font-medium text-gray-500">Suosituin aihe</span>
+                </div>
+                <p className="font-bold text-sm line-clamp-2">{mostPopularTopic.title}</p>
+                <p className="text-xs text-gray-500 mt-1">{mostPopularTopic.views} katselua</p>
+              </Card>
+            </Link>
+          )}
+          {mostActiveTopic && (
+            <Link href={`/forum/topic/${mostActiveTopic.id}`}>
+              <Card className="hover:border-yellow-400 transition cursor-pointer h-full">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 size={16} className="text-yellow-600" />
+                  <span className="text-sm font-medium text-gray-500">Aktiivisin aihe</span>
+                </div>
+                <p className="font-bold text-sm line-clamp-2">{mostActiveTopic.title}</p>
+                <p className="text-xs text-gray-500 mt-1">{mostActiveTopic.reply_count} vastausta</p>
+              </Card>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Signature */}
       {profile.signature && profile.show_signature && (

@@ -65,6 +65,12 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (error) throw error;
+
+    // Increment login count (fire-and-forget)
+    if (data.user) {
+      supabase.rpc('increment_login_count', { user_id: data.user.id });
+    }
+
     return data;
   };
 
