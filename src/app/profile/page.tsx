@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X } from 'lucide-react';
+import { Save, Camera, X, Lock } from 'lucide-react';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
@@ -22,6 +22,12 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -75,6 +81,38 @@ export default function ProfilePage() {
       setError(err.message || 'Profiilin päivitys epäonnistui');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (newPassword.length < 6) {
+      setPasswordError('Salasanan tulee olla vähintään 6 merkkiä');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Salasanat eivät täsmää');
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+
+      setPasswordSuccess('Salasana vaihdettu!');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordError(err.message || 'Salasanan vaihto epäonnistui');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -224,6 +262,58 @@ export default function ProfilePage() {
           >
             <Save size={16} />
             {saving ? 'Tallennetaan...' : 'Tallenna'}
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Lock size={20} />
+          Vaihda salasana
+        </h2>
+
+        {passwordError && <Alert variant="error">{passwordError}</Alert>}
+        {passwordSuccess && <Alert variant="success">{passwordSuccess}</Alert>}
+
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium mb-1">
+              Uusi salasana
+            </label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+              required
+              minLength={6}
+              placeholder="Vähintään 6 merkkiä"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+              Vahvista salasana
+            </label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              placeholder="Kirjoita salasana uudelleen"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="success"
+            disabled={savingPassword}
+            className="flex items-center gap-2"
+          >
+            <Lock size={16} />
+            {savingPassword ? 'Vaihdetaan...' : 'Vaihda salasana'}
           </Button>
         </form>
       </Card>
