@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Edit2, Flag, ImagePlus, X } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Edit2, Flag, ImagePlus, X, Trash2, Save } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -15,6 +15,7 @@ interface Post {
   content: string;
   created_at: string;
   updated_at: string | null;
+  deleted_at: string | null;
   image_url: string | null;
   author: {
     id: string;
@@ -44,6 +45,12 @@ export default function TopicPage() {
   const [replyImageUrl, setReplyImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       const [topicRes, postsRes] = await Promise.all([
@@ -58,7 +65,7 @@ export default function TopicPage() {
         supabase
           .from('posts')
           .select(`
-            id, content, created_at, updated_at, image_url,
+            id, content, created_at, updated_at, deleted_at, image_url,
             author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
           `)
           .eq('topic_id', topicId)
@@ -90,7 +97,7 @@ export default function TopicPage() {
         image_url: replyImageUrl || null,
       })
       .select(`
-        id, content, created_at, updated_at, image_url,
+        id, content, created_at, updated_at, deleted_at, image_url,
         author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
       `)
       .single();
@@ -101,6 +108,64 @@ export default function TopicPage() {
       setReplyImageUrl('');
     }
     setSubmitting(false);
+  };
+
+  const startEditing = (post: Post) => {
+    setEditingPostId(post.id);
+    setEditContent(post.content);
+    setEditImageUrl(post.image_url || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingPostId(null);
+    setEditContent('');
+    setEditImageUrl('');
+  };
+
+  const handleEditSave = async (postId: number) => {
+    if (!editContent.trim() || !currentUser) return;
+    setEditSaving(true);
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update({
+        content: editContent.trim(),
+        image_url: editImageUrl || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', postId)
+      .eq('author_id', currentUser.id)
+      .select(`
+        id, content, created_at, updated_at, deleted_at, image_url,
+        author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
+      `)
+      .single();
+
+    if (!error && data) {
+      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as Post) : p)));
+      setEditingPostId(null);
+    }
+    setEditSaving(false);
+  };
+
+  const handleDelete = async (postId: number) => {
+    if (!currentUser) return;
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', postId)
+      .eq('author_id', currentUser.id)
+      .select(`
+        id, content, created_at, updated_at, deleted_at, image_url,
+        author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
+      `)
+      .single();
+
+    if (!error && data) {
+      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as Post) : p)));
+    }
+    setDeleteConfirmId(null);
   };
 
   const formatDateTime = (dateString: string) => {
@@ -199,45 +264,130 @@ export default function TopicPage() {
                 </Link>
 
                 {/* Post Content */}
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="text-sm text-gray-500">
-                      {formatDateTime(post.created_at)}
-                      {post.updated_at && (
-                        <span className="ml-2 text-xs">
-                          (Muokattu: {formatDateTime(post.updated_at)})
-                        </span>
-                      )}
-                    </div>
-
-                    {currentUser && (
-                      <div className="flex gap-2">
-                        {currentUser.id === post.author?.id && (
-                          <button className="text-gray-500 hover:text-yellow-600">
-                            <Edit2 size={16} />
-                          </button>
-                        )}
-                        <button className="text-gray-500 hover:text-red-600">
-                          <Flag size={16} />
+                {post.deleted_at ? (
+                  <div className="flex-1 flex items-center">
+                    <p className="text-gray-400 italic py-4">Tämä viesti on poistettu.</p>
+                  </div>
+                ) : editingPostId === post.id ? (
+                  <div className="flex-1">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full border-2 border-gray-300 rounded-lg p-3 mb-3 min-h-[120px] focus:border-yellow-400 focus:outline-none"
+                    />
+                    {editImageUrl && (
+                      <div className="relative inline-block mb-3">
+                        <img src={postThumb(editImageUrl)} alt="Liite" className="max-h-40 rounded-lg" />
+                        <button
+                          type="button"
+                          onClick={() => setEditImageUrl('')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                        >
+                          <X size={14} />
                         </button>
                       </div>
                     )}
+                    <div className="flex items-center gap-2">
+                      <CldUploadWidget
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                        options={{ maxFiles: 1, resourceType: 'image', folder: 'freakon/posts' }}
+                        onSuccess={(result: any) => setEditImageUrl(result.info.secure_url)}
+                      >
+                        {({ open }) => (
+                          <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                            <ImagePlus size={16} />
+                            {editImageUrl ? 'Vaihda kuva' : 'Lisää kuva'}
+                          </Button>
+                        )}
+                      </CldUploadWidget>
+                      <Button
+                        variant="success"
+                        className="flex items-center gap-2"
+                        onClick={() => handleEditSave(post.id)}
+                        disabled={editSaving || !editContent.trim()}
+                      >
+                        <Save size={16} />
+                        {editSaving ? 'Tallennetaan...' : 'Tallenna'}
+                      </Button>
+                      <Button variant="outline" onClick={cancelEditing}>
+                        Peruuta
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="text-sm text-gray-500">
+                        {formatDateTime(post.created_at)}
+                        {post.updated_at && (
+                          <span className="ml-2 text-xs">
+                            (Muokattu: {formatDateTime(post.updated_at)})
+                          </span>
+                        )}
+                      </div>
 
-                  <div className="prose max-w-none mb-4">
-                    <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
-                    {post.image_url && (
-                      <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
-                    )}
-                  </div>
+                      <div className="flex gap-2">
+                        {currentUser && currentUser.id === post.author?.id && (
+                          <>
+                            <button
+                              className="text-gray-500 hover:text-yellow-600"
+                              onClick={() => startEditing(post)}
+                              title="Muokkaa"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            {!isOriginalPost && (
+                              deleteConfirmId === post.id ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-red-600">Poistetaanko?</span>
+                                  <button
+                                    className="text-red-600 hover:text-red-800 text-xs font-bold"
+                                    onClick={() => handleDelete(post.id)}
+                                  >
+                                    Kyllä
+                                  </button>
+                                  <button
+                                    className="text-gray-500 hover:text-gray-700 text-xs"
+                                    onClick={() => setDeleteConfirmId(null)}
+                                  >
+                                    Ei
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  className="text-gray-500 hover:text-red-600"
+                                  onClick={() => setDeleteConfirmId(post.id)}
+                                  title="Poista"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )
+                            )}
+                          </>
+                        )}
+                        {currentUser && (
+                          <button className="text-gray-500 hover:text-red-600">
+                            <Flag size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
-                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-yellow-600 transition">
-                      <MessageSquare size={16} />
-                      <span>Vastaa</span>
-                    </button>
+                    <div className="prose max-w-none mb-4">
+                      <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+                      {post.image_url && (
+                        <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
+                      <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-yellow-600 transition">
+                        <MessageSquare size={16} />
+                        <span>Vastaa</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
           );
