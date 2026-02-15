@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Edit2, Flag, ImagePlus, X, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -300,6 +300,9 @@ export default function TopicPage() {
                           </Button>
                         )}
                       </CldUploadWidget>
+                      <Button variant="outline" onClick={cancelEditing}>
+                        Peruuta
+                      </Button>
                       <Button
                         variant="success"
                         className="flex items-center gap-2"
@@ -308,9 +311,6 @@ export default function TopicPage() {
                       >
                         <Save size={16} />
                         {editSaving ? 'Tallennetaan...' : 'Tallenna'}
-                      </Button>
-                      <Button variant="outline" onClick={cancelEditing}>
-                        Peruuta
                       </Button>
                     </div>
                   </div>
@@ -364,11 +364,6 @@ export default function TopicPage() {
                               )
                             )}
                           </>
-                        )}
-                        {currentUser && (
-                          <button className="text-gray-500 hover:text-red-600">
-                            <Flag size={16} />
-                          </button>
                         )}
                       </div>
                     </div>

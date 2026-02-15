@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Home, MessageSquare, Users, Search } from 'lucide-react';
+import { MessageSquare, Users, Search } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
@@ -27,7 +27,7 @@ export const Navigation = () => {
     <nav className="bg-yellow-400 p-4 border-b-4 border-gray-800">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/">
+          <Link href="/forum">
             <h1 className="text-4xl font-bold text-gray-800 tracking-wider cursor-pointer hover:opacity-80"
                 style={{ fontFamily: 'monospace' }}>
               FREAK ON!
@@ -35,10 +35,6 @@ export const Navigation = () => {
           </Link>
 
           <div className="flex gap-4">
-            <Link href="/" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
-              <Home size={20} />
-              Alkuun
-            </Link>
             <Link href="/forum" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
               <MessageSquare size={20} />
               Foorumi

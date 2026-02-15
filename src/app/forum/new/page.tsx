@@ -16,6 +16,9 @@ interface Category {
   id: number;
   name: string;
   icon: string;
+  era: string | null;
+  sort_order: number;
+  parent_id: number | null;
 }
 
 export default function NewTopicPage() {
@@ -34,10 +37,14 @@ export default function NewTopicPage() {
     const fetchCategories = async () => {
       const { data } = await supabase
         .from('categories')
-        .select('id, name, icon')
-        .order('name');
+        .select('id, name, icon, era, sort_order, parent_id')
+        .order('sort_order');
 
-      if (data) setCategories(data);
+      if (data) {
+        setCategories(data as Category[]);
+        const offTopic = data.find((c: Category) => c.name.toLowerCase() === 'off-topic');
+        if (offTopic) setCategoryId(offTopic.id);
+      }
     };
 
     fetchCategories();
@@ -120,11 +127,19 @@ export default function NewTopicPage() {
               required
             >
               <option value="">Valitse kategoria...</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.icon} {cat.name}
-                </option>
-              ))}
+              {categories
+                .filter((c) => !c.parent_id)
+                .map((parent) => (
+                  <optgroup key={parent.id} label={parent.name}>
+                    {categories
+                      .filter((c) => c.parent_id === parent.id)
+                      .map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.name}{cat.era ? ` (${cat.era})` : ''}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
             </select>
           </div>
 
