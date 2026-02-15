@@ -31,7 +31,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Protect forum, members and profile routes
-  if (!user && (request.nextUrl.pathname.startsWith('/forum') || request.nextUrl.pathname.startsWith('/members') || request.nextUrl.pathname.startsWith('/profile'))) {
+  if (!user && (request.nextUrl.pathname.startsWith('/forum') || request.nextUrl.pathname.startsWith('/members') || request.nextUrl.pathname.startsWith('/profile') || request.nextUrl.pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

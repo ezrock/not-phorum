@@ -33,8 +33,12 @@ Goal
 - Rename thread
 - Remove thread
 - Change thread category
-- Change username of users
-- Edit user information of users
+- Change username of users (in their user profile)
+- Edit user information of users (in their user profiles)
+- Sees forum admin page (only role who can access it and see it in navigation)
+
+## Forum admin page
+- Toggle user registration on/off
 
 ## User features
 - Start new threads

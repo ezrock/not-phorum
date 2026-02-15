@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
+import { createBrowserClient } from '@supabase/ssr';
 
 const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
 
@@ -18,7 +19,30 @@ export default function RegisterPage() {
   const [avatar, setAvatar] = useState('🎮');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  const [checkingSettings, setCheckingSettings] = useState(true);
   const { register } = useAuth();
+
+  useEffect(() => {
+    const checkRegistration = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'registration_enabled')
+        .single();
+
+      if (data) {
+        setRegistrationEnabled(data.value === 'true');
+      }
+      setCheckingSettings(false);
+    };
+
+    checkRegistration();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +75,32 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (checkingSettings) {
+    return (
+      <div className="max-w-md mx-auto mt-16 px-4">
+        <Card>
+          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!registrationEnabled) {
+    return (
+      <div className="max-w-md mx-auto mt-16 px-4">
+        <Card>
+          <h1 className="text-3xl font-bold mb-4">Rekisteröityminen suljettu</h1>
+          <p className="text-gray-600">Uusien käyttäjien rekisteröityminen on tällä hetkellä suljettu.</p>
+          <div className="mt-6 text-center">
+            <Link href="/" className="text-yellow-600 hover:underline font-semibold">
+              Takaisin etusivulle
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto mt-16 px-4">

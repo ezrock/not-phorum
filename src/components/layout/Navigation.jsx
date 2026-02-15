@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Users, Search } from 'lucide-react';
+import { MessageSquare, Users, Search, Shield } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
@@ -24,11 +24,11 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="bg-yellow-400 p-4 border-b-4 border-gray-800">
+    <nav className="bg-white-400 p-4 border-b-4 border-gray-800">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/forum">
-            <h1 className="text-4xl font-bold text-gray-800 tracking-wider cursor-pointer hover:opacity-80"
+            <h1 className="text-xl font-bold text-gray-800 tracking-wider cursor-pointer hover:opacity-80"
                 style={{ fontFamily: 'monospace' }}>
               FREAK ON!
             </h1>
@@ -43,6 +43,12 @@ export const Navigation = () => {
               <Users size={20} />
               Jäsenet
             </Link>
+            {profile?.is_admin && (
+              <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
+                <Shield size={20} />
+                Hallinta
+              </Link>
+            )}
           </div>
         </div>
 
