@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Search, Shield } from 'lucide-react';
+import { Users, Search, Shield, ScrollText } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
@@ -38,6 +38,10 @@ export const Navigation = () => {
             <Link href="/members" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
               <Users size={20} />
               Membut
+            </Link>
+            <Link href="/loki" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
+              <ScrollText size={20} />
+              Loki
             </Link>
             {profile?.is_admin && (
               <Link href="/admin" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
