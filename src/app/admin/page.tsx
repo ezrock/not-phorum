@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy } from 'lucide-react';
+import { Shield, UserPlus, Trophy, BarChart3, ExternalLink } from 'lucide-react';
 
 interface TrophyOverview {
   id: number;
@@ -17,6 +17,10 @@ interface TrophyOverview {
 
 export default function AdminPage() {
   const { profile, supabase, loading } = useAuth();
+  const umamiDashboardUrl = process.env.NEXT_PUBLIC_UMAMI_DASHBOARD_URL;
+  const umamiScriptUrl = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL;
+  const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+  const umamiConfigured = Boolean(umamiScriptUrl && umamiWebsiteId);
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -158,6 +162,42 @@ export default function AdminPage() {
           <p className="mt-4 text-xs text-gray-500">
             Näytetään 20 ensimmäistä. Loput löytyvät taulusta `admin_trophy_overview`.
           </p>
+        )}
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-3 mb-3">
+          <BarChart3 size={24} className="text-yellow-600" />
+          <h2 className="text-2xl font-bold">Analytiikka (Umami)</h2>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          {umamiConfigured
+            ? 'Umami-seuranta on konfiguroitu.'
+            : 'Umami-seurantaa ei ole vielä konfiguroitu ympäristömuuttujilla.'}
+        </p>
+
+        <div className="space-y-2 text-xs text-gray-500">
+          <p>
+            Script URL: {umamiScriptUrl ? <span className="text-gray-700">{umamiScriptUrl}</span> : <span>ei asetettu</span>}
+          </p>
+          <p>
+            Website ID: {umamiWebsiteId ? <span className="text-gray-700">{umamiWebsiteId}</span> : <span>ei asetettu</span>}
+          </p>
+        </div>
+
+        {umamiDashboardUrl && (
+          <div className="mt-4">
+            <a
+              href={umamiDashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-yellow-700 hover:underline"
+            >
+              Avaa Umami Dashboard
+              <ExternalLink size={14} />
+            </a>
+          </div>
         )}
       </Card>
     </div>
