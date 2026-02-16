@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Users, Shield, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
+import { trophyLocalIconUrl } from '@/lib/trophies';
 
 interface Profile {
   id: string;
@@ -20,6 +21,7 @@ interface Trophy {
   code: string;
   name: string;
   points: number;
+  icon_path: string | null;
 }
 
 interface ProfileTrophyRow {
@@ -42,7 +44,7 @@ export default function MembersPage() {
           .order('created_at', { ascending: true }),
         supabase
           .from('profile_trophies')
-          .select('profile_id, trophy:trophies(id, code, name, points)'),
+          .select('profile_id, trophy:trophies(id, code, name, points, icon_path)'),
       ]);
 
       if (!membersRes.error && membersRes.data) {
@@ -132,20 +134,23 @@ export default function MembersPage() {
 
                   {memberTrophies[member.id]?.length ? (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {memberTrophies[member.id].slice(0, 12).map((trophy) => (
+                      {memberTrophies[member.id].map((trophy) => (
                         <span
                           key={`${member.id}-${trophy.id}`}
-                          className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-0.5 text-[11px] font-medium"
+                          className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-1.5 py-0.5 text-[11px] font-medium"
                           title={`${trophy.name} (${trophy.points} p)`}
                         >
-                          {trophy.name}
+                          {trophyLocalIconUrl(trophy.icon_path) ? (
+                            <img
+                              src={trophyLocalIconUrl(trophy.icon_path) as string}
+                              alt={trophy.name}
+                              className="w-4 h-5 object-contain"
+                            />
+                          ) : (
+                            <span>{trophy.name}</span>
+                          )}
                         </span>
                       ))}
-                      {memberTrophies[member.id].length > 12 && (
-                        <span className="inline-flex items-center rounded bg-gray-100 text-gray-600 px-2 py-0.5 text-[11px] font-medium">
-                          +{memberTrophies[member.id].length - 12} lisää
-                        </span>
-                      )}
                     </div>
                   ) : (
                     <p className="mt-2 text-[11px] text-gray-400">Ei kunniamerkkejä (vielä)</p>

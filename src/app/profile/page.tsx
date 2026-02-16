@@ -11,6 +11,7 @@ import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, Bar
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
+import { trophyLocalIconUrl } from '@/lib/trophies';
 
 interface CloudinaryUploadResult {
   info?: {
@@ -23,6 +24,7 @@ interface ProfileTrophy {
   code: string;
   name: string;
   points: number;
+  icon_path: string | null;
 }
 
 interface ProfileTrophyRow {
@@ -102,7 +104,7 @@ export default function ProfilePage() {
         supabase.from('topics').select('*', { count: 'exact', head: true }).eq('author_id', userId),
         supabase.from('topics').select('id, title, views').eq('author_id', userId).order('views', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('topics').select('id, title, reply_count').eq('author_id', userId).order('reply_count', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('profile_trophies').select('trophy:trophies(id, code, name, points)').eq('profile_id', userId),
+        supabase.from('profile_trophies').select('trophy:trophies(id, code, name, points, icon_path)').eq('profile_id', userId),
       ]);
 
       setPostCount(postsRes.count || 0);
@@ -328,6 +330,13 @@ export default function ProfilePage() {
                 className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-1 text-xs font-medium"
                 title={`${trophy.name} (${trophy.points} p)`}
               >
+                {trophyLocalIconUrl(trophy.icon_path) && (
+                  <img
+                    src={trophyLocalIconUrl(trophy.icon_path) as string}
+                    alt={trophy.name}
+                    className="w-4 h-5 object-contain mr-1"
+                  />
+                )}
                 {trophy.name}
               </span>
             ))}

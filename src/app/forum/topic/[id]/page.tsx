@@ -368,13 +368,12 @@ export default function TopicPage() {
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('fi-FI', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}.${month}.${year} ${hours}.${minutes}`;
   };
 
   const hasBeenEdited = (post: Post) => {
@@ -443,9 +442,9 @@ export default function TopicPage() {
                 {/* Author Info Sidebar */}
                 <Link href={`/profile/${post.author?.id}`} className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4 hover:opacity-80">
                   {post.author?.profile_image_url ? (
-                    <img src={profileThumb(post.author.profile_image_url)} alt={post.author.username} className="w-14 h-14 rounded-full object-cover mx-auto mb-2" />
+                    <img src={profileThumb(post.author.profile_image_url)} alt={post.author.username} className="w-10 h-10 square-fiöö object-cover mx-auto mb-2" />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center mb-2">
+                    <div className="w-10 h-10 square-full bg-gray-200 text-gray-500 inline-flex items-center justify-center mb-2">
                       <User size={30} />
                     </div>
                   )}
@@ -513,8 +512,43 @@ export default function TopicPage() {
                   </div>
                 ) : (
                   <div className="flex-1">
-                    <div className="flex items-start justify-end mb-3">
-                      <div className="flex gap-2">
+                    <div className="prose max-w-none mb-4">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => {
+                            const label = typeof children?.[0] === 'string' ? children[0] : '';
+                            const shouldShorten = label && /^https?:\/\//i.test(label);
+                            const visibleText = shouldShorten ? shortenUrlDisplay(label) : children;
+
+                            return (
+                              <a href={href} target="_blank" rel="noopener noreferrer">
+                                {visibleText}
+                              </a>
+                            );
+                          },
+                        }}
+                      >
+                        {autoLinkPlainUrls(post.content)}
+                      </ReactMarkdown>
+                      {post.image_url && (
+                        <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        {post.author?.signature && post.author?.show_signature && (
+                          <p className="text-xs text-gray-400 italic whitespace-pre-wrap">{post.author.signature}</p>
+                        )}
+
+                        {hasBeenEdited(post) && (
+                          <p className={`text-xs text-gray-400 italic ${post.author?.signature && post.author?.show_signature ? 'mt-1' : ''}`}>
+                            Muokattu viimeksi {formatDateTime(post.updated_at as string)}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           className={`inline-flex h-10 min-w-10 px-2 items-center justify-center gap-1 rounded text-sm transition ${
                             postLikes[post.id]?.likedByMe
@@ -571,43 +605,6 @@ export default function TopicPage() {
                         )}
                       </div>
                     </div>
-
-                    <div className="prose max-w-none mb-4">
-                      <ReactMarkdown
-                        components={{
-                          a: ({ href, children }) => {
-                            const label = typeof children?.[0] === 'string' ? children[0] : '';
-                            const shouldShorten = label && /^https?:\/\//i.test(label);
-                            const visibleText = shouldShorten ? shortenUrlDisplay(label) : children;
-
-                            return (
-                              <a href={href} target="_blank" rel="noopener noreferrer">
-                                {visibleText}
-                              </a>
-                            );
-                          },
-                        }}
-                      >
-                        {autoLinkPlainUrls(post.content)}
-                      </ReactMarkdown>
-                      {post.image_url && (
-                        <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
-                      )}
-                    </div>
-
-                    {post.author?.signature && post.author?.show_signature && (
-                      <div className="pt-3 mt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-400 italic whitespace-pre-wrap">{post.author.signature}</p>
-                      </div>
-                    )}
-
-                    {hasBeenEdited(post) && (
-                      <div className={`${post.author?.signature && post.author?.show_signature ? 'mt-2' : 'pt-3 mt-3 border-t border-gray-200'}`}>
-                        <p className="text-xs text-gray-400 italic">
-                          Muokattu viimeksi {formatDateTime(post.updated_at as string)}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

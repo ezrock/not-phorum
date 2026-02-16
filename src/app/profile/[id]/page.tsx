@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon, LogIn, Eye, BarChart3, User } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
+import { trophyLocalIconUrl } from '@/lib/trophies';
 
 interface UserProfile {
   id: string;
@@ -36,6 +37,7 @@ interface ProfileTrophy {
   code: string;
   name: string;
   points: number;
+  icon_path: string | null;
 }
 
 interface ProfileTrophyRow {
@@ -136,7 +138,7 @@ export default function PublicProfilePage() {
 
       const { data: trophyData } = await supabase
         .from('profile_trophies')
-        .select('trophy:trophies(id, code, name, points)')
+        .select('trophy:trophies(id, code, name, points, icon_path)')
         .eq('profile_id', userId);
 
       if (trophyData) {
@@ -329,6 +331,13 @@ export default function PublicProfilePage() {
                 className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-1 text-xs font-medium"
                 title={`${trophy.name} (${trophy.points} p)`}
               >
+                {trophyLocalIconUrl(trophy.icon_path) && (
+                  <img
+                    src={trophyLocalIconUrl(trophy.icon_path) as string}
+                    alt={trophy.name}
+                    className="w-4 h-5 object-contain mr-1"
+                  />
+                )}
                 {trophy.name}
               </span>
             ))}

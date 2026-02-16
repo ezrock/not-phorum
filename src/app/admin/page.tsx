@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, UserPlus, Trophy } from 'lucide-react';
+import { trophyLocalIconUrl } from '@/lib/trophies';
 
 interface TrophyOverview {
   id: number;
@@ -142,9 +143,18 @@ export default function AdminPage() {
         <div className="space-y-2">
           {trophyOverview.slice(0, 20).map((trophy) => (
             <div key={trophy.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2">
-              <div className="min-w-0">
-                <p className="font-semibold truncate">{trophy.name}</p>
-                <p className="text-xs text-gray-500 truncate">{trophy.code}</p>
+              <div className="min-w-0 flex items-center gap-2">
+                {trophyLocalIconUrl(trophy.icon_path) && (
+                  <img
+                    src={trophyLocalIconUrl(trophy.icon_path) as string}
+                    alt={trophy.name}
+                    className="w-4 h-5 object-contain flex-shrink-0"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{trophy.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{trophy.code}</p>
+                </div>
               </div>
               <div className="text-right ml-4">
                 <p className="text-sm font-bold text-yellow-700">{trophy.points} p</p>
