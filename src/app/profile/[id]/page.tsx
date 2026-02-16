@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon, LogIn, Eye, BarChart3, User } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
+import { TopFiveCard } from '@/components/profile/TopFiveCard';
 
 interface UserProfile {
   id: string;
@@ -28,21 +29,6 @@ interface TopicStat {
   title: string;
   views: number;
   reply_count: number;
-}
-
-interface CategoryStat {
-  name: string;
-  icon: string;
-  count: number;
-}
-
-interface PostCategoryRow {
-  topic: {
-    category: {
-      name: string;
-      icon: string;
-    } | null;
-  } | null;
 }
 
 interface ProfileTrophy {
@@ -75,7 +61,6 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [postCount, setPostCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
-  const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
   const [trophies, setTrophies] = useState<ProfileTrophy[]>([]);
   const [mostPopularTopic, setMostPopularTopic] = useState<TopicStat | null>(null);
   const [mostActiveTopic, setMostActiveTopic] = useState<TopicStat | null>(null);
@@ -126,28 +111,6 @@ export default function PublicProfilePage() {
         .eq('author_id', userId);
 
       setTopicCount(topics || 0);
-
-      // Get favourite categories (from posts → topics → categories)
-      const { data: postData } = await supabase
-        .from('posts')
-        .select('topic:topics(category:categories(name, icon))')
-        .eq('author_id', userId);
-
-      if (postData) {
-        const catCounts: Record<string, CategoryStat> = {};
-        for (const post of postData as PostCategoryRow[]) {
-          const topic = post.topic;
-          const cat = topic?.category;
-          if (cat?.name) {
-            if (!catCounts[cat.name]) {
-              catCounts[cat.name] = { name: cat.name, icon: cat.icon, count: 0 };
-            }
-            catCounts[cat.name].count++;
-          }
-        }
-        const sorted = Object.values(catCounts).sort((a, b) => b.count - a.count);
-        setFavouriteCategories(sorted.slice(0, 5));
-      }
 
       // Most popular topic (by views)
       const { data: popularTopic } = await supabase
@@ -375,24 +338,7 @@ export default function PublicProfilePage() {
         )}
       </Card>
 
-      {/* Favourite Categories */}
-      {favouriteCategories.length > 0 && (
-        <Card>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Trophy size={20} className="text-yellow-600" />
-            Suosikkikategoriat
-          </h2>
-          <div className="space-y-3">
-            {favouriteCategories.map((cat) => (
-              <div key={cat.name} className="flex items-center gap-3">
-                <span className="text-2xl">{cat.icon}</span>
-                <span className="font-medium flex-1">{cat.name}</span>
-                <span className="text-sm text-gray-500">{cat.count} viestiä</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      <TopFiveCard profileId={userId} />
     </div>
   );
 }

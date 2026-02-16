@@ -89,12 +89,12 @@ export default function NewTopicPage() {
       });
 
       if (createError || typeof topicIdResult !== 'number') {
-        throw createError ?? new Error('Aiheen luominen epäonnistui');
+        throw createError ?? new Error('Langan luominen feilasi');
       }
 
       router.push(`/forum/topic/${topicIdResult}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Aiheen luominen epäonnistui';
+      const message = err instanceof Error ? err.message : 'Langan luominen feilasi';
       setError(message);
       setSubmitting(false);
     }
@@ -105,12 +105,12 @@ export default function NewTopicPage() {
       <div className="mb-6">
         <Link href="/forum" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
           <ArrowLeft size={16} />
-          Takaisin foorumille
+          Takaisin lankoihin
         </Link>
       </div>
 
       <Card>
-        <h1 className="text-3xl font-bold mb-6">Uusi aihe</h1>
+        <h1 className="text-3xl font-bold mb-6">Uusi lanka</h1>
 
         {error && <Alert variant="error">{error}</Alert>}
 
@@ -151,7 +151,7 @@ export default function NewTopicPage() {
               id="title"
               value={title}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
-              placeholder="Aiheen otsikko"
+              placeholder="Langan otsikko"
               required
             />
           </div>
@@ -217,12 +217,12 @@ export default function NewTopicPage() {
             </CldUploadWidget>
             <Button
               type="submit"
-              variant="success"
+              variant="primary"
               disabled={submitting}
               className="flex items-center gap-2"
             >
               <Send size={16} />
-              {submitting ? 'Luodaan...' : 'Luo aihe'}
+              {submitting ? 'Luodaan...' : 'Luo lanka'}
             </Button>
           </div>
         </form>

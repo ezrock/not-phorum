@@ -10,6 +10,7 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, User } from 'lucide-react';
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
+import { TopFiveCard } from '@/components/profile/TopFiveCard';
 
 interface CloudinaryUploadResult {
   info?: {
@@ -335,6 +336,8 @@ export default function ProfilePage() {
           <p className="text-sm text-gray-500">Ei kunniamerkkejä vielä.</p>
         )}
       </Card>
+
+      {currentUser && <TopFiveCard profileId={currentUser.id} className="mb-6" />}
 
       <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4">Muokkaa profiilia</h2>
