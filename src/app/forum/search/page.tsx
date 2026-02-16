@@ -29,13 +29,16 @@ function SearchContent() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
+  const [searchError, setSearchError] = useState('');
 
   const performSearch = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
       setResults([]);
+      setSearchError('');
       return;
     }
     setLoading(true);
+    setSearchError('');
 
     const { data, error } = await supabase.rpc('search_forum', {
       search_term: term.trim(),
@@ -46,6 +49,7 @@ function SearchContent() {
       setResults(data as SearchResult[]);
     } else {
       setResults([]);
+      setSearchError(error?.message || 'Haku epäonnistui');
     }
     setLoading(false);
   }, [supabase]);
@@ -120,6 +124,12 @@ function SearchContent() {
       {loading ? (
         <Card>
           <p className="text-center text-gray-500 py-8">Haetaan tuloksia...</p>
+        </Card>
+      ) : searchError ? (
+        <Card>
+          <p className="text-center text-red-600 py-8">
+            Haku epäonnistui: {searchError}
+          </p>
         </Card>
       ) : deduplicatedResults.length === 0 && query ? (
         <Card>
