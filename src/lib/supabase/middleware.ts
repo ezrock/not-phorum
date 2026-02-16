@@ -30,9 +30,10 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect forum, members and profile routes
+  // Protect forum, members and profile routes — show 404 for unauthenticated users
   if (!user && (request.nextUrl.pathname.startsWith('/forum') || request.nextUrl.pathname.startsWith('/members') || request.nextUrl.pathname.startsWith('/profile') || request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/loki'))) {
-    return NextResponse.redirect(new URL('/', request.url))
+    const notFoundUrl = new URL('/not-found', request.url)
+    return NextResponse.rewrite(notFoundUrl)
   }
 
   return supabaseResponse
