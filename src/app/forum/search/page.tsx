@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Search, MessageSquare, FileText, ArrowLeft } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface SearchResult {
   result_type: 'topic' | 'post';
@@ -30,6 +31,26 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [searchError, setSearchError] = useState('');
+
+  const highlightMatch = (text: string, needle: string): ReactNode => {
+    const trimmedNeedle = needle.trim();
+    if (!trimmedNeedle) return text;
+
+    const escaped = trimmedNeedle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    const parts = text.split(regex);
+
+    const lowerNeedle = trimmedNeedle.toLocaleLowerCase();
+    return parts.map((part, index) =>
+      part.toLocaleLowerCase() === lowerNeedle ? (
+        <mark key={`${part}-${index}`} className="bg-yellow-100 text-inherit rounded px-0.5">
+          {part}
+        </mark>
+      ) : (
+        <span key={`${part}-${index}`}>{part}</span>
+      )
+    );
+  };
 
   const performSearch = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
@@ -95,7 +116,7 @@ function SearchContent() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Hae aiheista ja viesteistä..."
-            className="flex-1 px-4 py-2 border-2 border-gray-300 rounded focus:border-yellow-400 focus:outline-none"
+            className="flex-1 px-4 py-2 border-2 bg-white border-gray-300 rounded focus:border-yellow-400 focus:outline-none"
           />
           <button
             type="submit"
@@ -155,13 +176,13 @@ function SearchContent() {
                         <MessageSquare size={14} className="text-blue-500 flex-shrink-0" />
                       )}
                       <h3 className="text-lg font-bold text-gray-800 truncate">
-                        {result.topic_title}
+                        {highlightMatch(result.topic_title, query)}
                       </h3>
                     </div>
 
                     {result.content_snippet && (
                       <p className="text-sm text-gray-600 truncate mb-1">
-                        {result.content_snippet}
+                        {highlightMatch(result.content_snippet, query)}
                       </p>
                     )}
 
