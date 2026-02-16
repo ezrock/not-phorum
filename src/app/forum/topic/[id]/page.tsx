@@ -33,6 +33,8 @@ interface Topic {
   id: number;
   title: string;
   views: number;
+  views_total: number | null;
+  views_unique: number | null;
   category: { name: string; icon: string } | null;
 }
 
@@ -40,6 +42,16 @@ interface CloudinaryUploadResult {
   info?: {
     secure_url?: string;
   };
+}
+
+interface TopicViewResponse {
+  views_total?: number;
+  views_unique?: number;
+}
+
+function parseTopicViewResponse(value: unknown): TopicViewResponse | null {
+  if (!value || typeof value !== 'object') return null;
+  return value as TopicViewResponse;
 }
 
 function extractSecureUrl(result: unknown): string | null {
@@ -71,7 +83,7 @@ export default function TopicPage() {
         supabase
           .from('topics')
           .select(`
-            id, title, views,
+            id, title, views, views_total, views_unique,
             category:categories(name, icon)
           `)
           .eq('id', topicId)
@@ -100,7 +112,30 @@ export default function TopicPage() {
 
   useEffect(() => {
     if (!Number.isFinite(topicId)) return;
-    supabase.rpc('increment_topic_views', { target_topic_id: topicId });
+    const trackView = async () => {
+      const { data, error } = await supabase.rpc('record_topic_view', {
+        target_topic_id: topicId,
+      });
+
+      if (!error) {
+        const parsed = parseTopicViewResponse(data);
+        if (parsed) {
+          setTopic((prev) => {
+            if (!prev) return prev;
+            const nextUnique = typeof parsed.views_unique === 'number' ? parsed.views_unique : prev.views_unique;
+            const nextTotal = typeof parsed.views_total === 'number' ? parsed.views_total : prev.views_total;
+            return {
+              ...prev,
+              views_unique: nextUnique,
+              views_total: nextTotal,
+              views: nextUnique ?? prev.views,
+            };
+          });
+        }
+      }
+    };
+
+    trackView();
   }, [supabase, topicId]);
 
   const handleReply = async () => {
@@ -241,8 +276,8 @@ export default function TopicPage() {
               <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <span className="text-yellow-600 font-medium">{topic.category?.name}</span>
-                <span>{topic.views} katselua</span>
-                <span>{posts.length} vastausta</span>
+                <span>{topic.views_unique ?? topic.views} katselua</span>
+                <span>{posts.length} viestiä</span>
               </div>
             </div>
           </div>
