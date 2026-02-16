@@ -76,7 +76,7 @@ export default function LokiPage() {
       const seenIds = new Set<string>();
 
       if (imageRes.data) {
-        for (const post of imageRes.data as PostRow[]) {
+        for (const post of imageRes.data as unknown as PostRow[]) {
           const key = `image-${post.id}`;
           if (seenIds.has(key)) continue;
           seenIds.add(key);
@@ -93,7 +93,7 @@ export default function LokiPage() {
       }
 
       if (urlRes.data) {
-        for (const post of urlRes.data as PostRow[]) {
+        for (const post of urlRes.data as unknown as PostRow[]) {
           const urls = extractUrls(post.content);
           if (urls.length === 0) continue;
           const key = `url-${post.id}`;

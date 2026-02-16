@@ -33,7 +33,14 @@ interface RandomQuote {
   content: string;
   created_at: string;
   topic_id: number;
-  author: { username: string } | null;
+  author_username: string | null;
+}
+
+interface RawRandomQuoteRow {
+  content: string;
+  created_at: string;
+  topic_id: number;
+  author: { username: string }[] | null;
 }
 
 export default function ForumPage() {
@@ -131,13 +138,18 @@ export default function ForumPage() {
         .range(randomOffset, randomOffset);
 
       if (data && data.length > 0) {
-        const post = data[0] as RandomQuote;
+        const post = data[0] as RawRandomQuoteRow;
         // Trim to first ~150 chars at a word boundary
         let snippet = post.content;
         if (snippet.length > 150) {
           snippet = snippet.substring(0, 150).replace(/\s+\S*$/, '') + '...';
         }
-        setQuote({ ...post, content: snippet });
+        setQuote({
+          content: snippet,
+          created_at: post.created_at,
+          topic_id: post.topic_id,
+          author_username: post.author?.[0]?.username || null,
+        });
       }
     };
 
@@ -184,7 +196,7 @@ export default function ForumPage() {
           <div className="flex-1 min-w-0">
             {quote && (
             <p className="text-gray-500 text-xs italic whitespace-normal break-words leading-relaxed">
-              &ldquo;{quote.content}&rdquo; &mdash; {quote.author?.username},{' '}
+              &ldquo;{quote.content}&rdquo; &mdash; {quote.author_username || 'tuntematon'},{' '}
               <Link href={`/forum/topic/${quote.topic_id}`} className="text-yellow-700 hover:underline not-italic">
                 {formatFinnishDateTime(quote.created_at)}
               </Link>

@@ -48,6 +48,18 @@ function isSafeHttpUrl(rawUrl: string): boolean {
 
 export default function ProfilePage() {
   const { currentUser, profile, loading, supabase, refreshProfile } = useAuth();
+  const typedProfile = profile as {
+    username?: string;
+    display_name?: string;
+    profile_image_url?: string;
+    signature?: string;
+    show_signature?: boolean;
+    link_url?: string;
+    link_description?: string;
+    is_admin?: boolean;
+    created_at?: string;
+    login_count?: number;
+  } | null;
 
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -76,16 +88,16 @@ export default function ProfilePage() {
 
   // Sync form state when profile loads
   useEffect(() => {
-    if (profile) {
-      setUsername(profile.username || '');
-      setDisplayName(profile.display_name || '');
-      setProfileImageUrl(profile.profile_image_url || '');
-      setSignature(profile.signature || '');
-      setShowSignature(profile.show_signature ?? true);
-      setLinkUrl(profile.link_url || '');
-      setLinkDescription(profile.link_description || '');
+    if (typedProfile) {
+      setUsername(typedProfile.username || '');
+      setDisplayName(typedProfile.display_name || '');
+      setProfileImageUrl(typedProfile.profile_image_url || '');
+      setSignature(typedProfile.signature || '');
+      setShowSignature(typedProfile.show_signature ?? true);
+      setLinkUrl(typedProfile.link_url || '');
+      setLinkDescription(typedProfile.link_description || '');
     }
-  }, [profile]);
+  }, [typedProfile]);
 
   useEffect(() => {
     if (currentUser) {
@@ -124,8 +136,8 @@ export default function ProfilePage() {
     fetchStats();
   }, [currentUser, supabase]);
 
-  const isAdmin = profile?.is_admin === true;
-  const usernameChanged = username.trim() !== (profile?.username || '').trim();
+  const isAdmin = typedProfile?.is_admin === true;
+  const usernameChanged = username.trim() !== (typedProfile?.username || '').trim();
 
   const validateProfileForm = () => {
     setError('');
@@ -143,6 +155,7 @@ export default function ProfilePage() {
   };
 
   const saveProfile = async (allowUsernameChange: boolean) => {
+    if (!currentUser) return;
     setSaving(true);
 
     try {
@@ -250,7 +263,7 @@ export default function ProfilePage() {
     });
   };
 
-  if (loading || !profile) {
+  if (loading || !typedProfile) {
     return (
       <div className="max-w-2xl mx-auto mt-8 px-4">
         <Card>
@@ -265,16 +278,16 @@ export default function ProfilePage() {
       <Card className="mb-6">
         <div className="flex items-center gap-4 mb-4">
           {profileImageUrl ? (
-            <img src={profileMedium(profileImageUrl)} alt={profile?.username} className="w-16 h-16 rounded-none object-cover" />
+            <img src={profileMedium(profileImageUrl)} alt={typedProfile.username || 'Profiili'} className="w-16 h-16 rounded-none object-cover" />
           ) : (
             <span className="w-16 h-16 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
               <User size={34} />
             </span>
           )}
           <div className="flex-1">
-            <h1 className="text-3xl font-bold" style={{ fontFamily: 'monospace' }}>{profile?.username}</h1>
+            <h1 className="text-3xl font-bold" style={{ fontFamily: 'monospace' }}>{typedProfile.username}</h1>
             <p className="text-sm text-gray-500">
-             Liittymispäivä {profile?.created_at ? formatDate(profile.created_at) : ''} 
+             Liittymispäivä {typedProfile.created_at ? formatDate(typedProfile.created_at) : ''}
             </p>
           </div>
         </div>
@@ -295,7 +308,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <LogIn size={18} className="text-yellow-600" />
             <span className="text-sm text-gray-500 flex-1">Kirjautumista</span>
-            <span className="font-bold">{profile?.login_count || 0}</span>
+            <span className="font-bold">{typedProfile.login_count || 0}</span>
           </div>
           {mostPopularTopic && (
             <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
@@ -575,7 +588,7 @@ export default function ProfilePage() {
             <p className="text-sm text-gray-600 mb-4">
               Olet muuttamassa käyttäjätunnusta:
               <br />
-              <span className="font-semibold text-gray-800">{profile.username}</span>
+              <span className="font-semibold text-gray-800">{typedProfile.username}</span>
               {' -> '}
               <span className="font-semibold text-gray-800">{username.trim()}</span>
             </p>

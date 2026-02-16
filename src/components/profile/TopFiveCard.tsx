@@ -86,7 +86,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
 
       if (!categoriesRes.error && categoriesRes.data) {
         const catCounts: Record<string, CategoryStat> = {};
-        for (const post of categoriesRes.data as PostCategoryRow[]) {
+        for (const post of categoriesRes.data as unknown as PostCategoryRow[]) {
           const cat = post.topic?.category;
           if (!cat?.name) continue;
           if (!catCounts[cat.name]) {

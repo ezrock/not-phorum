@@ -170,10 +170,10 @@ export default function TopicPage() {
       ]);
 
       if (!topicRes.error && topicRes.data) {
-        setTopic(topicRes.data as Topic);
+        setTopic(topicRes.data as unknown as Topic);
       }
       if (!postsRes.error && postsRes.data) {
-        setPosts(postsRes.data as Post[]);
+        setPosts(postsRes.data as unknown as Post[]);
       }
       if (!countRes.error) {
         setTotalPosts(countRes.count || 0);
@@ -330,7 +330,7 @@ export default function TopicPage() {
       .single();
 
     if (!error && data) {
-      const insertedPost = data as Post;
+      const insertedPost = data as unknown as Post;
       const nextTotalPosts = totalPosts + 1;
       const nextPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
       setReplyContent('');
@@ -373,7 +373,7 @@ export default function TopicPage() {
       .single();
 
     if (!error && data) {
-      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as Post) : p)));
+      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as unknown as Post) : p)));
       setEditingPostId(null);
     }
     setEditSaving(false);
@@ -394,7 +394,7 @@ export default function TopicPage() {
       .single();
 
     if (!error && data) {
-      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as Post) : p)));
+      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as unknown as Post) : p)));
     }
     setDeleteConfirmId(null);
   };
@@ -650,7 +650,8 @@ export default function TopicPage() {
                       <ReactMarkdown
                         components={{
                           a: ({ href, children }) => {
-                            const label = typeof children?.[0] === 'string' ? children[0] : '';
+                            const firstChild = Array.isArray(children) ? children[0] : children;
+                            const label = typeof firstChild === 'string' ? firstChild : '';
                             const shouldShorten = label && /^https?:\/\//i.test(label);
                             const visibleText = shouldShorten ? shortenUrlDisplay(label) : children;
 
