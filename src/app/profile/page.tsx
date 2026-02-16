@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
@@ -46,7 +46,7 @@ function isSafeHttpUrl(rawUrl: string): boolean {
 }
 
 export default function ProfilePage() {
-  const { currentUser, profile, loading, supabase, refreshProfile } = useAuth();
+  const { currentUser, profile, loading, supabase, refreshProfile, logout } = useAuth();
 
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -234,12 +234,19 @@ export default function ProfilePage() {
           ) : (
             <span className="text-6xl">{profile?.avatar}</span>
           )}
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold">{profile?.username}</h1>
             <p className="text-sm text-gray-500">
               Jäsen {profile?.created_at ? formatDate(profile.created_at) : ''} alkaen
             </p>
           </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 rounded hover:bg-red-700 hover:text-white transition"
+          >
+            <LogOut size={16} />
+            Kirjaudu ulos
+          </button>
         </div>
 
         <hr className="border-gray-200 mb-4" />

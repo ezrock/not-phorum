@@ -8,7 +8,7 @@ import { Users, Search, Shield } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
-  const { currentUser, profile, logout } = useAuth();
+  const { currentUser, profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
@@ -61,25 +61,17 @@ export const Navigation = () => {
           </div>
         </form>
 
-        <div className="flex items-center gap-4">
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
-          >
-            {profile.profile_image_url ? (
-              <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-full object-cover" />
-            ) : (
-              <span className="text-2xl">{profile.avatar}</span>
-            )}
-            <span>{profile.username}</span>
-          </Link>
-          <button
-            onClick={logout}
-            className="px-4 py-2 max-h-10 bg-white-600 text-gray-800 rounded hover:bg-red-700 hover:text-white"
-          >
-            Kirjaudu ulos
-          </button>
-        </div>
+        <Link
+          href="/profile"
+          className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
+        >
+          {profile.profile_image_url ? (
+            <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-full object-cover" />
+          ) : (
+            <span className="text-2xl">{profile.avatar}</span>
+          )}
+          <span>{profile.username}</span>
+        </Link>
       </div>
     </nav>
   );
