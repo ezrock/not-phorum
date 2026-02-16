@@ -98,9 +98,9 @@ export default function MembersPage() {
       <div className="flex items-center gap-3 mb-6">
         <Users size={28} className="text-gray-800" />
         <div>
-          <h2 className="text-3xl font-bold">Jäsenet</h2>
+          <h2 className="text-3xl font-bold">Membut</h2>
           <p className="text-gray-600">
-            Yhteensä {members.length} rekisteröitynyttä jäsentä
+            Yhteensä {members.length} membulia.
           </p>
         </div>
       </div>
@@ -147,7 +147,7 @@ export default function MembersPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="mt-2 text-[11px] text-gray-400">Ei kunniamerkkejä vielä</p>
+                    <p className="mt-2 text-[11px] text-gray-400">Ei kunniamerkkejä (vielä)</p>
                   )}
                 </div>
               </div>

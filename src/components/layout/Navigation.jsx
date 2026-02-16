@@ -37,7 +37,7 @@ export const Navigation = () => {
           <div className="flex gap-4">
             <Link href="/members" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
               <Users size={20} />
-              Jäsenet
+              Membut
             </Link>
             {profile?.is_admin && (
               <Link href="/admin" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
@@ -67,7 +67,7 @@ export const Navigation = () => {
             className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
           >
             {profile.profile_image_url ? (
-              <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-8 h-8 rounded-full object-cover" />
+              <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-full object-cover" />
             ) : (
               <span className="text-2xl">{profile.avatar}</span>
             )}

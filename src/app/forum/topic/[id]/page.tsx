@@ -198,9 +198,14 @@ export default function TopicPage() {
     });
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fi-FI');
+  const hasBeenEdited = (post: Post) => {
+    if (!post.updated_at) return false;
+    const updatedAt = new Date(post.updated_at).getTime();
+    const createdAt = new Date(post.created_at).getTime();
+    if (Number.isNaN(updatedAt) || Number.isNaN(createdAt)) return false;
+    return updatedAt - createdAt > 1000;
   };
+
 
   if (loading) {
     return (
@@ -227,18 +232,7 @@ export default function TopicPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4 mb-12">
-      {/* Breadcrumb Navigation */}
-      <div className="mb-6 flex items-center gap-2 text-sm">
-        <Link href="/forum" className="text-yellow-600 hover:underline">
-          Foorumi
-        </Link>
-        <span className="text-gray-400">/</span>
-        <span className="text-yellow-600">{topic.category?.name}</span>
-        <span className="text-gray-400">/</span>
-        <span className="text-gray-600">{topic.title}</span>
-      </div>
-
-      {/* Topic Header */}
+      {/* Topic + Thread */}
       <Card className="mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -259,15 +253,13 @@ export default function TopicPage() {
             </Button>
           </Link>
         </div>
-      </Card>
-
-      {/* Posts */}
-      <div className="space-y-4">
+      
+        <div className="mt-6 border-t border-gray-200">
         {posts.map((post, index) => {
           const isOriginalPost = index === 0;
 
           return (
-            <Card key={post.id} className={isOriginalPost ? 'border-yellow-400 border-2' : ''}>
+            <div key={post.id} className="py-6 border-b border-gray-200 last:border-b-0">
               <div className="flex gap-4">
                 {/* Author Info Sidebar */}
                 <Link href={`/profile/${post.author?.id}`} className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4 hover:opacity-80">
@@ -278,7 +270,7 @@ export default function TopicPage() {
                   )}
                   <p className="font-bold text-sm mb-1">{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
-                    Liittynyt {post.author?.created_at ? formatDate(post.author.created_at) : ''}
+                    {formatDateTime(post.created_at)}
                   </p>
                 </Link>
 
@@ -340,16 +332,7 @@ export default function TopicPage() {
                   </div>
                 ) : (
                   <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="text-sm text-gray-500">
-                        {formatDateTime(post.created_at)}
-                        {post.updated_at && (
-                          <span className="ml-2 text-xs">
-                            (Muokattu: {formatDateTime(post.updated_at)})
-                          </span>
-                        )}
-                      </div>
-
+                    <div className="flex items-start justify-end mb-3">
                       <div className="flex gap-2">
                         {currentUser && currentUser.id === post.author?.id && (
                           <>
@@ -405,19 +388,21 @@ export default function TopicPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
-                      <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-yellow-600 transition">
-                        <MessageSquare size={16} />
-                        <span>Vastaa</span>
-                      </button>
-                    </div>
+                    {hasBeenEdited(post) && (
+                      <div className={`${post.author?.signature && post.author?.show_signature ? 'mt-2' : 'pt-3 mt-3 border-t border-gray-200'}`}>
+                        <p className="text-xs text-gray-400 italic">
+                          Muokattu viimeksi {formatDateTime(post.updated_at as string)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           );
         })}
-      </div>
+        </div>
+      </Card>
 
       {/* Reply Box */}
       {currentUser ? (
