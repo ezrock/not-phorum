@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User, Heart } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -48,6 +48,15 @@ interface TopicViewResponse {
   views_unique?: number;
 }
 
+interface PostLikeRow {
+  post_id: number;
+}
+
+interface PostLikeState {
+  count: number;
+  likedByMe: boolean;
+}
+
 function parseTopicViewResponse(value: unknown): TopicViewResponse | null {
   if (!value || typeof value !== 'object') return null;
   return value as TopicViewResponse;
@@ -75,6 +84,8 @@ export default function TopicPage() {
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [postLikes, setPostLikes] = useState<Record<number, PostLikeState>>({});
+  const [likeSaving, setLikeSaving] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,6 +119,57 @@ export default function TopicPage() {
 
     fetchData();
   }, [supabase, topicId]);
+
+  useEffect(() => {
+    const fetchLikes = async () => {
+      if (!posts.length) {
+        setPostLikes({});
+        return;
+      }
+
+      const postIds = posts.map((post) => post.id);
+
+      const countsReq = supabase
+        .from('post_likes')
+        .select('post_id')
+        .in('post_id', postIds);
+
+      const myLikesReq = currentUser
+        ? supabase
+            .from('post_likes')
+            .select('post_id')
+            .eq('profile_id', currentUser.id)
+            .in('post_id', postIds)
+        : Promise.resolve({ data: [], error: null });
+
+      const [countsRes, myLikesRes] = await Promise.all([countsReq, myLikesReq]);
+
+      const countsMap: Record<number, number> = {};
+      if (!countsRes.error && countsRes.data) {
+        for (const row of countsRes.data as PostLikeRow[]) {
+          countsMap[row.post_id] = (countsMap[row.post_id] || 0) + 1;
+        }
+      }
+
+      const likedByMeSet = new Set<number>();
+      if (!myLikesRes.error && myLikesRes.data) {
+        for (const row of myLikesRes.data as PostLikeRow[]) {
+          likedByMeSet.add(row.post_id);
+        }
+      }
+
+      const nextState: Record<number, PostLikeState> = {};
+      for (const postId of postIds) {
+        nextState[postId] = {
+          count: countsMap[postId] || 0,
+          likedByMe: likedByMeSet.has(postId),
+        };
+      }
+      setPostLikes(nextState);
+    };
+
+    fetchLikes();
+  }, [supabase, currentUser, posts]);
 
   useEffect(() => {
     if (!Number.isFinite(topicId)) return;
@@ -219,6 +281,50 @@ export default function TopicPage() {
       setPosts((prev) => prev.map((p) => (p.id === postId ? (data as Post) : p)));
     }
     setDeleteConfirmId(null);
+  };
+
+  const handleToggleLike = async (postId: number) => {
+    if (!currentUser || likeSaving[postId]) return;
+
+    const current = postLikes[postId] || { count: 0, likedByMe: false };
+    setLikeSaving((prev) => ({ ...prev, [postId]: true }));
+
+    if (current.likedByMe) {
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('profile_id', currentUser.id);
+
+      if (!error) {
+        setPostLikes((prev) => ({
+          ...prev,
+          [postId]: {
+            count: Math.max((prev[postId]?.count || 0) - 1, 0),
+            likedByMe: false,
+          },
+        }));
+      }
+    } else {
+      const { error } = await supabase
+        .from('post_likes')
+        .insert({
+          post_id: postId,
+          profile_id: currentUser.id,
+        });
+
+      if (!error) {
+        setPostLikes((prev) => ({
+          ...prev,
+          [postId]: {
+            count: (prev[postId]?.count || 0) + 1,
+            likedByMe: true,
+          },
+        }));
+      }
+    }
+
+    setLikeSaving((prev) => ({ ...prev, [postId]: false }));
   };
 
   const formatDateTime = (dateString: string) => {
@@ -370,10 +476,26 @@ export default function TopicPage() {
                   <div className="flex-1">
                     <div className="flex items-start justify-end mb-3">
                       <div className="flex gap-2">
+                        <button
+                          className={`inline-flex h-10 min-w-10 px-2 items-center justify-center gap-1 rounded text-sm transition ${
+                            postLikes[post.id]?.likedByMe
+                              ? 'text-red-600 bg-red-50 hover:bg-red-100'
+                              : 'text-gray-500 hover:text-red-600 hover:bg-gray-100'
+                          }`}
+                          onClick={() => handleToggleLike(post.id)}
+                          disabled={!!likeSaving[post.id]}
+                          title={postLikes[post.id]?.likedByMe ? 'Poista tykkäys' : 'Tykkää'}
+                        >
+                          <Heart
+                            size={16}
+                            className={postLikes[post.id]?.likedByMe ? 'fill-current' : ''}
+                          />
+                          <span>{postLikes[post.id]?.count || 0}</span>
+                        </button>
                         {currentUser && currentUser.id === post.author?.id && (
                           <>
                             <button
-                              className="text-gray-500 hover:text-yellow-600"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded text-gray-500 hover:text-yellow-600 hover:bg-gray-100 transition"
                               onClick={() => startEditing(post)}
                               title="Muokkaa"
                             >
@@ -398,7 +520,7 @@ export default function TopicPage() {
                                 </div>
                               ) : (
                                 <button
-                                  className="text-gray-500 hover:text-red-600"
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded text-gray-500 hover:text-red-600 hover:bg-gray-100 transition"
                                   onClick={() => setDeleteConfirmId(post.id)}
                                   title="Poista"
                                 >
