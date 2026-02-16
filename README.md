@@ -1,142 +1,83 @@
-Goal
-- Modern message board with secure features and possibility to build lots of fun easter eggs. 
+# Freakon Forum
 
-## Content
-- Threads, posts, replies, files
-- Threads are flat but replies can reference posts. 
+Yarr! A modern, members-only message board built with Next.js + Supabase, with old-school forum soul and modern security hardening.
 
-## Architecture
-- Hosted & deployment in Vercel
-- Frontend and server logic in Next.js 
-- Version control in Github
-- Auth, database and storage in Supabase
-- Media management for attachments and images in Cloudinary
+## Tech Stack
+- Next.js (App Router, React, TypeScript)
+- Supabase (Postgres, Auth, RLS, SQL RPC functions)
+- Cloudinary (post attachments and profile images)
+- Tailwind CSS + custom UI components
+- Lucide icons
+- Vercel (deployment)
+- GitHub (version control)
 
-## URL Strategy
-- Bigint + slug
-- Should be linkable, but only the registered uers can see the contents.
+## What Is Already Shipped
+- Members-only forum access (auth-gated content)
+- Registration toggle from admin panel (`site_settings`)
+- Role-based admin access and admin-only controls
+- Category hierarchy with parent/child category support
+- Thread creation with first post in one atomic RPC (`create_topic_with_post`)
+- Thread list with pagination (`?page=`), 20 threads per page
+- Thread view with pagination (`?page=`), 50 posts per page
+- Open thread links directly to latest post (page + `#post-id` anchor)
+- Per-post deep links with copy button and temporary highlight
+- Post likes (toggle, per-user), including thread starter post
+- Soft-delete for posts
+- Post edit flow with edited timestamp handling
+- Markdown rendering for messages
+- Auto-linking of plain URLs in messages
+- Optional image attachment in new posts and replies
+- Topic view tracking:
+  - total views
+  - unique views with cooldown window
+  - per-viewer tracking via `topic_view_events`
+- “Uusi” badge logic in thread list for unread activity
+- Reply count shown in Finnish grammar (`1 vastaus`, `N vastausta`)
+- Search page with typo-tolerant DB search RPC (`search_forum`)
+- Profile system with:
+  - profile image upload
+  - signature (and visibility toggle)
+  - optional personal link
+  - email update
+  - admin-only username editing with confirmation modal
+- Public profile pages for other users
+- Member list page
+- Trophy system baseline migrated from legacy forum:
+  - trophy catalog + user trophy assignments
+  - legacy icon assets served locally
+  - trophies visible in member list, profiles, and admin overview
+- Profile Top 5 analytics card data:
+  - favourite categories
+  - most viewed threads
+  - top liked posts
+  - authors whose posts user has liked most
 
-## General features
-- Access to forum only by login
-- Keep data encrypted to protect it from data breaches
+## Security Notes
+- RLS enabled on core tables
+- Security-definer RPCs hardened with auth checks
+- Login counter increment secured to self-user only
+- Admin actions enforced server-side (not just UI)
 
-## Landing page
-- Contains only text.
+## Database Migrations
+The project includes SQL migrations in `supabase/migrations`, including:
+- schema bootstrap
+- category hierarchy
+- admin role and security hardening
+- login counting
+- site settings
+- trophies baseline
+- topic view tracking
+- post likes + profile top-5 helpers
+- topic list state and pagination helper
 
-## Thread list
-- First page after login.
-- Paginated
-
-## Admin features
-- Remove message
-- Edit message
-- Rename thread
-- Remove thread
-- Change thread category
-- Change username of users (in their user profile)
-- Edit user information of users (in their user profiles)
-- Sees forum admin page (only role who can access it and see it in navigation)
-
-## Forum admin page
-- Toggle user registration on/off
-
-## User features
-- Start new threads
-- Reply to a thread
-- Reply to a thread refering a message or user
-
-## Categories
-- Built with categories and subcategories.
-- Videogame categories are sorted by the release date, other topics by the estimated popularity
-- Off-topic is the default category
-
-### Videopelit
-PC-pelit 💻
-Selainpelit 🌐
-Mobiilipelit 📱
-Steamdeck 🎮 (2022–)
-Playstation 5 🎮 (2020–)
-Xbox Series 💚 (2020–)
-Nintendo Switch 🔴 (2017–)
-Playstation 4 🎮 (2013–2021)
-Xbox One 💚 (2013–2020)
-Playstation 3 🎮 (2006–2017)
-Nintendo Wii 🏠 (2006–2013)
-Xbox 360 💚 (2005–2016)
-Nintendo DS 📱 (2004–2014)
-Gamecube 🟪 (2001–2007)
-Xbox 💚 (2001–2009)
-Playstation 2 📀 (2000–2013)
-Nintendo 64 🕹️ (1996–2002)
-Playstation 1 💿 (1994–2006)
-Gameboy 🟩 (1989–2003)
-
-
-### Retro 🕹️
-Amiga 🖥️
-8-bit Commodore 💾
-Arcade 🕹️
-Dreamcast 🌀
-Gamepark 🎮
-N.Gage 📞
-NES 🕹️
-SNES 🎮
-
-### Lauta-, kortti- ja figupelit 🎲
-Figut 🧸
-Korttipelit 🃏
-Lautapelit 🎲
-Pokemonit ⚡
-Roolipelit 🐉
-
-### Yleiset 💬
-Internet 🌍
-Kirjat ja lehdet 📚
-Leffat 🎬
-Musiikki 🎵
-Sarjakuvat 📖
-Urheilu ⚽
-Vimpaimet 🔧
-Off-topic 💬
-
-## Category management
-- Admin can edit categories
-- Admin can add new categories
-- Admin can add image for a category
-- Admin can sort the categories
-
-## Message features
-- Use markdown to style the messages.
-- Can contain hashtags
-- Can contain @user mentions
-- Add attachments to messages
-- Images are shown inline
-
-## Thread features
-- User who started the thread can change the category
-- User who started the thread can lock the thread.
-
-## User profile
-- User has a username
-- User can upload a profile image
-- User can add a name
-- User can change their email address
-- User can change their signature
-- User can toggle signature on/off
-- User can set one link to their profile (Url and description)
-
-- User profile shows the date the user profile has been created (migrated later)
-
-- Card based layout: Basic information, trophies, statistics, trophies
-
-## Statistics in user profile (in own and other users profiles)
-- Threads started
-- Replies written
-- Times logged in
-- Most popular thread started (views)
-- Most active thread started (replies)
-
-## Search features
-- Real time search
-- Less prone to error (typos should not matter a lot)
-- Search from message content and thread names
+## Dev Notes
+- Main forum routes:
+  - `/forum`
+  - `/forum/new`
+  - `/forum/topic/[id]`
+  - `/forum/search`
+  - `/members`
+  - `/profile`
+  - `/profile/[id]`
+  - `/admin`
+- If ye be migrating legacy data, trophies are already structured so ye can keep expanding the catalog without rewriting UI logic. Yarr.
