@@ -4,13 +4,12 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Users, Shield } from 'lucide-react';
+import { Users, Shield, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 interface Profile {
   id: string;
   username: string;
-  avatar: string;
   profile_image_url: string | null;
   created_at: string;
   is_admin: boolean;
@@ -39,7 +38,7 @@ export default function MembersPage() {
       const [membersRes, trophiesRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, username, avatar, profile_image_url, created_at, is_admin')
+          .select('id, username, profile_image_url, created_at, is_admin')
           .order('created_at', { ascending: true }),
         supabase
           .from('profile_trophies')
@@ -113,7 +112,9 @@ export default function MembersPage() {
                 {member.profile_image_url ? (
                   <img src={profileThumb(member.profile_image_url)} alt={member.username} className="w-10 h-10 rounded-full object-cover" />
                 ) : (
-                  <span className="text-3xl">{member.avatar}</span>
+                  <span className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+                    <User size={20} />
+                  </span>
                 )}
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">

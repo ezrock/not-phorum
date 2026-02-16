@@ -15,7 +15,6 @@ interface SearchResult {
   category_name: string;
   category_icon: string;
   author_username: string;
-  author_avatar: string;
   author_profile_image_url: string | null;
   similarity_score: number;
   created_at: string;

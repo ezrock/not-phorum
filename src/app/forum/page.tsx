@@ -28,6 +28,7 @@ interface RandomQuote {
 export default function ForumPage() {
   const { supabase } = useAuth();
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [messageCount, setMessageCount] = useState(0);
   const [quote, setQuote] = useState<RandomQuote | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -75,8 +76,18 @@ export default function ForumPage() {
       }
     };
 
+    const fetchMessageCount = async () => {
+      const { count } = await supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null);
+
+      setMessageCount(count || 0);
+    };
+
     fetchTopics();
     fetchRandomQuote();
+    fetchMessageCount();
   }, [supabase]);
 
 
@@ -92,23 +103,26 @@ export default function ForumPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold mb-2">Foorumi</h2>
-          {quote && (
-            <p className="text-gray-500 text-sm italic">
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            {quote && (
+            <p className="text-gray-500 text-xs italic whitespace-normal break-words leading-relaxed">
               &ldquo;{quote.content}&rdquo; &mdash; {quote.author?.username},{' '}
               <Link href={`/forum/topic/${quote.topic_id}`} className="text-yellow-700 hover:underline not-italic">
                 {formatFinnishDateTime(quote.created_at)}
               </Link>
             </p>
-          )}
+            )}
+          </div>
+          <p className="text-xs text-gray-500 whitespace-nowrap text-right">
+            {topics.length} lankaa, {messageCount} viestiä.
+          </p>
         </div>
-        <Link href="/forum/new">
+        <Link href="/forum/new" className="block w-full mt-4">
           <Button
-            variant="success"
-            className="flex items-center gap-2"
-            onClick={() => {}}
+            variant="primary"
+            className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
           >
             <Plus size={20} />
             Uusi aihe

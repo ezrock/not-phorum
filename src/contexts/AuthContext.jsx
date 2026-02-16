@@ -82,14 +82,13 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/';
   };
 
-  const register = async (email, password, username, avatar) => {
+  const register = async (email, password, username) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           username,
-          avatar,
         },
       },
     });

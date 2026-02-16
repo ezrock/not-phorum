@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -21,7 +21,6 @@ interface Post {
   author: {
     id: string;
     username: string;
-    avatar: string;
     profile_image_url: string | null;
     created_at: string;
     signature: string | null;
@@ -92,7 +91,7 @@ export default function TopicPage() {
           .from('posts')
           .select(`
             id, content, created_at, updated_at, deleted_at, image_url,
-            author:profiles!author_id(id, username, avatar, profile_image_url, created_at, signature, show_signature)
+            author:profiles!author_id(id, username, profile_image_url, created_at, signature, show_signature)
           `)
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true }),
@@ -152,7 +151,7 @@ export default function TopicPage() {
       })
       .select(`
         id, content, created_at, updated_at, deleted_at, image_url,
-        author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
+        author:profiles!author_id(id, username, profile_image_url, created_at)
       `)
       .single();
 
@@ -191,7 +190,7 @@ export default function TopicPage() {
       .eq('author_id', currentUser.id)
       .select(`
         id, content, created_at, updated_at, deleted_at, image_url,
-        author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
+        author:profiles!author_id(id, username, profile_image_url, created_at)
       `)
       .single();
 
@@ -212,7 +211,7 @@ export default function TopicPage() {
       .eq('author_id', currentUser.id)
       .select(`
         id, content, created_at, updated_at, deleted_at, image_url,
-        author:profiles!author_id(id, username, avatar, profile_image_url, created_at)
+        author:profiles!author_id(id, username, profile_image_url, created_at)
       `)
       .single();
 
@@ -301,7 +300,9 @@ export default function TopicPage() {
                   {post.author?.profile_image_url ? (
                     <img src={profileThumb(post.author.profile_image_url)} alt={post.author.username} className="w-14 h-14 rounded-full object-cover mx-auto mb-2" />
                   ) : (
-                    <div className="text-5xl mb-2">{post.author?.avatar}</div>
+                    <div className="w-14 h-14 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center mb-2">
+                      <User size={30} />
+                    </div>
                   )}
                   <p className="font-bold text-sm mb-1">{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
@@ -494,7 +495,7 @@ export default function TopicPage() {
               )}
             </CldUploadWidget>
             <Button
-              variant="success"
+              variant="primary"
               className="flex items-center gap-2"
               onClick={handleReply}
               disabled={submitting || !replyContent.trim()}

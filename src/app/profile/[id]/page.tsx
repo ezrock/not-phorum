@@ -6,14 +6,13 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon, LogIn, Eye, BarChart3 } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon, LogIn, Eye, BarChart3, User } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 
 interface UserProfile {
   id: string;
   username: string;
   display_name: string | null;
-  avatar: string;
   profile_image_url: string | null;
   created_at: string;
   is_admin: boolean;
@@ -96,7 +95,7 @@ export default function PublicProfilePage() {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count')
+        .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count')
         .eq('id', userId)
         .single();
 
@@ -258,7 +257,9 @@ export default function PublicProfilePage() {
           {profile.profile_image_url ? (
             <img src={profileMedium(profile.profile_image_url)} alt={profile.username} className="w-20 h-20 rounded-full object-cover" />
           ) : (
-            <span className="text-7xl">{profile.avatar}</span>
+            <span className="w-20 h-20 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+              <User size={42} />
+            </span>
           )}
           <div className="flex-1">
             <h1 className="text-3xl font-bold">{profile.username}</h1>

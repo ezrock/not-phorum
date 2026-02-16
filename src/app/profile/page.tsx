@@ -7,11 +7,9 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, LogOut } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, User } from 'lucide-react';
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
-
-const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
 
 interface CloudinaryUploadResult {
   info?: {
@@ -46,11 +44,10 @@ function isSafeHttpUrl(rawUrl: string): boolean {
 }
 
 export default function ProfilePage() {
-  const { currentUser, profile, loading, supabase, refreshProfile, logout } = useAuth();
+  const { currentUser, profile, loading, supabase, refreshProfile } = useAuth();
 
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [avatar, setAvatar] = useState('🎮');
   const [email, setEmail] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [signature, setSignature] = useState('');
@@ -72,13 +69,13 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showUsernameConfirm, setShowUsernameConfirm] = useState(false);
 
   // Sync form state when profile loads
   useEffect(() => {
     if (profile) {
       setUsername(profile.username || '');
       setDisplayName(profile.display_name || '');
-      setAvatar(profile.avatar || '🎮');
       setProfileImageUrl(profile.profile_image_url || '');
       setSignature(profile.signature || '');
       setShowSignature(profile.show_signature ?? true);
@@ -124,35 +121,52 @@ export default function ProfilePage() {
     fetchStats();
   }, [currentUser, supabase]);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isAdmin = profile?.is_admin === true;
+  const usernameChanged = username.trim() !== (profile?.username || '').trim();
+
+  const validateProfileForm = () => {
     setError('');
     setSuccess('');
 
-    if (username.trim().length < 3) {
+    if (isAdmin && username.trim().length < 3) {
       setError('Käyttäjätunnuksen tulee olla vähintään 3 merkkiä');
-      return;
+      return false;
     }
     if (!isSafeHttpUrl(linkUrl)) {
       setError('Linkin pitää alkaa http:// tai https://');
-      return;
+      return false;
     }
+    return true;
+  };
 
+  const saveProfile = async (allowUsernameChange: boolean) => {
     setSaving(true);
 
     try {
+      const updates: {
+        username?: string;
+        display_name: string | null;
+        profile_image_url: string | null;
+        signature: string | null;
+        show_signature: boolean;
+        link_url: string | null;
+        link_description: string | null;
+      } = {
+        display_name: displayName.trim() || null,
+        profile_image_url: profileImageUrl || null,
+        signature: signature.trim() || null,
+        show_signature: showSignature,
+        link_url: linkUrl.trim() || null,
+        link_description: linkDescription.trim() || null,
+      };
+
+      if (allowUsernameChange && isAdmin) {
+        updates.username = username.trim();
+      }
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-          username: username.trim(),
-          display_name: displayName.trim() || null,
-          avatar,
-          profile_image_url: profileImageUrl || null,
-          signature: signature.trim() || null,
-          show_signature: showSignature,
-          link_url: linkUrl.trim() || null,
-          link_description: linkDescription.trim() || null,
-        })
+        .update(updates)
         .eq('id', currentUser.id);
 
       if (profileError) throw profileError;
@@ -172,6 +186,24 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateProfileForm()) return;
+
+    if (isAdmin && usernameChanged) {
+      setShowUsernameConfirm(true);
+      return;
+    }
+
+    await saveProfile(false);
+  };
+
+  const handleConfirmUsernameChange = async () => {
+    setShowUsernameConfirm(false);
+    if (!validateProfileForm()) return;
+    await saveProfile(true);
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -232,7 +264,9 @@ export default function ProfilePage() {
           {profileImageUrl ? (
             <img src={profileMedium(profileImageUrl)} alt={profile?.username} className="w-16 h-16 rounded-full object-cover" />
           ) : (
-            <span className="text-6xl">{profile?.avatar}</span>
+            <span className="w-16 h-16 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+              <User size={34} />
+            </span>
           )}
           <div className="flex-1">
             <h1 className="text-3xl font-bold">{profile?.username}</h1>
@@ -240,13 +274,6 @@ export default function ProfilePage() {
               Jäsen {profile?.created_at ? formatDate(profile.created_at) : ''} alkaen
             </p>
           </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 rounded hover:bg-red-700 hover:text-white transition"
-          >
-            <LogOut size={16} />
-            Kirjaudu ulos
-          </button>
         </div>
 
         <hr className="border-gray-200 mb-4" />
@@ -317,56 +344,13 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSaveProfile} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Profiilikuva
-            </label>
-            <div className="flex items-center gap-4">
-              {profileImageUrl ? (
-                <div className="relative">
-                  <img src={profileThumb(profileImageUrl)} alt="Profiilikuva" className="w-20 h-20 rounded-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setProfileImageUrl('')}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <span className="text-5xl">{avatar}</span>
+            <label htmlFor="username" className="flex items-center gap-2 text-sm font-medium mb-1">
+              <span>Käyttäjätunnus</span>
+              {isAdmin && (
+                <span className="inline-flex items-center rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                  Vain admin
+                </span>
               )}
-              <CldUploadWidget
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                options={{
-                  maxFiles: 1,
-                  resourceType: 'image',
-                  folder: 'freakon/profiles',
-                  cropping: true,
-                  croppingAspectRatio: 1,
-                }}
-                onSuccess={(result: unknown) => {
-                  const secureUrl = extractSecureUrl(result);
-                  if (secureUrl) {
-                    setProfileImageUrl(secureUrl);
-                  }
-                }}
-              >
-                {({ open }) => (
-                  <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
-                    <Camera size={16} />
-                    {profileImageUrl ? 'Vaihda kuva' : 'Lataa kuva'}
-                  </Button>
-                )}
-              </CldUploadWidget>
-            </div>
-            {!profileImageUrl && (
-              <p className="text-xs text-gray-400 mt-1">Profiilikuva korvaa emoji-avatarin</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-1">
-              Käyttäjätunnus
             </label>
             <Input
               id="username"
@@ -375,7 +359,14 @@ export default function ProfilePage() {
               required
               minLength={3}
               maxLength={20}
+              disabled={!isAdmin}
+              className={!isAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {isAdmin
+                ? 'Käyttäjätunnuksen muutos vaatii erillisen vahvistuksen.'
+                : 'Käyttäjätunnusta voi muuttaa vain admin.'}
+            </p>
           </div>
 
           <div>
@@ -388,19 +379,6 @@ export default function ProfilePage() {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
               placeholder="Valinnainen näyttönimi"
               maxLength={50}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
-              Sähköposti
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              required
             />
           </div>
 
@@ -431,6 +409,67 @@ export default function ProfilePage() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-2">
+              Profiilikuva
+            </label>
+            <div className="flex items-center gap-4">
+              {profileImageUrl ? (
+                <div className="relative">
+                  <img src={profileThumb(profileImageUrl)} alt="Profiilikuva" className="w-20 h-20 rounded-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setProfileImageUrl('')}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <span className="w-20 h-20 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+                  <User size={40} />
+                </span>
+              )}
+              <CldUploadWidget
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                options={{
+                  maxFiles: 1,
+                  resourceType: 'image',
+                  folder: 'freakon/profiles',
+                  cropping: true,
+                  croppingAspectRatio: 1,
+                }}
+                onSuccess={(result: unknown) => {
+                  const secureUrl = extractSecureUrl(result);
+                  if (secureUrl) {
+                    setProfileImageUrl(secureUrl);
+                  }
+                }}
+              >
+                {({ open }) => (
+                  <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                    <Camera size={16} />
+                    {profileImageUrl ? 'Vaihda kuva' : 'Lataa kuva'}
+                  </Button>
+                )}
+              </CldUploadWidget>
+            </div>
+            {!profileImageUrl && <p className="text-xs text-gray-400 mt-1">Lisää profiilikuva näkyäksesi muille.</p>}
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">
+              Sähköposti
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1 flex items-center gap-1">
               <LinkIcon size={14} />
               Linkki
@@ -453,32 +492,9 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Emoji-avatar
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {AVATAR_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => setAvatar(emoji)}
-                  className={`text-4xl p-2 rounded hover:bg-yellow-100 transition ${
-                    avatar === emoji ? 'bg-yellow-200 ring-2 ring-yellow-400' : 'bg-gray-100'
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-            {profileImageUrl && (
-              <p className="text-xs text-gray-400 mt-1">Emoji-avatar näkyy varana jos profiilikuva poistetaan</p>
-            )}
-          </div>
-
           <Button
             type="submit"
-            variant="success"
+            variant="primary"
             disabled={saving}
             className="flex items-center gap-2"
           >
@@ -530,7 +546,7 @@ export default function ProfilePage() {
 
           <Button
             type="submit"
-            variant="success"
+            variant="primary"
             disabled={savingPassword}
             className="flex items-center gap-2"
           >
@@ -539,6 +555,42 @@ export default function ProfilePage() {
           </Button>
         </form>
       </Card>
+
+      {showUsernameConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-xl border-2 border-gray-800 bg-white p-5 shadow-xl">
+            <h3 className="text-lg font-bold mb-2">Vahvista käyttäjätunnuksen muutos</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Olet muuttamassa käyttäjätunnusta:
+              <br />
+              <span className="font-semibold text-gray-800">{profile.username}</span>
+              {' -> '}
+              <span className="font-semibold text-gray-800">{username.trim()}</span>
+            </p>
+            <p className="text-xs text-gray-500 mb-5">
+              Tämä muutos näkyy kaikkialla foorumilla. Haluatko varmasti jatkaa?
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowUsernameConfirm(false)}
+                disabled={saving}
+              >
+                Peruuta
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleConfirmUsernameChange}
+                disabled={saving}
+              >
+                Vahvista muutos
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

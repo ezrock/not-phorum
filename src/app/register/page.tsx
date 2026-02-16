@@ -9,14 +9,11 @@ import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 
-const AVATAR_OPTIONS = ['🍄', '🎮', '🐱', '🦊', '🐼', '🦁', '🐯', '🐸', '🦄', '🐉'];
-
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [avatar, setAvatar] = useState('🎮');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
@@ -67,7 +64,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(email, password, username, avatar);
+      await register(email, password, username);
       window.location.href = '/forum';
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Rekisteröityminen epäonnistui';
@@ -167,26 +164,6 @@ export default function RegisterPage() {
               required
               placeholder="••••••••"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Valitse avatar
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {AVATAR_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => setAvatar(emoji)}
-                  className={`text-4xl p-2 rounded hover:bg-yellow-100 transition ${
-                    avatar === emoji ? 'bg-yellow-200 ring-2 ring-yellow-400' : 'bg-gray-100'
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
           </div>
 
           <Button

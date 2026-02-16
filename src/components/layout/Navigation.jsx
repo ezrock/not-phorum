@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Search, Shield, ScrollText } from 'lucide-react';
+import { Users, Search, Shield, ScrollText, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
-  const { currentUser, profile } = useAuth();
+  const { currentUser, profile, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
@@ -65,17 +65,27 @@ export const Navigation = () => {
           </div>
         </form>
 
-        <Link
-          href="/profile"
-          className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
-        >
-          {profile.profile_image_url ? (
-            <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-full object-cover" />
-          ) : (
-            <span className="text-2xl">{profile.avatar}</span>
-          )}
-          <span>{profile.username}</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
+          >
+            {profile.profile_image_url ? (
+              <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-full object-cover" />
+            ) : (
+              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+                <User size={14} />
+              </span>
+            )}
+            <span>{profile.username}</span>
+          </Link>
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 rounded hover:bg-red-700 hover:text-white transition"
+          >
+            Kirjaudu ulos
+          </button>
+        </div>
       </div>
     </nav>
   );

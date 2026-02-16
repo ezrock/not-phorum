@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { ScrollText, Image, Link2, Search } from 'lucide-react';
+import { ScrollText, Image as ImageIcon, Link2, Search, User } from 'lucide-react';
 import { formatFinnishDateTime } from '@/lib/formatDate';
 import { postThumb, profileThumb } from '@/lib/cloudinary';
 
@@ -20,7 +20,6 @@ interface EventItem {
   author: {
     id: string;
     username: string;
-    avatar: string;
     profile_image_url: string | null;
   } | null;
   image_url?: string;
@@ -37,7 +36,6 @@ interface PostRow {
   author: {
     id: string;
     username: string;
-    avatar: string;
     profile_image_url: string | null;
   } | null;
 }
@@ -60,14 +58,14 @@ export default function LokiPage() {
       const [imageRes, urlRes] = await Promise.all([
         supabase
           .from('posts')
-          .select('id, content, created_at, image_url, topic_id, topic:topics(title), author:profiles!author_id(id, username, avatar, profile_image_url)')
+          .select('id, content, created_at, image_url, topic_id, topic:topics(title), author:profiles!author_id(id, username, profile_image_url)')
           .is('deleted_at', null)
           .not('image_url', 'is', null)
           .order('created_at', { ascending: false })
           .limit(200),
         supabase
           .from('posts')
-          .select('id, content, created_at, image_url, topic_id, topic:topics(title), author:profiles!author_id(id, username, avatar, profile_image_url)')
+          .select('id, content, created_at, image_url, topic_id, topic:topics(title), author:profiles!author_id(id, username, profile_image_url)')
           .is('deleted_at', null)
           .ilike('content', '%http%')
           .order('created_at', { ascending: false })
@@ -209,7 +207,7 @@ export default function LokiPage() {
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-8 text-center pt-0.5">
                     {event.type === 'image' ? (
-                      <Image size={20} className="text-yellow-600 mx-auto" />
+                      <ImageIcon size={20} className="text-yellow-600 mx-auto" />
                     ) : (
                       <Link2 size={20} className="text-yellow-600 mx-auto" />
                     )}
@@ -222,7 +220,9 @@ export default function LokiPage() {
                           {event.author.profile_image_url ? (
                             <img src={profileThumb(event.author.profile_image_url)} alt={event.author.username} className="w-5 h-5 rounded-full object-cover" />
                           ) : (
-                            <span className="text-sm">{event.author.avatar}</span>
+                            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+                              <User size={11} />
+                            </span>
                           )}
                           <span className="font-bold text-sm text-gray-800">{event.author.username}</span>
                         </Link>
