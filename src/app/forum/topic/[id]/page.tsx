@@ -414,6 +414,16 @@ export default function TopicPage() {
             className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 min-h-[150px] focus:border-yellow-400 focus:outline-none"
             placeholder="Kirjoita vastauksesi..."
           />
+          <p className="mb-4 -mt-2 text-xs text-gray-500">
+            <a
+              href="https://www.markdownguide.org/cheat-sheet/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-yellow-700 hover:underline"
+            >
+              Muotoile viesti Markdownilla
+            </a>
+          </p>
           {replyImageUrl && (
             <div className="relative inline-block mb-4">
               <img src={postThumb(replyImageUrl)} alt="Liite" className="max-h-40 rounded-lg" />

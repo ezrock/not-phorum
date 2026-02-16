@@ -168,6 +168,16 @@ export default function NewTopicPage() {
               placeholder="Kirjoita viestisi..."
               required
             />
+            <p className="mt-2 text-xs text-gray-500">
+              <a
+                href="https://www.markdownguide.org/cheat-sheet/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-yellow-700 hover:underline"
+              >
+                Muotoile viesti Markdownilla
+              </a>
+            </p>
           </div>
 
           {imageUrl && (
