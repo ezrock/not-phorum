@@ -5,17 +5,22 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Eye, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
 
 interface Topic {
   id: number;
   title: string;
   views: number;
-  views_unique: number | null;
+  views_unique: number;
   created_at: string;
-  category: { name: string; icon: string } | null;
-  author: { username: string } | null;
+  category_name: string;
+  category_icon: string;
+  author_username: string;
+  messages_count: number;
+  last_post_id: number | null;
+  last_post_created_at: string | null;
+  has_new: boolean;
 }
 
 interface RandomQuote {
@@ -35,13 +40,7 @@ export default function ForumPage() {
   useEffect(() => {
     const fetchTopics = async () => {
       const { data, error } = await supabase
-        .from('topics')
-        .select(`
-          id, title, views, views_unique, created_at,
-          category:categories(name, icon),
-          author:profiles!author_id(username)
-        `)
-        .order('created_at', { ascending: false });
+        .rpc('get_topic_list_state');
 
       if (!error && data) {
         setTopics(data as Topic[]);
@@ -140,11 +139,15 @@ export default function ForumPage() {
         <Card className="p-0 overflow-hidden">
           <div className="divide-y divide-gray-200">
           {topics.map((topic) => (
-            <Link key={topic.id} href={`/forum/topic/${topic.id}`} className="block hover:bg-yellow-50/40 transition">
+            <Link
+              key={topic.id}
+              href={`/forum/topic/${topic.id}${topic.last_post_id ? `#post-${topic.last_post_id}` : ''}`}
+              className="block hover:bg-yellow-50/40 transition"
+            >
               <div className="py-3 px-4">
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0 w-8 text-center">
-                    <div className="text-2xl">{topic.category?.icon}</div>
+                    <div className="text-2xl">{topic.category_icon}</div>
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -152,25 +155,27 @@ export default function ForumPage() {
                       <h3 className="text-lg font-bold text-gray-800 truncate">
                         {topic.title}
                       </h3>
+                      {topic.has_new && (
+                        <span className="inline-flex items-center rounded bg-yellow-100 px-2 py-0.5 text-[11px] font-semibold text-yellow-800">
+                          Uusi
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="text-yellow-600 font-medium">
-                        {topic.category?.name}
+                        {topic.category_name}
                       </span>
                       <span className="truncate" style={{ fontFamily: 'monospace' }}>
-                        {topic.author?.username}
+                        {topic.author_username}
                       </span>
-                      <div className="flex items-center gap-1">
-                        <Eye size={12} />
-                        <span>{topic.views_unique ?? topic.views}</span>
-                      </div>
+                      <span>{topic.messages_count} viestiä</span>
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-semibold text-gray-700">
-                      {formatFinnishRelative(topic.created_at)}
+                      {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
                     </p>
                   </div>
                 </div>
