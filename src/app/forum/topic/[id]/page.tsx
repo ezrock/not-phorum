@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User, Heart, Link2, Check } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
@@ -108,11 +108,18 @@ function autoLinkPlainUrls(markdown: string): string {
 
 export default function TopicPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const { currentUser, supabase } = useAuth();
   const topicId = parseInt(params.id as string);
+  const POSTS_PER_PAGE = 50;
+  const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageOffset = (currentPage - 1) * POSTS_PER_PAGE;
 
   const [topic, setTopic] = useState<Topic | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [firstPostId, setFirstPostId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [replyContent, setReplyContent] = useState('');
   const [replyImageUrl, setReplyImageUrl] = useState('');
@@ -132,7 +139,7 @@ export default function TopicPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [topicRes, postsRes] = await Promise.all([
+      const [topicRes, postsRes, countRes, firstPostRes] = await Promise.all([
         supabase
           .from('topics')
           .select(`
@@ -148,7 +155,18 @@ export default function TopicPage() {
             author:profiles!author_id(id, username, profile_image_url, created_at, signature, show_signature)
           `)
           .eq('topic_id', topicId)
-          .order('created_at', { ascending: true }),
+          .order('created_at', { ascending: true })
+          .range(pageOffset, pageOffset + POSTS_PER_PAGE - 1),
+        supabase
+          .from('posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('topic_id', topicId),
+        supabase
+          .from('posts')
+          .select('id')
+          .eq('topic_id', topicId)
+          .order('created_at', { ascending: true })
+          .limit(1),
       ]);
 
       if (!topicRes.error && topicRes.data) {
@@ -157,11 +175,17 @@ export default function TopicPage() {
       if (!postsRes.error && postsRes.data) {
         setPosts(postsRes.data as Post[]);
       }
+      if (!countRes.error) {
+        setTotalPosts(countRes.count || 0);
+      }
+      if (!firstPostRes.error && firstPostRes.data && firstPostRes.data.length > 0) {
+        setFirstPostId(firstPostRes.data[0].id as number);
+      }
       setLoading(false);
     };
 
     fetchData();
-  }, [supabase, topicId]);
+  }, [supabase, topicId, pageOffset]);
 
   useEffect(() => {
     const fetchLikes = async () => {
@@ -306,9 +330,13 @@ export default function TopicPage() {
       .single();
 
     if (!error && data) {
-      setPosts((prev) => [...prev, data as Post]);
+      const insertedPost = data as Post;
+      const nextTotalPosts = totalPosts + 1;
+      const nextPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
       setReplyContent('');
       setReplyImageUrl('');
+      window.location.href = `/forum/topic/${topicId}${nextPage > 1 ? `?page=${nextPage}` : ''}#post-${insertedPost.id}`;
+      return;
     }
     setSubmitting(false);
   };
@@ -469,6 +497,22 @@ export default function TopicPage() {
   };
 
 
+  const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
+  const buildPageHref = (page: number) => {
+    if (page <= 1) return `/forum/topic/${topicId}`;
+    return `/forum/topic/${topicId}?page=${page}`;
+  };
+
+  const visiblePages = Array.from(
+    new Set([
+      1,
+      totalPages,
+      Math.max(1, currentPage - 1),
+      currentPage,
+      Math.min(totalPages, currentPage + 1),
+    ])
+  ).sort((a, b) => a - b);
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto mt-8 px-4">
@@ -504,7 +548,7 @@ export default function TopicPage() {
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <span className="text-yellow-600 font-medium">{topic.category?.name}</span>
                 <span>{topic.views_unique ?? topic.views} katselua</span>
-                <span>{posts.length} viestiä</span>
+                <span>{totalPosts} viestiä</span>
               </div>
             </div>
           </div>
@@ -517,8 +561,8 @@ export default function TopicPage() {
         </div>
       
         <div className="mt-6 border-t border-gray-200">
-        {posts.map((post, index) => {
-          const isOriginalPost = index === 0;
+        {posts.map((post) => {
+          const isOriginalPost = post.id === firstPostId;
 
           return (
             <div
@@ -713,6 +757,38 @@ export default function TopicPage() {
           );
         })}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap items-center justify-center gap-2 text-sm">
+            {currentPage > 1 ? (
+              <Link href={buildPageHref(currentPage - 1)} className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
+                Edellinen
+              </Link>
+            ) : (
+              <span className="px-3 py-1 rounded border border-gray-200 text-gray-400">Edellinen</span>
+            )}
+
+            {visiblePages.map((page) =>
+              page === currentPage ? (
+                <span key={page} className="px-3 py-1 rounded bg-yellow-100 text-yellow-900 font-semibold border border-yellow-200">
+                  {page}
+                </span>
+              ) : (
+                <Link key={page} href={buildPageHref(page)} className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
+                  {page}
+                </Link>
+              )
+            )}
+
+            {currentPage < totalPages ? (
+              <Link href={buildPageHref(currentPage + 1)} className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
+                Seuraava
+              </Link>
+            ) : (
+              <span className="px-3 py-1 rounded border border-gray-200 text-gray-400">Seuraava</span>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Reply Box */}

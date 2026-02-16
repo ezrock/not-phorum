@@ -1,6 +1,12 @@
 -- Topic list helper: message counts, last post jump target and unread flag
 
-CREATE OR REPLACE FUNCTION get_topic_list_state()
+DROP FUNCTION IF EXISTS get_topic_list_state();
+DROP FUNCTION IF EXISTS get_topic_list_state(integer, integer);
+
+CREATE OR REPLACE FUNCTION get_topic_list_state(
+  input_page integer DEFAULT 1,
+  input_page_size integer DEFAULT 20
+)
 RETURNS TABLE (
   id bigint,
   title text,
@@ -19,6 +25,10 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  normalized_page integer := GREATEST(COALESCE(input_page, 1), 1);
+  normalized_page_size integer := GREATEST(COALESCE(input_page_size, 20), 1);
+  offset_count integer := (normalized_page - 1) * normalized_page_size;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -74,9 +84,11 @@ BEGIN
   LEFT JOIN post_counts pc ON pc.topic_id = t.id
   LEFT JOIN last_posts lp ON lp.topic_id = t.id
   LEFT JOIN my_views mv ON mv.topic_id = t.id
-  ORDER BY COALESCE(lp.last_post_created_at, t.created_at) DESC, t.id DESC;
+  ORDER BY COALESCE(lp.last_post_created_at, t.created_at) DESC, t.id DESC
+  OFFSET offset_count
+  LIMIT normalized_page_size;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION get_topic_list_state() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION get_topic_list_state() TO authenticated;
+REVOKE ALL ON FUNCTION get_topic_list_state(integer, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_topic_list_state(integer, integer) TO authenticated;
