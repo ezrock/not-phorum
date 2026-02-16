@@ -43,7 +43,7 @@ interface RawRandomQuoteRow {
   author: { username: string }[] | null;
 }
 
-export default function ForumPage() {
+function ForumContent() {
   const { supabase } = useAuth();
   const searchParams = useSearchParams();
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -312,5 +312,13 @@ export default function ForumPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ForumPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto mt-8 px-4"><Card><p className="text-center text-gray-500 py-8">Ladataan...</p></Card></div>}>
+      <ForumContent />
+    </Suspense>
   );
 }

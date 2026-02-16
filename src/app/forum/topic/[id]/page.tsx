@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -106,7 +106,7 @@ function autoLinkPlainUrls(markdown: string): string {
   return result;
 }
 
-export default function TopicPage() {
+function TopicContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { currentUser, supabase } = useAuth();
@@ -868,5 +868,13 @@ export default function TopicPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function TopicPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto mt-8 px-4"><Card><p className="text-center text-gray-500 py-8">Ladataan...</p></Card></div>}>
+      <TopicContent />
+    </Suspense>
   );
 }
