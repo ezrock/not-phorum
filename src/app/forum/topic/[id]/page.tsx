@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
 import ReactMarkdown from 'react-markdown';
+import LinkifyIt from 'linkify-it';
+import tlds from 'tlds';
 
 interface Post {
   id: number;
@@ -65,6 +67,43 @@ function parseTopicViewResponse(value: unknown): TopicViewResponse | null {
 function extractSecureUrl(result: unknown): string | null {
   const typed = result as CloudinaryUploadResult;
   return typed?.info?.secure_url ?? null;
+}
+
+const URL_MAX_DISPLAY_LENGTH = 60;
+const linkify = new LinkifyIt();
+linkify.set({ fuzzyLink: true, fuzzyIP: false, fuzzyEmail: false });
+linkify.tlds(tlds as string[]);
+
+function shortenUrlDisplay(url: string): string {
+  if (url.length <= URL_MAX_DISPLAY_LENGTH) return url;
+  return `${url.slice(0, URL_MAX_DISPLAY_LENGTH - 3)}...`;
+}
+
+function ensureUrlProtocol(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  return `https://${url}`;
+}
+
+function autoLinkPlainUrls(markdown: string): string {
+  const matches = linkify.match(markdown);
+  if (!matches || matches.length === 0) return markdown;
+
+  let result = '';
+  let cursor = 0;
+
+  for (const match of matches) {
+    const start = match.index;
+    const end = match.lastIndex;
+    const raw = match.raw;
+    const href = ensureUrlProtocol(match.url || raw);
+
+    result += markdown.slice(cursor, start);
+    result += `[${shortenUrlDisplay(raw)}](${href})`;
+    cursor = end;
+  }
+
+  result += markdown.slice(cursor);
+  return result;
 }
 
 export default function TopicPage() {
@@ -534,7 +573,23 @@ export default function TopicPage() {
                     </div>
 
                     <div className="prose max-w-none mb-4">
-                      <ReactMarkdown>{post.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => {
+                            const label = typeof children?.[0] === 'string' ? children[0] : '';
+                            const shouldShorten = label && /^https?:\/\//i.test(label);
+                            const visibleText = shouldShorten ? shortenUrlDisplay(label) : children;
+
+                            return (
+                              <a href={href} target="_blank" rel="noopener noreferrer">
+                                {visibleText}
+                              </a>
+                            );
+                          },
+                        }}
+                      >
+                        {autoLinkPlainUrls(post.content)}
+                      </ReactMarkdown>
                       {post.image_url && (
                         <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
                       )}
