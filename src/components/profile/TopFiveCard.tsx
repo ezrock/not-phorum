@@ -222,7 +222,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
                     <img
                       src={profileThumb(author.profile_image_url)}
                       alt={author.username}
-                      className="w-6 h-6 rounded-full object-cover"
+                      className="w-6 h-6 rounded-none object-cover"
                     />
                   ) : (
                     <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center text-xs font-bold">

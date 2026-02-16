@@ -158,7 +158,7 @@ export default function ForumPage() {
                       <span className="text-yellow-600 font-medium">
                         {topic.category?.name}
                       </span>
-                      <span className="truncate">
+                      <span className="truncate" style={{ fontFamily: 'monospace' }}>
                         {topic.author?.username}
                       </span>
                       <div className="flex items-center gap-1">

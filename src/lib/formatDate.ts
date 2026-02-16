@@ -3,7 +3,6 @@
  *
  * - "tänään klo 13.01"
  * - "eilen klo 13.01"
- * - "toissapäivänä klo 13.01"
  * - "15.2.2026 klo 13.01"
  */
 export function formatFinnishDateTime(dateString: string): string {
@@ -21,7 +20,6 @@ export function formatFinnishDateTime(dateString: string): string {
 
   if (diffDays === 0) return `tänään klo ${time}`;
   if (diffDays === 1) return `eilen klo ${time}`;
-  if (diffDays === 2) return `toissapäivänä klo ${time}`;
 
   const dateStr = date.toLocaleDateString('fi-FI', {
     day: 'numeric',
@@ -36,9 +34,8 @@ export function formatFinnishDateTime(dateString: string): string {
  *
  * - "13 min sitten"
  * - "3h sitten"
- * - "eilen"
- * - "toissapäivänä"
- * - "15.2.2026"
+ * - "eilen 13.01"
+ * - "15.2.2026 13.01"
  */
 export function formatFinnishRelative(dateString: string): string {
   const date = new Date(dateString);
@@ -54,12 +51,22 @@ export function formatFinnishRelative(dateString: string): string {
   const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
 
-  if (diffDays === 1) return 'eilen';
-  if (diffDays === 2) return 'toissapäivänä';
+  if (diffDays === 1) {
+    const time = date.toLocaleTimeString('fi-FI', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `eilen ${time}`;
+  }
 
-  return date.toLocaleDateString('fi-FI', {
+  const datePart = date.toLocaleDateString('fi-FI', {
     day: 'numeric',
     month: 'numeric',
     year: 'numeric',
   });
+  const timePart = date.toLocaleTimeString('fi-FI', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${datePart} ${timePart}`;
 }

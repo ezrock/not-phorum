@@ -218,7 +218,7 @@ export default function LokiPage() {
                       {event.author && (
                         <Link href={`/profile/${event.author.id}`} className="flex items-center gap-1.5 hover:opacity-80">
                           {event.author.profile_image_url ? (
-                            <img src={profileThumb(event.author.profile_image_url)} alt={event.author.username} className="w-5 h-5 rounded-full object-cover" />
+                            <img src={profileThumb(event.author.profile_image_url)} alt={event.author.username} className="w-5 h-5 rounded-none object-cover" />
                           ) : (
                             <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
                               <User size={11} />

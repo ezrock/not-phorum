@@ -442,13 +442,13 @@ export default function TopicPage() {
                 {/* Author Info Sidebar */}
                 <Link href={`/profile/${post.author?.id}`} className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4 hover:opacity-80">
                   {post.author?.profile_image_url ? (
-                    <img src={profileThumb(post.author.profile_image_url)} alt={post.author.username} className="w-10 h-10 square-fiöö object-cover mx-auto mb-2" />
+                    <img src={profileThumb(post.author.profile_image_url)} alt={post.author.username} className="w-10 h-10 rounded-none object-cover mx-auto mb-2" />
                   ) : (
                     <div className="w-10 h-10 square-full bg-gray-200 text-gray-500 inline-flex items-center justify-center mb-2">
                       <User size={30} />
                     </div>
                   )}
-                  <p className="font-bold text-sm mb-1">{post.author?.username}</p>
+                  <p className="font-bold text-sm mb-1" style={{ fontFamily: 'monospace' }}>{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
                     {formatDateTime(post.created_at)}
                   </p>

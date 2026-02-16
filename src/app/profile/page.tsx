@@ -265,16 +265,16 @@ export default function ProfilePage() {
       <Card className="mb-6">
         <div className="flex items-center gap-4 mb-4">
           {profileImageUrl ? (
-            <img src={profileMedium(profileImageUrl)} alt={profile?.username} className="w-16 h-16 rounded-full object-cover" />
+            <img src={profileMedium(profileImageUrl)} alt={profile?.username} className="w-16 h-16 rounded-none object-cover" />
           ) : (
             <span className="w-16 h-16 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
               <User size={34} />
             </span>
           )}
           <div className="flex-1">
-            <h1 className="text-3xl font-bold">{profile?.username}</h1>
+            <h1 className="text-3xl font-bold" style={{ fontFamily: 'monospace' }}>{profile?.username}</h1>
             <p className="text-sm text-gray-500">
-              Jäsen {profile?.created_at ? formatDate(profile.created_at) : ''} alkaen
+             Liittymispäivä {profile?.created_at ? formatDate(profile.created_at) : ''} 
             </p>
           </div>
         </div>
@@ -427,7 +427,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-4">
               {profileImageUrl ? (
                 <div className="relative">
-                  <img src={profileThumb(profileImageUrl)} alt="Profiilikuva" className="w-20 h-20 rounded-full object-cover" />
+                  <img src={profileThumb(profileImageUrl)} alt="Profiilikuva" className="w-20 h-20 rounded-none object-cover" />
                   <button
                     type="button"
                     onClick={() => setProfileImageUrl('')}
