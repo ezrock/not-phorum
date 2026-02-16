@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Users, Search, Shield } from 'lucide-react';
+import { Users, Search, Shield } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 
 export const Navigation = () => {
@@ -35,16 +35,12 @@ export const Navigation = () => {
           </Link>
 
           <div className="flex gap-4">
-            <Link href="/forum" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
-              <MessageSquare size={20} />
-              Foorumi
-            </Link>
-            <Link href="/members" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
+            <Link href="/members" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
               <Users size={20} />
               Jäsenet
             </Link>
             {profile?.is_admin && (
-              <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-yellow-300 rounded">
+              <Link href="/admin" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
                 <Shield size={20} />
                 Hallinta
               </Link>
@@ -60,7 +56,7 @@ export const Navigation = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Hae..."
-              className="pl-9 pr-3 py-1.5 rounded border-2 border-yellow-500 bg-yellow-300 placeholder-gray-600 text-gray-800 text-sm focus:outline-none focus:border-gray-800 focus:bg-white w-36 transition-all focus:w-56"
+              className="pl-9 pr-3 py-1.5 max-h-10 rounded border-2 border-grey-800 bg-white placeholder-gray-600 text-gray-800 text-sm focus:outline-none focus:border-gray-800 focus:bg-white w-36 transition-all focus:w-56"
             />
           </div>
         </form>
@@ -68,7 +64,7 @@ export const Navigation = () => {
         <div className="flex items-center gap-4">
           <Link
             href="/profile"
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-yellow-400 rounded hover:bg-gray-700"
+            className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
           >
             {profile.profile_image_url ? (
               <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-8 h-8 rounded-full object-cover" />
@@ -79,7 +75,7 @@ export const Navigation = () => {
           </Link>
           <button
             onClick={logout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-4 py-2 max-h-10 bg-white-600 text-gray-800 rounded hover:bg-red-700 hover:text-white"
           >
             Kirjaudu ulos
           </button>

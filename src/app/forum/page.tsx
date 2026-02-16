@@ -66,26 +66,24 @@ export default function ForumPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
-      <Card className="mb-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Foorumi</h2>
-            <p className="text-gray-600">
-              Tervetuloa keskustelemaan! Kaikki aiheet yhdessä näkymässä.
-            </p>
-          </div>
-          <Link href="/forum/new">
-            <Button
-              variant="success"
-              className="flex items-center gap-2"
-              onClick={() => {}}
-            >
-              <Plus size={20} />
-              Uusi aihe
-            </Button>
-          </Link>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h2 className="text-3xl font-bold mb-2">Foorumi</h2>
+          <p className="text-gray-600">
+            Tervetuloa keskustelemaan! Kaikki aiheet yhdessä näkymässä.
+          </p>
         </div>
-      </Card>
+        <Link href="/forum/new">
+          <Button
+            variant="success"
+            className="flex items-center gap-2"
+            onClick={() => {}}
+          >
+            <Plus size={20} />
+            Uusi aihe
+          </Button>
+        </Link>
+      </div>
 
       {topics.length === 0 ? (
         <Card>

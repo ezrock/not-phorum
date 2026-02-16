@@ -80,7 +80,7 @@ function SearchContent() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
-      <Card className="mb-6">
+      <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <Search size={28} className="text-gray-800" />
           <h2 className="text-3xl font-bold">Haku</h2>
@@ -109,7 +109,7 @@ function SearchContent() {
               : `Hakutuloksia haulle "${query}": ${deduplicatedResults.length} osumaa`}
           </p>
         )}
-      </Card>
+      </div>
 
       <div className="mb-4">
         <Link href="/forum" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">

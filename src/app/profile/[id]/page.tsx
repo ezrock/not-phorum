@@ -46,6 +46,17 @@ interface PostCategoryRow {
   } | null;
 }
 
+interface ProfileTrophy {
+  id: number;
+  code: string;
+  name: string;
+  points: number;
+}
+
+interface ProfileTrophyRow {
+  trophy: ProfileTrophy | ProfileTrophy[] | null;
+}
+
 function safeHttpUrl(rawUrl: string | null): string | null {
   if (!rawUrl) return null;
   try {
@@ -66,6 +77,7 @@ export default function PublicProfilePage() {
   const [postCount, setPostCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
   const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
+  const [trophies, setTrophies] = useState<ProfileTrophy[]>([]);
   const [mostPopularTopic, setMostPopularTopic] = useState<TopicStat | null>(null);
   const [mostActiveTopic, setMostActiveTopic] = useState<TopicStat | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,6 +172,19 @@ export default function PublicProfilePage() {
 
       if (activeTopic) setMostActiveTopic(activeTopic as TopicStat);
 
+      const { data: trophyData } = await supabase
+        .from('profile_trophies')
+        .select('trophy:trophies(id, code, name, points)')
+        .eq('profile_id', userId);
+
+      if (trophyData) {
+        const parsed = (trophyData as ProfileTrophyRow[])
+          .map((row) => (Array.isArray(row.trophy) ? row.trophy[0] : row.trophy))
+          .filter((trophy): trophy is ProfileTrophy => Boolean(trophy))
+          .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+        setTrophies(parsed);
+      }
+
       setLoading(false);
     };
 
@@ -227,7 +252,7 @@ export default function PublicProfilePage() {
         </Link>
       </div>
 
-      {/* Profile Header */}
+      {/* Profile Header + Stats */}
       <Card className="mb-6">
         <div className="flex items-center gap-4">
           {profile.profile_image_url ? (
@@ -282,10 +307,9 @@ export default function PublicProfilePage() {
             </div>
           )}
         </div>
-      </Card>
 
-      {/* Stats */}
-      <Card className="mb-6">
+        <hr className="border-gray-200 my-4" />
+
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <MessageSquare size={18} className="text-yellow-600" />
@@ -327,6 +351,28 @@ export default function PublicProfilePage() {
           <p className="text-sm text-gray-600 italic whitespace-pre-wrap">{profile.signature}</p>
         </Card>
       )}
+
+      <Card className="mb-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Trophy size={20} className="text-yellow-600" />
+          Kunniamerkit
+        </h2>
+        {trophies.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {trophies.map((trophy) => (
+              <span
+                key={trophy.id}
+                className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-1 text-xs font-medium"
+                title={`${trophy.name} (${trophy.points} p)`}
+              >
+                {trophy.name}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">Ei kunniamerkkejä vielä.</p>
+        )}
+      </Card>
 
       {/* Favourite Categories */}
       {favouriteCategories.length > 0 && (

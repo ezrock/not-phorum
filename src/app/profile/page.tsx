@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3 } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 
@@ -17,6 +17,17 @@ interface CloudinaryUploadResult {
   info?: {
     secure_url?: string;
   };
+}
+
+interface ProfileTrophy {
+  id: number;
+  code: string;
+  name: string;
+  points: number;
+}
+
+interface ProfileTrophyRow {
+  trophy: ProfileTrophy | ProfileTrophy[] | null;
 }
 
 function extractSecureUrl(result: unknown): string | null {
@@ -52,6 +63,7 @@ export default function ProfilePage() {
 
   const [postCount, setPostCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
+  const [trophies, setTrophies] = useState<ProfileTrophy[]>([]);
   const [mostPopularTopic, setMostPopularTopic] = useState<{ id: number; title: string; views: number } | null>(null);
   const [mostActiveTopic, setMostActiveTopic] = useState<{ id: number; title: string; reply_count: number } | null>(null);
 
@@ -87,17 +99,26 @@ export default function ProfilePage() {
     const userId = currentUser.id;
 
     const fetchStats = async () => {
-      const [postsRes, topicsRes, popularRes, activeRes] = await Promise.all([
+      const [postsRes, topicsRes, popularRes, activeRes, trophiesRes] = await Promise.all([
         supabase.from('posts').select('*', { count: 'exact', head: true }).eq('author_id', userId),
         supabase.from('topics').select('*', { count: 'exact', head: true }).eq('author_id', userId),
         supabase.from('topics').select('id, title, views').eq('author_id', userId).order('views', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('topics').select('id, title, reply_count').eq('author_id', userId).order('reply_count', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('profile_trophies').select('trophy:trophies(id, code, name, points)').eq('profile_id', userId),
       ]);
 
       setPostCount(postsRes.count || 0);
       setTopicCount(topicsRes.count || 0);
       if (popularRes.data) setMostPopularTopic(popularRes.data);
       if (activeRes.data) setMostActiveTopic(activeRes.data);
+
+      if (trophiesRes.data) {
+        const parsed = (trophiesRes.data as ProfileTrophyRow[])
+          .map((row) => (Array.isArray(row.trophy) ? row.trophy[0] : row.trophy))
+          .filter((trophy): trophy is ProfileTrophy => Boolean(trophy))
+          .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+        setTrophies(parsed);
+      }
     };
 
     fetchStats();
@@ -207,7 +228,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto mt-8 px-4 mb-12">
       <Card className="mb-6">
-        <div className="flex items-center gap-4 mb-2">
+        <div className="flex items-center gap-4 mb-4">
           {profileImageUrl ? (
             <img src={profileMedium(profileImageUrl)} alt={profile?.username} className="w-16 h-16 rounded-full object-cover" />
           ) : (
@@ -220,10 +241,9 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-      </Card>
 
-      {/* Stats */}
-      <Card className="mb-6">
+        <hr className="border-gray-200 mb-4" />
+
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <MessageSquare size={18} className="text-yellow-600" />
@@ -259,7 +279,30 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      <Card>
+      <Card className="mb-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Trophy size={20} className="text-yellow-600" />
+          Kunniamerkit
+        </h2>
+
+        {trophies.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {trophies.map((trophy) => (
+              <span
+                key={trophy.id}
+                className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-1 text-xs font-medium"
+                title={`${trophy.name} (${trophy.points} p)`}
+              >
+                {trophy.name}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">Ei kunniamerkkejä vielä.</p>
+        )}
+      </Card>
+
+      <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4">Muokkaa profiilia</h2>
 
         {error && <Alert variant="error">{error}</Alert>}
