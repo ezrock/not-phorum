@@ -1,4 +1,12 @@
-export const Input = ({ label = undefined, icon: Icon = undefined, className = '', ...props }) => {
+import type { ComponentType, InputHTMLAttributes, JSX, ReactNode } from 'react';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: ReactNode;
+  icon?: ComponentType<{ size?: number }>;
+  className?: string;
+}
+
+export const Input = ({ label = undefined, icon: Icon = undefined, className = '', ...props }: InputProps): JSX.Element => {
     if (label || Icon) {
       return (
         <div>

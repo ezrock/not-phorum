@@ -1,4 +1,6 @@
-export const Footer = () => {
+import type { JSX } from 'react';
+
+export const Footer = (): JSX.Element => {
     return (
       <footer className="bg-gray-800 text-yellow-400 py-6 mt-16">
         <div className="max-w-6xl mx-auto text-center">

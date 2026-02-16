@@ -6,15 +6,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Search, Shield, ScrollText, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
+import type { FormEvent, JSX } from 'react';
 
-export const Navigation = () => {
+export const Navigation = (): JSX.Element | null => {
   const { currentUser, profile, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
   if (!currentUser || !profile) return null;
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = searchQuery.trim();
     if (trimmed.length >= 2) {

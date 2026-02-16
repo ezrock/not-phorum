@@ -2,8 +2,33 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { ReactNode } from 'react';
+import type { User } from '@supabase/supabase-js';
 
-const AuthContext = createContext();
+interface ProfileRecord {
+  id: string;
+  username?: string;
+  profile_image_url?: string | null;
+  is_admin?: boolean;
+  [key: string]: unknown;
+}
+
+interface AuthContextValue {
+  currentUser: User | null;
+  profile: ProfileRecord | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<unknown>;
+  logout: () => Promise<void>;
+  register: (email: string, password: string, username: string) => Promise<unknown>;
+  refreshProfile: () => Promise<void>;
+  supabase: ReturnType<typeof createClient>;
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -13,14 +38,14 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [supabase] = useState(() => createClient());
 
   // Fetch user profile
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -28,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       .single();
 
     if (!error && data) {
-      setProfile(data);
+      setProfile(data as ProfileRecord);
     }
   }, [supabase]);
 
@@ -58,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, [fetchProfile, supabase.auth]);
 
-  const login = async (email, password) => {
+  const login = async (email: string, password: string): Promise<unknown> => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -74,7 +99,7 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     await supabase.auth.signOut();
     setCurrentUser(null);
     setProfile(null);
@@ -82,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/';
   };
 
-  const register = async (email, password, username) => {
+  const register = async (email: string, password: string, username: string): Promise<unknown> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -97,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = async (): Promise<void> => {
     if (currentUser) {
       await fetchProfile(currentUser.id);
     }
