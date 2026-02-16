@@ -10,7 +10,7 @@ RETURNS TABLE (
   category_name text,
   category_icon text,
   author_username text,
-  messages_count bigint,
+  replies_count bigint,
   last_post_id bigint,
   last_post_created_at timestamptz,
   has_new boolean
@@ -29,6 +29,7 @@ BEGIN
     SELECT DISTINCT ON (p.topic_id)
       p.topic_id,
       p.id AS last_post_id,
+      p.author_id AS last_post_author_id,
       p.created_at AS last_post_created_at
     FROM posts p
     WHERE p.deleted_at IS NULL
@@ -58,11 +59,12 @@ BEGIN
     c.name AS category_name,
     c.icon AS category_icon,
     pr.username AS author_username,
-    COALESCE(pc.messages_count, 0) AS messages_count,
+    GREATEST(COALESCE(pc.messages_count, 0) - 1, 0) AS replies_count,
     lp.last_post_id,
     lp.last_post_created_at,
     CASE
       WHEN lp.last_post_created_at IS NULL THEN false
+      WHEN lp.last_post_author_id = auth.uid() THEN false
       WHEN mv.last_viewed_at IS NULL THEN true
       ELSE lp.last_post_created_at > mv.last_viewed_at
     END AS has_new

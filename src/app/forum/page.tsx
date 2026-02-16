@@ -17,10 +17,15 @@ interface Topic {
   category_name: string;
   category_icon: string;
   author_username: string;
-  messages_count: number;
+  replies_count: number;
   last_post_id: number | null;
   last_post_created_at: string | null;
   has_new: boolean;
+}
+
+interface RawTopicRow extends Omit<Topic, 'replies_count'> {
+  replies_count?: number | null;
+  messages_count?: number | null;
 }
 
 interface RandomQuote {
@@ -37,13 +42,28 @@ export default function ForumPage() {
   const [quote, setQuote] = useState<RandomQuote | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const formatRepliesLabel = (count: number) => {
+    return `${count} ${count === 1 ? 'vastaus' : 'vastausta'}`;
+  };
+
   useEffect(() => {
     const fetchTopics = async () => {
       const { data, error } = await supabase
         .rpc('get_topic_list_state');
 
       if (!error && data) {
-        setTopics(data as Topic[]);
+        const normalized = (data as RawTopicRow[]).map((topic) => {
+          const repliesCount =
+            typeof topic.replies_count === 'number'
+              ? topic.replies_count
+              : Math.max((topic.messages_count || 0) - 1, 0);
+
+          return {
+            ...topic,
+            replies_count: repliesCount,
+          } as Topic;
+        });
+        setTopics(normalized);
       }
       setLoading(false);
     };
@@ -169,7 +189,7 @@ export default function ForumPage() {
                       <span className="truncate" style={{ fontFamily: 'monospace' }}>
                         {topic.author_username}
                       </span>
-                      <span>{topic.messages_count} viestiä</span>
+                      <span>{formatRepliesLabel(topic.replies_count)}</span>
                     </div>
                   </div>
 
