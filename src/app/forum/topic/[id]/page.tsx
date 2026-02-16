@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User, Heart } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User, Heart, Link2, Check } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -125,6 +125,10 @@ export default function TopicPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [postLikes, setPostLikes] = useState<Record<number, PostLikeState>>({});
   const [likeSaving, setLikeSaving] = useState<Record<number, boolean>>({});
+  const [copiedPostId, setCopiedPostId] = useState<number | null>(null);
+  const [highlightedPostId, setHighlightedPostId] = useState<number | null>(null);
+  const highlightTimeoutRef = useRef<number | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -237,6 +241,51 @@ export default function TopicPage() {
 
     trackView();
   }, [supabase, topicId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const clearHighlightTimer = () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+        highlightTimeoutRef.current = null;
+      }
+    };
+
+    const applyHashHighlight = () => {
+      const match = window.location.hash.match(/^#post-(\d+)$/);
+      if (!match) return;
+
+      const postIdFromHash = Number(match[1]);
+      if (!Number.isFinite(postIdFromHash) || !posts.some((post) => post.id === postIdFromHash)) {
+        return;
+      }
+
+      setHighlightedPostId(postIdFromHash);
+      clearHighlightTimer();
+      highlightTimeoutRef.current = window.setTimeout(() => {
+        setHighlightedPostId((prev) => (prev === postIdFromHash ? null : prev));
+        highlightTimeoutRef.current = null;
+      }, 1800);
+    };
+
+    applyHashHighlight();
+    window.addEventListener('hashchange', applyHashHighlight);
+
+    return () => {
+      window.removeEventListener('hashchange', applyHashHighlight);
+      clearHighlightTimer();
+    };
+  }, [posts]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handleReply = async () => {
     if (!replyContent.trim() || !currentUser) return;
@@ -366,6 +415,41 @@ export default function TopicPage() {
     setLikeSaving((prev) => ({ ...prev, [postId]: false }));
   };
 
+  const handleCopyPostLink = async (postId: number) => {
+    if (typeof window === 'undefined') return;
+
+    const linkUrl = new URL(window.location.href);
+    linkUrl.hash = `post-${postId}`;
+    const linkText = linkUrl.toString();
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(linkText);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = linkText;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      setCopiedPostId(postId);
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedPostId((prev) => (prev === postId ? null : prev));
+        copyTimeoutRef.current = null;
+      }, 1200);
+    } catch {
+      // no-op: copying may fail on unsupported browsers/contexts
+    }
+  };
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
@@ -437,7 +521,13 @@ export default function TopicPage() {
           const isOriginalPost = index === 0;
 
           return (
-            <div key={post.id} className="py-6 border-b border-gray-200 last:border-b-0">
+            <div
+              key={post.id}
+              id={`post-${post.id}`}
+              className={`py-6 border-b border-gray-200 last:border-b-0 scroll-mt-24 transition-colors ${
+                highlightedPostId === post.id ? 'bg-yellow-50' : ''
+              }`}
+            >
               <div className="flex gap-4">
                 {/* Author Info Sidebar */}
                 <Link href={`/profile/${post.author?.id}`} className="w-32 flex-shrink-0 text-center border-r-2 border-gray-200 pr-4 hover:opacity-80">
@@ -549,6 +639,17 @@ export default function TopicPage() {
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          className={`inline-flex h-10 min-w-10 px-2 items-center justify-center rounded text-sm transition ${
+                            copiedPostId === post.id
+                              ? 'text-green-700 bg-green-100 hover:bg-green-100'
+                              : 'text-gray-500 hover:text-blue-700 hover:bg-gray-100'
+                          }`}
+                          onClick={() => handleCopyPostLink(post.id)}
+                          title="Kopioi viestilinkki"
+                        >
+                          {copiedPostId === post.id ? <Check size={16} /> : <Link2 size={16} />}
+                        </button>
                         <button
                           className={`inline-flex h-10 min-w-10 px-2 items-center justify-center gap-1 rounded text-sm transition ${
                             postLikes[post.id]?.likedByMe

@@ -54,7 +54,11 @@ export const Navigation = (): JSX.Element | null => {
         </div>
 
         <form onSubmit={handleSearch} className="flex items-center">
-          <div className="relative">
+          
+        </form>
+
+        <div className="flex items-center gap-3">
+        <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
               type="text"
@@ -64,9 +68,6 @@ export const Navigation = (): JSX.Element | null => {
               className="pl-9 pr-3 py-1.5 max-h-10 rounded border-2 border-grey-800 bg-white placeholder-gray-600 text-gray-800 text-sm focus:outline-none focus:border-gray-800 focus:bg-white w-36 transition-all focus:w-56"
             />
           </div>
-        </form>
-
-        <div className="flex items-center gap-3">
           <Link
             href="/profile"
             className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
