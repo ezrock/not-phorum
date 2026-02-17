@@ -1,4 +1,4 @@
-# Freakon Forum
+# Not-Phorum
 
 Yarr! A modern, members-only message board built with Next.js + Supabase, with old-school forum soul and modern security hardening.
 
@@ -81,3 +81,12 @@ The project includes SQL migrations in `supabase/migrations`, including:
   - `/profile/[id]`
   - `/admin`
 - If ye be migrating legacy data, trophies are already structured so ye can keep expanding the catalog without rewriting UI logic. Yarr.
+
+## Coming next
+- Planning a category revolution
+  - Replacing categories with inline hashtags (managed by admin)
+  - Support for meta categories (handhelds includes Switch, DS, Steamdeck etc)
+- Pinned thread)s)
+- Polished styling
+- Support for videos (Youtube, Twitch...)
+- Planning the migration

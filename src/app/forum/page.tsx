@@ -245,7 +245,7 @@ function ForumContent() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-bold text-gray-800 truncate">
+                      <h3 className="text-sm font-bold text-gray-800 truncate">
                         {topic.title}
                       </h3>
                       {topic.has_new && (
@@ -255,19 +255,19 @@ function ForumContent() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span className="text-yellow-600 font-medium">
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <span className="text-yellow-600 font-medium text-sm">
                         {topic.category_name}
                       </span>
                       <span className="truncate" style={{ fontFamily: 'monospace' }}>
                         {topic.author_username}
                       </span>
-                      <span>{formatRepliesLabel(topic.replies_count)}</span>
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-semibold text-gray-700">
+                  <p>{formatRepliesLabel(topic.replies_count)}</p>
+                    <p className="text-sm text-gray-700">
                       {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
                     </p>
                   </div>

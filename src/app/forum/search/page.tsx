@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Search, MessageSquare, FileText, ArrowLeft } from 'lucide-react';
+import { formatFinnishRelative } from '@/lib/formatDate';
 import type { ReactNode } from 'react';
 
 interface SearchResult {
@@ -19,6 +20,7 @@ interface SearchResult {
   author_profile_image_url: string | null;
   similarity_score: number;
   created_at: string;
+  last_post_created_at: string | null;
 }
 
 function SearchContent() {
@@ -90,7 +92,7 @@ function SearchContent() {
     }
   };
 
-  // De-duplicate: keep highest-scoring entry per topic_id
+  // De-duplicate: keep highest-scoring entry per topic_id, then sort by last activity
   const deduplicatedResults = results.reduce<SearchResult[]>((acc, result) => {
     const existing = acc.find(r => r.topic_id === result.topic_id);
     if (!existing) {
@@ -100,7 +102,11 @@ function SearchContent() {
       acc[idx] = result;
     }
     return acc;
-  }, []);
+  }, []).sort((a, b) => {
+    const aTime = new Date(a.last_post_created_at || a.created_at).getTime();
+    const bTime = new Date(b.last_post_created_at || b.created_at).getTime();
+    return bTime - aTime;
+  });
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
@@ -193,6 +199,12 @@ function SearchContent() {
                         {result.result_type === 'topic' ? 'Aihe' : 'Viesti'}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs font-semibold text-gray-700">
+                      {formatFinnishRelative(result.last_post_created_at || result.created_at)}
+                    </p>
                   </div>
                 </div>
               </Card>
