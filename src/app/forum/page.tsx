@@ -49,7 +49,7 @@ interface RawRandomQuoteRow {
 }
 
 function ForumContent() {
-  const { supabase, currentUser } = useAuth();
+  const { supabase, currentUser, profile } = useAuth();
   const searchParams = useSearchParams();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [threadCount, setThreadCount] = useState(0);
@@ -57,6 +57,8 @@ function ForumContent() {
   const [quote, setQuote] = useState<RandomQuote | null>(null);
   const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const realtimeUpdatesEnabled = (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
 
   const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -189,7 +191,25 @@ function ForumContent() {
     fetchThreadCount();
     fetchRandomQuote();
     fetchMessageCount();
-  }, [supabase, currentPage, currentUser]);
+  }, [supabase, currentPage, currentUser, refreshTick]);
+
+  useEffect(() => {
+    if (!currentUser || !realtimeUpdatesEnabled) return;
+
+    const channel = supabase
+      .channel(`forum-live-${currentUser.id}-${currentPage}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'topics' }, () => {
+        setRefreshTick((prev) => prev + 1);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        setRefreshTick((prev) => prev + 1);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, currentUser, currentPage, realtimeUpdatesEnabled]);
 
   const handleToggleQuoteLike = async () => {
     if (!quote || quoteLikeSaving) return;

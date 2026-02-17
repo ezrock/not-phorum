@@ -59,6 +59,7 @@ export default function ProfilePage() {
     is_admin?: boolean;
     created_at?: string;
     login_count?: number;
+    realtime_updates_enabled?: boolean;
   } | null;
 
   const [username, setUsername] = useState('');
@@ -67,6 +68,7 @@ export default function ProfilePage() {
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [signature, setSignature] = useState('');
   const [showSignature, setShowSignature] = useState(true);
+  const [realtimeUpdatesEnabled, setRealtimeUpdatesEnabled] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkDescription, setLinkDescription] = useState('');
   const [success, setSuccess] = useState('');
@@ -94,6 +96,7 @@ export default function ProfilePage() {
       setProfileImageUrl(typedProfile.profile_image_url || '');
       setSignature(typedProfile.signature || '');
       setShowSignature(typedProfile.show_signature ?? true);
+      setRealtimeUpdatesEnabled(typedProfile.realtime_updates_enabled ?? false);
       setLinkUrl(typedProfile.link_url || '');
       setLinkDescription(typedProfile.link_description || '');
     }
@@ -165,6 +168,7 @@ export default function ProfilePage() {
         profile_image_url: string | null;
         signature: string | null;
         show_signature: boolean;
+        realtime_updates_enabled: boolean;
         link_url: string | null;
         link_description: string | null;
       } = {
@@ -172,6 +176,7 @@ export default function ProfilePage() {
         profile_image_url: profileImageUrl || null,
         signature: signature.trim() || null,
         show_signature: showSignature,
+        realtime_updates_enabled: realtimeUpdatesEnabled,
         link_url: linkUrl.trim() || null,
         link_description: linkDescription.trim() || null,
       };
@@ -429,6 +434,18 @@ export default function ProfilePage() {
               />
               <label htmlFor="showSignature" className="text-sm text-gray-600">
                 Näytä allekirjoitus viesteissä
+              </label>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                id="realtimeUpdatesEnabled"
+                checked={realtimeUpdatesEnabled}
+                onChange={(e) => setRealtimeUpdatesEnabled(e.target.checked)}
+                className="w-4 h-4 accent-yellow-400"
+              />
+              <label htmlFor="realtimeUpdatesEnabled" className="text-sm text-gray-600">
+                Reaaliaikaiset päivitykset ketjuille ja viesteille
               </label>
             </div>
           </div>

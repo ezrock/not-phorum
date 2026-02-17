@@ -160,11 +160,12 @@ function TopicContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentUser, supabase } = useAuth();
+  const { currentUser, supabase, profile } = useAuth();
   const topicId = parseInt(params.id as string);
   const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const pageOffset = (currentPage - 1) * POSTS_PER_PAGE;
+  const realtimeUpdatesEnabled = (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
 
   const [topic, setTopic] = useState<Topic | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -184,6 +185,7 @@ function TopicContent() {
   const [likeSaving, setLikeSaving] = useState<Record<number, boolean>>({});
   const [copiedPostId, setCopiedPostId] = useState<number | null>(null);
   const [highlightedPostId, setHighlightedPostId] = useState<number | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
   const highlightTimeoutRef = useRef<number | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
 
@@ -235,7 +237,45 @@ function TopicContent() {
     };
 
     fetchData();
-  }, [supabase, topicId, pageOffset]);
+  }, [supabase, topicId, pageOffset, refreshTick]);
+
+  useEffect(() => {
+    if (!currentUser || !realtimeUpdatesEnabled || !Number.isFinite(topicId)) return;
+
+    const channel = supabase
+      .channel(`topic-live-${topicId}-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts', filter: `topic_id=eq.${topicId}` },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const insertedPostId =
+              payload.new && typeof payload.new === 'object' && 'id' in payload.new
+                ? Number((payload.new as { id?: number }).id)
+                : null;
+            const { count } = await supabase
+              .from('posts')
+              .select('id', { count: 'exact', head: true })
+              .eq('topic_id', topicId);
+            const nextTotalPosts = count || 0;
+            const latestPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
+
+            if (latestPage !== currentPage) {
+              const target = latestPage <= 1 ? `/forum/topic/${topicId}` : `/forum/topic/${topicId}?page=${latestPage}`;
+              router.replace(insertedPostId ? `${target}#post-${insertedPostId}` : target);
+              return;
+            }
+          }
+
+          setRefreshTick((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, topicId, currentPage, currentUser, realtimeUpdatesEnabled, router]);
 
   useEffect(() => {
     const fetchLikes = async () => {
