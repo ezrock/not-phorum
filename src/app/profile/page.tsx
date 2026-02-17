@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, User } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, User, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
@@ -30,6 +30,8 @@ interface ProfileTrophy {
 interface ProfileTrophyRow {
   trophy: ProfileTrophy | ProfileTrophy[] | null;
 }
+
+type ProfileTab = 'profile' | 'edit' | 'settings';
 
 function extractSecureUrl(result: unknown): string | null {
   const typed = result as CloudinaryUploadResult;
@@ -87,6 +89,8 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
   const [showUsernameConfirm, setShowUsernameConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -260,6 +264,33 @@ export default function ProfilePage() {
     }
   };
 
+  const handleRealtimeToggle = async (nextValue: boolean) => {
+    if (!currentUser) return;
+
+    setError('');
+    setSuccess('');
+    setRealtimeUpdatesEnabled(nextValue);
+    setSavingSettings(true);
+
+    try {
+      const { error: settingsError } = await supabase
+        .from('profiles')
+        .update({ realtime_updates_enabled: nextValue })
+        .eq('id', currentUser.id);
+
+      if (settingsError) throw settingsError;
+
+      await refreshProfile();
+      setSuccess('Asetukset tallennettu!');
+    } catch (err: unknown) {
+      setRealtimeUpdatesEnabled((prev) => !prev);
+      const message = err instanceof Error ? err.message : 'Asetusten tallennus epäonnistui';
+      setError(message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fi-FI', {
       day: 'numeric',
@@ -280,6 +311,44 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto mt-8 px-4 mb-12">
+      <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('profile')}
+          className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+            activeTab === 'profile'
+              ? 'bg-yellow-100 text-yellow-900 border border-yellow-300'
+              : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Profiili
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('edit')}
+          className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+            activeTab === 'edit'
+              ? 'bg-yellow-100 text-yellow-900 border border-yellow-300'
+              : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Muokkaa
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('settings')}
+          className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+            activeTab === 'settings'
+              ? 'bg-yellow-100 text-yellow-900 border border-yellow-300'
+              : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Asetukset
+        </button>
+      </div>
+
+      {activeTab === 'profile' && (
+        <>
       <Card className="mb-6">
         <div className="flex items-center gap-4 mb-4">
           {profileImageUrl ? (
@@ -365,7 +434,10 @@ export default function ProfilePage() {
       </Card>
 
       {currentUser && <TopFiveCard profileId={currentUser.id} className="mb-6" />}
+        </>
+      )}
 
+      {activeTab === 'edit' && (
       <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4">Muokkaa profiilia</h2>
 
@@ -434,18 +506,6 @@ export default function ProfilePage() {
               />
               <label htmlFor="showSignature" className="text-sm text-gray-600">
                 Näytä allekirjoitus viesteissä
-              </label>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="checkbox"
-                id="realtimeUpdatesEnabled"
-                checked={realtimeUpdatesEnabled}
-                onChange={(e) => setRealtimeUpdatesEnabled(e.target.checked)}
-                className="w-4 h-4 accent-yellow-400"
-              />
-              <label htmlFor="realtimeUpdatesEnabled" className="text-sm text-gray-600">
-                Reaaliaikaiset päivitykset ketjuille ja viesteille
               </label>
             </div>
           </div>
@@ -545,6 +605,46 @@ export default function ProfilePage() {
           </Button>
         </form>
       </Card>
+      )}
+
+      {activeTab === 'settings' && (
+        <>
+      <Card className="mb-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Settings2 size={20} className="text-yellow-600" />
+          Asetukset
+        </h2>
+
+        {error && <Alert variant="error">{error}</Alert>}
+        {success && <Alert variant="success">{success}</Alert>}
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+            <label htmlFor="realtimeUpdatesEnabled" className="text-sm text-gray-700">
+              Reaaliaikaiset päivitykset ketjuille ja viesteille
+            </label>
+
+            <button
+              id="realtimeUpdatesEnabled"
+              type="button"
+              role="switch"
+              aria-checked={realtimeUpdatesEnabled}
+              aria-label="Reaaliaikaiset päivitykset ketjuille ja viesteille"
+              disabled={savingSettings}
+              onClick={() => handleRealtimeToggle(!realtimeUpdatesEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                realtimeUpdatesEnabled ? 'bg-yellow-500' : 'bg-gray-300'
+              } ${savingSettings ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  realtimeUpdatesEnabled ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </Card>
 
       <Card className="mt-6">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -597,6 +697,8 @@ export default function ProfilePage() {
           </Button>
         </form>
       </Card>
+        </>
+      )}
 
       {showUsernameConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
