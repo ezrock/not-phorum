@@ -45,7 +45,15 @@ interface RawRandomQuoteRow {
   content: string;
   created_at: string;
   topic_id: number;
-  author: { username: string }[] | null;
+  author: { username: string } | { username: string }[] | null;
+}
+
+function extractAuthorUsername(author: RawRandomQuoteRow['author']): string | null {
+  if (!author) return null;
+  if (Array.isArray(author)) {
+    return author[0]?.username || null;
+  }
+  return author.username || null;
 }
 
 function ForumContent() {
@@ -171,7 +179,7 @@ function ForumContent() {
           content: snippet,
           created_at: post.created_at,
           topic_id: post.topic_id,
-          author_username: post.author?.[0]?.username || null,
+          author_username: extractAuthorUsername(post.author),
           likes_count: likesCountRes.count || 0,
           liked_by_me: !!myLikeRes.data && myLikeRes.data.length > 0,
         });
