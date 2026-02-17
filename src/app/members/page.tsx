@@ -6,7 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Users, Shield, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
-import { trophyLocalIconUrl } from '@/lib/trophies';
+import { trophyLocalIconUrl, parseTrophies } from '@/lib/trophies';
+import type { Trophy, TrophyJoinRow } from '@/lib/trophies';
+import { formatFinnishDate } from '@/lib/formatDate';
 
 interface Profile {
   id: string;
@@ -16,17 +18,8 @@ interface Profile {
   is_admin: boolean;
 }
 
-interface Trophy {
-  id: number;
-  code: string;
-  name: string;
-  points: number;
-  icon_path: string | null;
-}
-
-interface ProfileTrophyRow {
+interface MemberTrophyRow extends TrophyJoinRow {
   profile_id: string;
-  trophy: Trophy | Trophy[] | null;
 }
 
 export default function MembersPage() {
@@ -54,16 +47,17 @@ export default function MembersPage() {
       if (!trophiesRes.error && trophiesRes.data) {
         const grouped: Record<string, Trophy[]> = {};
 
-        for (const row of trophiesRes.data as ProfileTrophyRow[]) {
-          const parsedTrophy = Array.isArray(row.trophy) ? row.trophy[0] : row.trophy;
-          if (!parsedTrophy) continue;
+        for (const row of trophiesRes.data as MemberTrophyRow[]) {
+          const trophyList = parseTrophies([row]);
+          if (trophyList.length === 0) continue;
 
           if (!grouped[row.profile_id]) {
             grouped[row.profile_id] = [];
           }
-          grouped[row.profile_id].push(parsedTrophy);
+          grouped[row.profile_id].push(...trophyList);
         }
 
+        // parseTrophies already sorts, but re-sort grouped arrays for consistency
         for (const profileId of Object.keys(grouped)) {
           grouped[profileId].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
         }
@@ -75,14 +69,6 @@ export default function MembersPage() {
 
     fetchMembers();
   }, [supabase]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fi-FI', {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   if (loading) {
     return (
@@ -129,7 +115,7 @@ export default function MembersPage() {
                     )}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Liittynyt {formatDate(member.created_at)}
+                    Liittynyt {formatFinnishDate(member.created_at)}
                   </p>
 
                   {memberTrophies[member.id]?.length ? (

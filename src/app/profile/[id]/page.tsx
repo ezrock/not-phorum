@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Calendar, Trophy, Shield, Link as LinkIcon, LogIn, Eye, BarChart3, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Calendar, Trophy as TrophyIcon, Shield, Link as LinkIcon, LogIn, Eye, BarChart3, User } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
-import { trophyLocalIconUrl } from '@/lib/trophies';
+import { trophyLocalIconUrl, parseTrophies } from '@/lib/trophies';
+import type { Trophy, TrophyJoinRow } from '@/lib/trophies';
+import { formatFinnishDate } from '@/lib/formatDate';
 
 interface UserProfile {
   id: string;
@@ -32,18 +34,6 @@ interface TopicStat {
   reply_count: number;
 }
 
-interface ProfileTrophy {
-  id: number;
-  code: string;
-  name: string;
-  points: number;
-  icon_path: string | null;
-}
-
-interface ProfileTrophyRow {
-  trophy: ProfileTrophy | ProfileTrophy[] | null;
-}
-
 function safeHttpUrl(rawUrl: string | null): string | null {
   if (!rawUrl) return null;
   try {
@@ -63,7 +53,7 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [postCount, setPostCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
-  const [trophies, setTrophies] = useState<ProfileTrophy[]>([]);
+  const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [mostPopularTopic, setMostPopularTopic] = useState<TopicStat | null>(null);
   const [mostActiveTopic, setMostActiveTopic] = useState<TopicStat | null>(null);
   const [loading, setLoading] = useState(true);
@@ -142,11 +132,7 @@ export default function PublicProfilePage() {
         .eq('profile_id', userId);
 
       if (trophyData) {
-        const parsed = (trophyData as ProfileTrophyRow[])
-          .map((row) => (Array.isArray(row.trophy) ? row.trophy[0] : row.trophy))
-          .filter((trophy): trophy is ProfileTrophy => Boolean(trophy))
-          .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
-        setTrophies(parsed);
+        setTrophies(parseTrophies(trophyData as TrophyJoinRow[]));
       }
 
       setLoading(false);
@@ -176,14 +162,6 @@ export default function PublicProfilePage() {
   const isLastAdmin = profile?.is_admin && adminCount <= 1;
   const profileLink = safeHttpUrl(profile?.link_url ?? null);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fi-FI', {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto mt-8 px-4">
@@ -200,7 +178,7 @@ export default function PublicProfilePage() {
         <Card>
           <h2 className="text-2xl font-bold">Käyttäjää ei löytynyt</h2>
           <Link href="/forum">
-            <Button className="mt-4" onClick={() => {}}>Takaisin foorumille</Button>
+            <Button className="mt-4">Takaisin foorumille</Button>
           </Link>
         </Card>
       </div>
@@ -233,7 +211,7 @@ export default function PublicProfilePage() {
             )}
             <p className="flex items-center gap-1 text-sm text-gray-500 mt-1">
               <Calendar size={14} />
-              Jäsen {formatDate(profile.created_at)} alkaen
+              Jäsen {formatFinnishDate(profile.created_at)} alkaen
             </p>
             <div className="flex items-center gap-2 mt-2">
               {isCurrentUserAdmin && profile.is_admin && (
@@ -320,7 +298,7 @@ export default function PublicProfilePage() {
 
       <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Trophy size={20} className="text-yellow-600" />
+          <TrophyIcon size={20} className="text-yellow-600" />
           Kunniamerkit
         </h2>
         {trophies.length > 0 ? (

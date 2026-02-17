@@ -1,4 +1,28 @@
 /**
+ * Simple Finnish date: "15.2.2026"
+ */
+export function formatFinnishDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('fi-FI', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Compact post date/time: "15.02.26 13.01"
+ */
+export function formatPostDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}.${month}.${year} ${hours}.${minutes}`;
+}
+
+/**
  * Finnish relative date/time formatter.
  *
  * - "tänään klo 13.01"

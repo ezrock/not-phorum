@@ -7,28 +7,18 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy, User, Settings2 } from 'lucide-react';
+import { Save, Camera, X, Lock, Link as LinkIcon, MessageSquare, LogIn, Eye, BarChart3, Trophy as TrophyIcon, User, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { profileMedium, profileThumb } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
-import { trophyLocalIconUrl } from '@/lib/trophies';
+import { trophyLocalIconUrl, parseTrophies } from '@/lib/trophies';
+import type { Trophy, TrophyJoinRow } from '@/lib/trophies';
+import { formatFinnishDate } from '@/lib/formatDate';
 
 interface CloudinaryUploadResult {
   info?: {
     secure_url?: string;
   };
-}
-
-interface ProfileTrophy {
-  id: number;
-  code: string;
-  name: string;
-  points: number;
-  icon_path: string | null;
-}
-
-interface ProfileTrophyRow {
-  trophy: ProfileTrophy | ProfileTrophy[] | null;
 }
 
 type ProfileTab = 'profile' | 'edit' | 'settings';
@@ -79,7 +69,7 @@ export default function ProfilePage() {
 
   const [postCount, setPostCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
-  const [trophies, setTrophies] = useState<ProfileTrophy[]>([]);
+  const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [mostPopularTopic, setMostPopularTopic] = useState<{ id: number; title: string; views: number } | null>(null);
   const [mostActiveTopic, setMostActiveTopic] = useState<{ id: number; title: string; reply_count: number } | null>(null);
 
@@ -132,11 +122,7 @@ export default function ProfilePage() {
       if (activeRes.data) setMostActiveTopic(activeRes.data);
 
       if (trophiesRes.data) {
-        const parsed = (trophiesRes.data as ProfileTrophyRow[])
-          .map((row) => (Array.isArray(row.trophy) ? row.trophy[0] : row.trophy))
-          .filter((trophy): trophy is ProfileTrophy => Boolean(trophy))
-          .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
-        setTrophies(parsed);
+        setTrophies(parseTrophies(trophiesRes.data as TrophyJoinRow[]));
       }
     };
 
@@ -236,10 +222,16 @@ export default function ProfilePage() {
     setPasswordError('');
     setPasswordSuccess('');
 
-    if (newPassword.length < 6) {
-      setPasswordError('Salasanan tulee olla vähintään 6 merkkiä');
+    if (newPassword.length < 8) {
+      setPasswordError('Salasanan tulee olla vähintään 8 merkkiä');
       return;
     }
+
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setPasswordError('Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setPasswordError('Salasanat eivät täsmää');
       return;
@@ -289,14 +281,6 @@ export default function ProfilePage() {
     } finally {
       setSavingSettings(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fi-FI', {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-    });
   };
 
   if (loading || !typedProfile) {
@@ -361,7 +345,7 @@ export default function ProfilePage() {
           <div className="flex-1">
             <h1 className="text-3xl font-bold" style={{ fontFamily: 'monospace' }}>{typedProfile.username}</h1>
             <p className="text-sm text-gray-500">
-             Liittymispäivä {typedProfile.created_at ? formatDate(typedProfile.created_at) : ''}
+             Liittymispäivä {typedProfile.created_at ? formatFinnishDate(typedProfile.created_at) : ''}
             </p>
           </div>
         </div>
@@ -405,7 +389,7 @@ export default function ProfilePage() {
 
       <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Trophy size={20} className="text-yellow-600" />
+          <TrophyIcon size={20} className="text-yellow-600" />
           Kunniamerkit
         </h2>
 
@@ -666,8 +650,8 @@ export default function ProfilePage() {
               value={newPassword}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
               required
-              minLength={6}
-              placeholder="Vähintään 6 merkkiä"
+              minLength={8}
+              placeholder="Vähintään 8 merkkiä, isoja/pieniä kirjaimia ja numeroita"
             />
           </div>
 
@@ -681,7 +665,7 @@ export default function ProfilePage() {
               value={confirmPassword}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               placeholder="Kirjoita salasana uudelleen"
             />
           </div>

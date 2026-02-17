@@ -51,8 +51,13 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Salasanan tulee olla vähintään 6 merkkiä');
+    if (password.length < 8) {
+      setError('Salasanan tulee olla vähintään 8 merkkiä');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita');
       return;
     }
 
@@ -147,8 +152,8 @@ export default function RegisterPage() {
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
-              minLength={6}
-              placeholder="••••••••"
+              minLength={8}
+              placeholder="Vähintään 8 merkkiä, isoja/pieniä kirjaimia ja numeroita"
             />
           </div>
 

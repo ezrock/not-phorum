@@ -14,6 +14,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import LinkifyIt from 'linkify-it';
 import tlds from 'tlds';
 import { POSTS_PER_PAGE } from '@/lib/pagination';
+import { formatPostDateTime } from '@/lib/formatDate';
 
 interface Post {
   id: number;
@@ -64,6 +65,42 @@ interface PostLikeState {
 function parseTopicViewResponse(value: unknown): TopicViewResponse | null {
   if (!value || typeof value !== 'object') return null;
   return value as TopicViewResponse;
+}
+
+// Supabase join results may return related rows as object or array.
+// These helpers normalize the shape to match our interfaces.
+type SupabaseJoinField<T> = T | T[] | null;
+
+interface RawPostRow {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string | null;
+  deleted_at: string | null;
+  image_url: string | null;
+  author: SupabaseJoinField<Post['author']>;
+}
+
+interface RawTopicRow {
+  id: number;
+  title: string;
+  views: number;
+  views_total: number | null;
+  views_unique: number | null;
+  category: SupabaseJoinField<{ name: string; icon: string }>;
+}
+
+function normalizeJoin<T>(value: SupabaseJoinField<T>): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
+}
+
+function parsePost(row: RawPostRow): Post {
+  return { ...row, author: normalizeJoin(row.author) ?? null };
+}
+
+function parseTopic(row: RawTopicRow): Topic {
+  return { ...row, category: normalizeJoin(row.category) ?? null };
 }
 
 function extractSecureUrl(result: unknown): string | null {
@@ -223,10 +260,10 @@ function TopicContent() {
       ]);
 
       if (!topicRes.error && topicRes.data) {
-        setTopic(topicRes.data as unknown as Topic);
+        setTopic(parseTopic(topicRes.data as RawTopicRow));
       }
       if (!postsRes.error && postsRes.data) {
-        setPosts(postsRes.data as unknown as Post[]);
+        setPosts((postsRes.data as RawPostRow[]).map(parsePost));
       }
       if (!countRes.error) {
         setTotalPosts(countRes.count || 0);
@@ -421,7 +458,7 @@ function TopicContent() {
       .single();
 
     if (!error && data) {
-      const insertedPost = data as unknown as Post;
+      const insertedPost = parsePost(data as RawPostRow);
       const nextTotalPosts = totalPosts + 1;
       const nextPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
       setReplyContent('');
@@ -477,7 +514,7 @@ function TopicContent() {
       .single();
 
     if (!error && data) {
-      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as unknown as Post) : p)));
+      setPosts((prev) => prev.map((p) => (p.id === postId ? parsePost(data as RawPostRow) : p)));
       setEditingPostId(null);
     }
     setEditSaving(false);
@@ -498,7 +535,7 @@ function TopicContent() {
       .single();
 
     if (!error && data) {
-      setPosts((prev) => prev.map((p) => (p.id === postId ? (data as unknown as Post) : p)));
+      setPosts((prev) => prev.map((p) => (p.id === postId ? parsePost(data as RawPostRow) : p)));
     }
     setDeleteConfirmId(null);
   };
@@ -582,16 +619,6 @@ function TopicContent() {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}.${month}.${year} ${hours}.${minutes}`;
-  };
-
   const hasBeenEdited = (post: Post) => {
     if (!post.updated_at) return false;
     const updatedAt = new Date(post.updated_at).getTime();
@@ -633,7 +660,7 @@ function TopicContent() {
         <Card>
           <h2 className="text-2xl font-bold">Aihetta ei löytynyt</h2>
           <Link href="/forum">
-            <Button className="mt-4" onClick={() => {}}>Takaisin foorumille</Button>
+            <Button className="mt-4">Takaisin foorumille</Button>
           </Link>
         </Card>
       </div>
@@ -657,7 +684,7 @@ function TopicContent() {
             </div>
           </div>
           <Link href="/forum">
-            <Button variant="outline" className="flex items-center gap-2" onClick={() => {}}>
+            <Button variant="outline" className="flex items-center gap-2">
               <ArrowLeft size={16} />
               Takaisin
             </Button>
@@ -688,7 +715,7 @@ function TopicContent() {
                   )}
                   <p className="font-bold text-sm mb-1" style={{ fontFamily: 'monospace' }}>{post.author?.username}</p>
                   <p className="text-xs text-gray-400">
-                    {formatDateTime(post.created_at)}
+                    {formatPostDateTime(post.created_at)}
                   </p>
                 </Link>
 
@@ -828,7 +855,7 @@ function TopicContent() {
 
                         {hasBeenEdited(post) && (
                           <p className={`text-xs text-gray-400 italic ${post.author?.signature && post.author?.show_signature ? 'mt-1' : ''}`}>
-                            Muokattu viimeksi {formatDateTime(post.updated_at as string)}
+                            Muokattu viimeksi {formatPostDateTime(post.updated_at as string)}
                           </p>
                         )}
                       </div>
@@ -1013,7 +1040,7 @@ function TopicContent() {
             Kirjaudu sisään vastataksesi tähän aiheeseen
           </p>
           <Link href="/login">
-            <Button onClick={() => {}}>Kirjaudu sisään</Button>
+            <Button>Kirjaudu sisään</Button>
           </Link>
         </Card>
       )}
