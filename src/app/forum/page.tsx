@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Heart, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
+import { POSTS_PER_PAGE, THREADS_PER_PAGE } from '@/lib/pagination';
 
 interface Topic {
   id: number;
@@ -56,7 +57,6 @@ function ForumContent() {
   const [quote, setQuote] = useState<RandomQuote | null>(null);
   const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const THREADS_PER_PAGE = 20;
 
   const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -67,7 +67,7 @@ function ForumContent() {
 
   const getLastPostPage = (topic: Topic) => {
     const totalPosts = Math.max(topic.replies_count + 1, topic.last_post_id ? 1 : 0);
-    return Math.max(1, Math.ceil(totalPosts / 50));
+    return Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
   };
 
   const buildPageHref = (page: number) => {

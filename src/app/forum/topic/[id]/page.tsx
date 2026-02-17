@@ -12,6 +12,7 @@ import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
 import ReactMarkdown from 'react-markdown';
 import LinkifyIt from 'linkify-it';
 import tlds from 'tlds';
+import { POSTS_PER_PAGE } from '@/lib/pagination';
 
 interface Post {
   id: number;
@@ -161,7 +162,6 @@ function TopicContent() {
   const searchParams = useSearchParams();
   const { currentUser, supabase } = useAuth();
   const topicId = parseInt(params.id as string);
-  const POSTS_PER_PAGE = 50;
   const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const pageOffset = (currentPage - 1) * POSTS_PER_PAGE;
