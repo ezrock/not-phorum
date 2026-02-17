@@ -649,7 +649,7 @@ function TopicContent() {
             <div>
               <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="text-yellow-600 font-medium">{topic.category?.name}</span>
+                <span className="text-yellow-800 font-medium">{topic.category?.name}</span>
                 <span>{topic.views_unique ?? topic.views} katselua</span>
                 <span>{totalPosts} viestiä</span>
               </div>
