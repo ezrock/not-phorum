@@ -1,0 +1,49 @@
+import Link from 'next/link';
+import { MessageSquare, LogIn, Eye, BarChart3 } from 'lucide-react';
+import type { TopicStat } from '@/hooks/useProfileStats';
+
+interface ProfileStatsProps {
+  postCount: number;
+  topicCount: number;
+  loginCount: number;
+  mostPopularTopic: TopicStat | null;
+  mostActiveTopic: TopicStat | null;
+}
+
+export function ProfileStats({ postCount, topicCount, loginCount, mostPopularTopic, mostActiveTopic }: ProfileStatsProps) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <MessageSquare size={18} className="text-yellow-600" />
+        <span className="text-sm text-gray-500 flex-1">Viestiä</span>
+        <span className="font-bold">{postCount}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <MessageSquare size={18} className="text-yellow-600" />
+        <span className="text-sm text-gray-500 flex-1">Aloitettua aihetta</span>
+        <span className="font-bold">{topicCount}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <LogIn size={18} className="text-yellow-600" />
+        <span className="text-sm text-gray-500 flex-1">Kirjautumista</span>
+        <span className="font-bold">{loginCount}</span>
+      </div>
+      {mostPopularTopic && (
+        <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+          <Eye size={18} className="text-yellow-600" />
+          <span className="text-sm text-gray-500 flex-shrink-0">Suosituin aihe</span>
+          <span className="font-bold text-sm text-right flex-1 truncate">{mostPopularTopic.title}</span>
+          <span className="text-xs text-gray-400 flex-shrink-0">{mostPopularTopic.views} katselua</span>
+        </Link>
+      )}
+      {mostActiveTopic && (
+        <Link href={`/forum/topic/${mostActiveTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+          <BarChart3 size={18} className="text-yellow-600" />
+          <span className="text-sm text-gray-500 flex-shrink-0">Aktiivisin aihe</span>
+          <span className="font-bold text-sm text-right flex-1 truncate">{mostActiveTopic.title}</span>
+          <span className="text-xs text-gray-400 flex-shrink-0">{mostActiveTopic.reply_count} vastausta</span>
+        </Link>
+      )}
+    </div>
+  );
+}

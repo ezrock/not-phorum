@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Calendar, Trophy as TrophyIcon, Shield, Link as LinkIcon, LogIn, Eye, BarChart3, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Shield, Link as LinkIcon, User } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
-import { trophyLocalIconUrl, parseTrophies } from '@/lib/trophies';
-import type { Trophy, TrophyJoinRow } from '@/lib/trophies';
+import { ProfileStats } from '@/components/profile/ProfileStats';
+import { TrophiesCard } from '@/components/profile/TrophiesCard';
+import { useProfileStats } from '@/hooks/useProfileStats';
 import { formatFinnishDate } from '@/lib/formatDate';
 
 interface UserProfile {
@@ -25,13 +26,6 @@ interface UserProfile {
   link_url: string | null;
   link_description: string | null;
   login_count: number;
-}
-
-interface TopicStat {
-  id: number;
-  title: string;
-  views: number;
-  reply_count: number;
 }
 
 function safeHttpUrl(rawUrl: string | null): string | null {
@@ -51,14 +45,11 @@ export default function PublicProfilePage() {
   const userId = params.id as string;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [postCount, setPostCount] = useState(0);
-  const [topicCount, setTopicCount] = useState(0);
-  const [trophies, setTrophies] = useState<Trophy[]>([]);
-  const [mostPopularTopic, setMostPopularTopic] = useState<TopicStat | null>(null);
-  const [mostActiveTopic, setMostActiveTopic] = useState<TopicStat | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminCount, setAdminCount] = useState(0);
   const [togglingAdmin, setTogglingAdmin] = useState(false);
+
+  const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic } = useProfileStats(userId);
 
   // Redirect to own profile page if viewing self
   useEffect(() => {
@@ -69,72 +60,20 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count')
-        .eq('id', userId)
-        .single();
+      const [profileRes, adminRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count')
+          .eq('id', userId)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_admin', true),
+      ]);
 
-      if (profileData) {
-        setProfile(profileData as UserProfile);
-      }
-
-      // Count admins (for last-admin protection)
-      const { count: admins } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_admin', true);
-
-      setAdminCount(admins || 0);
-
-      // Count posts
-      const { count: posts } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('author_id', userId);
-
-      setPostCount(posts || 0);
-
-      // Count topics
-      const { count: topics } = await supabase
-        .from('topics')
-        .select('*', { count: 'exact', head: true })
-        .eq('author_id', userId);
-
-      setTopicCount(topics || 0);
-
-      // Most popular topic (by views)
-      const { data: popularTopic } = await supabase
-        .from('topics')
-        .select('id, title, views, reply_count')
-        .eq('author_id', userId)
-        .order('views', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (popularTopic) setMostPopularTopic(popularTopic as TopicStat);
-
-      // Most active topic (by replies)
-      const { data: activeTopic } = await supabase
-        .from('topics')
-        .select('id, title, views, reply_count')
-        .eq('author_id', userId)
-        .order('reply_count', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (activeTopic) setMostActiveTopic(activeTopic as TopicStat);
-
-      const { data: trophyData } = await supabase
-        .from('profile_trophies')
-        .select('trophy:trophies(id, code, name, points, icon_path)')
-        .eq('profile_id', userId);
-
-      if (trophyData) {
-        setTrophies(parseTrophies(trophyData as TrophyJoinRow[]));
-      }
-
+      if (profileRes.data) setProfile(profileRes.data as UserProfile);
+      setAdminCount(adminRes.count || 0);
       setLoading(false);
     };
 
@@ -254,39 +193,13 @@ export default function PublicProfilePage() {
 
         <hr className="border-gray-200 my-4" />
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <MessageSquare size={18} className="text-yellow-600" />
-            <span className="text-sm text-gray-500 flex-1">Viestiä</span>
-            <span className="font-bold">{postCount}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <MessageSquare size={18} className="text-yellow-600" />
-            <span className="text-sm text-gray-500 flex-1">Aloitettua aihetta</span>
-            <span className="font-bold">{topicCount}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <LogIn size={18} className="text-yellow-600" />
-            <span className="text-sm text-gray-500 flex-1">Kirjautumista</span>
-            <span className="font-bold">{profile.login_count}</span>
-          </div>
-          {mostPopularTopic && (
-            <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
-              <Eye size={18} className="text-yellow-600" />
-              <span className="text-sm text-gray-500 flex-shrink-0">Suosituin aihe</span>
-              <span className="font-bold text-sm text-right flex-1 truncate">{mostPopularTopic.title}</span>
-              <span className="text-xs text-gray-400 flex-shrink-0">{mostPopularTopic.views} katselua</span>
-            </Link>
-          )}
-          {mostActiveTopic && (
-            <Link href={`/forum/topic/${mostActiveTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
-              <BarChart3 size={18} className="text-yellow-600" />
-              <span className="text-sm text-gray-500 flex-shrink-0">Aktiivisin aihe</span>
-              <span className="font-bold text-sm text-right flex-1 truncate">{mostActiveTopic.title}</span>
-              <span className="text-xs text-gray-400 flex-shrink-0">{mostActiveTopic.reply_count} vastausta</span>
-            </Link>
-          )}
-        </div>
+        <ProfileStats
+          postCount={postCount}
+          topicCount={topicCount}
+          loginCount={profile.login_count}
+          mostPopularTopic={mostPopularTopic}
+          mostActiveTopic={mostActiveTopic}
+        />
       </Card>
 
       {/* Signature */}
@@ -296,34 +209,7 @@ export default function PublicProfilePage() {
         </Card>
       )}
 
-      <Card className="mb-6">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <TrophyIcon size={20} className="text-yellow-600" />
-          Kunniamerkit
-        </h2>
-        {trophies.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {trophies.map((trophy) => (
-              <span
-                key={trophy.id}
-                className="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-1 text-xs font-medium"
-                title={`${trophy.name} (${trophy.points} p)`}
-              >
-                {trophyLocalIconUrl(trophy.icon_path) && (
-                  <img
-                    src={trophyLocalIconUrl(trophy.icon_path) as string}
-                    alt={trophy.name}
-                    className="w-4 h-5 object-contain mr-1"
-                  />
-                )}
-                {trophy.name}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">Ei kunniamerkkejä vielä.</p>
-        )}
-      </Card>
+      <TrophiesCard trophies={trophies} />
 
       <TopFiveCard profileId={userId} />
     </div>
