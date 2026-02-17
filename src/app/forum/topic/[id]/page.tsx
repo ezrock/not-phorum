@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import LinkifyIt from 'linkify-it';
 import tlds from 'tlds';
 import { POSTS_PER_PAGE } from '@/lib/pagination';
@@ -756,15 +757,36 @@ function TopicContent() {
                         return (
                           <>
                       <ReactMarkdown
+                        rehypePlugins={[[rehypeSanitize, {
+                          ...defaultSchema,
+                          attributes: {
+                            ...defaultSchema.attributes,
+                            a: [...(defaultSchema.attributes?.a || []), ['target', '_blank'], ['rel', 'noopener noreferrer']],
+                          },
+                        }]]}
                         components={{
                           a: ({ href, children }) => {
+                            let safeHref = href;
+                            try {
+                              const url = new URL(href || '', 'https://placeholder.invalid');
+                              if (!['http:', 'https:', 'mailto:'].includes(url.protocol)) {
+                                safeHref = undefined;
+                              }
+                            } catch {
+                              safeHref = undefined;
+                            }
+
                             const firstChild = Array.isArray(children) ? children[0] : children;
                             const label = typeof firstChild === 'string' ? firstChild : '';
                             const shouldShorten = label && /^https?:\/\//i.test(label);
                             const visibleText = shouldShorten ? shortenUrlDisplay(label) : children;
 
+                            if (!safeHref) {
+                              return <span>{visibleText}</span>;
+                            }
+
                             return (
-                              <a href={href} target="_blank" rel="noopener noreferrer">
+                              <a href={safeHref} target="_blank" rel="noopener noreferrer">
                                 {visibleText}
                               </a>
                             );
