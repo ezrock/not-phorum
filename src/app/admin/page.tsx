@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, UserPlus, Trophy } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
 
 interface TrophyOverview {
   id: number;
@@ -23,6 +25,10 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('board');
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [notificationToggling, setNotificationToggling] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [savingNotificationMessage, setSavingNotificationMessage] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [trophyLoading, setTrophyLoading] = useState(true);
   const [trophyOverview, setTrophyOverview] = useState<TrophyOverview[]>([]);
@@ -33,9 +39,8 @@ export default function AdminPage() {
       const [settingsRes, overviewRes, awardedRes] = await Promise.all([
         supabase
           .from('site_settings')
-          .select('value')
-          .eq('key', 'registration_enabled')
-          .single(),
+          .select('key, value')
+          .in('key', ['registration_enabled', 'notification_enabled', 'notification_message']),
         supabase
           .from('admin_trophy_overview')
           .select('id, code, name, points, icon_path, source, awarded_count')
@@ -47,7 +52,11 @@ export default function AdminPage() {
       ]);
 
       if (settingsRes.data) {
-        setRegistrationEnabled(settingsRes.data.value === 'true');
+        const settings = settingsRes.data as { key: string; value: string }[];
+        const map = new Map(settings.map((row) => [row.key, row.value]));
+        setRegistrationEnabled(map.get('registration_enabled') === 'true');
+        setNotificationEnabled(map.get('notification_enabled') === 'true');
+        setNotificationMessage(map.get('notification_message') || '');
       }
       if (overviewRes.data) {
         setTrophyOverview(overviewRes.data as TrophyOverview[]);
@@ -74,6 +83,33 @@ export default function AdminPage() {
       setRegistrationEnabled(newValue);
     }
     setToggling(false);
+  };
+
+  const handleToggleNotification = async () => {
+    setNotificationToggling(true);
+    const newValue = !notificationEnabled;
+
+    const { error } = await supabase.rpc('update_site_setting', {
+      setting_key: 'notification_enabled',
+      setting_value: String(newValue),
+    });
+
+    if (!error) {
+      setNotificationEnabled(newValue);
+    }
+
+    setNotificationToggling(false);
+  };
+
+  const handleSaveNotificationMessage = async () => {
+    setSavingNotificationMessage(true);
+
+    await supabase.rpc('update_site_setting', {
+      setting_key: 'notification_message',
+      setting_value: notificationMessage.trim(),
+    });
+
+    setSavingNotificationMessage(false);
   };
 
   if (loading || settingsLoading || trophyLoading) {
@@ -157,6 +193,50 @@ export default function AdminPage() {
                 }`}
               />
             </button>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Ilmoitusraita</p>
+              <p className="text-sm text-gray-500">
+                {notificationEnabled ? 'Raita näkyy kirjautuneille käyttäjille' : 'Raita on pois päältä'}
+              </p>
+            </div>
+            <button
+              onClick={handleToggleNotification}
+              disabled={notificationToggling}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                notificationEnabled ? 'bg-green-500' : 'bg-gray-300'
+              } ${notificationToggling ? 'opacity-50' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  notificationEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="notificationMessage" className="block text-sm font-medium mb-1">
+              Ilmoitusviesti
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="notificationMessage"
+                value={notificationMessage}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotificationMessage(e.target.value)}
+                placeholder="Kirjoita ilmoitusviesti..."
+              />
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSaveNotificationMessage}
+                disabled={savingNotificationMessage}
+              >
+                {savingNotificationMessage ? 'Tallennetaan...' : 'Tallenna'}
+              </Button>
+            </div>
           </div>
         </Card>
       )}

@@ -31,3 +31,24 @@ body {
 :where(.lucide) {
   color: var(--icon-accent);
 }
+
+@keyframes notification-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.notification-marquee {
+  display: flex;
+  width: max-content;
+  animation: notification-marquee 20s linear infinite;
+  will-change: transform;
+}
+
+.notification-marquee-content {
+  flex-shrink: 0;
+  white-space: pre;
+}

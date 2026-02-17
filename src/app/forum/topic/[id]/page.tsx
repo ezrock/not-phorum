@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Edit2, ImagePlus, X, Trash2, Save, User, Heart, Link2, Check } from 'lucide-react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
@@ -108,6 +108,7 @@ function autoLinkPlainUrls(markdown: string): string {
 
 function TopicContent() {
   const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { currentUser, supabase } = useAuth();
   const topicId = parseInt(params.id as string);
@@ -335,7 +336,20 @@ function TopicContent() {
       const nextPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
       setReplyContent('');
       setReplyImageUrl('');
-      window.location.href = `/forum/topic/${topicId}${nextPage > 1 ? `?page=${nextPage}` : ''}#post-${insertedPost.id}`;
+
+      if (nextPage === currentPage) {
+        setPosts((prev) => [...prev, insertedPost]);
+        setTotalPosts(nextTotalPosts);
+        setPostLikes((prev) => ({
+          ...prev,
+          [insertedPost.id]: { count: 0, likedByMe: false },
+        }));
+        window.location.hash = `post-${insertedPost.id}`;
+        setSubmitting(false);
+        return;
+      }
+
+      router.push(`/forum/topic/${topicId}${nextPage > 1 ? `?page=${nextPage}` : ''}#post-${insertedPost.id}`);
       return;
     }
     setSubmitting(false);
