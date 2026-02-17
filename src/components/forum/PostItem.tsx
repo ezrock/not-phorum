@@ -144,6 +144,11 @@ function autoLinkPlainUrls(markdown: string): string {
   return result;
 }
 
+function preserveSingleLineBreaks(markdown: string): string {
+  const normalized = markdown.replace(/\r\n/g, '\n');
+  return normalized.replace(/(?<!\n)\n(?!\n)/g, '  \n');
+}
+
 function extractSecureUrl(result: unknown): string | null {
   const typed = result as CloudinaryUploadResult;
   return typed?.info?.secure_url ?? null;
@@ -315,7 +320,7 @@ export function PostItem({
                         },
                       }}
                     >
-                      {autoLinkPlainUrls(post.content)}
+                      {preserveSingleLineBreaks(autoLinkPlainUrls(post.content))}
                     </ReactMarkdown>
                     {youtubeEmbeds.length > 0 && (
                       <div className="mt-4 space-y-3 not-prose">
