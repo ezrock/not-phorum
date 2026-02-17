@@ -25,6 +25,8 @@ Yarr! A modern, members-only message board built with Next.js + Supabase, with o
 - Soft-delete for posts
 - Post edit flow with edited timestamp handling
 - Markdown rendering for messages
+- Embedded videos for messages
+  -Youtube
 - Auto-linking of plain URLs in messages
 - Optional image attachment in new posts and replies
 - Topic view tracking:
@@ -42,6 +44,10 @@ Yarr! A modern, members-only message board built with Next.js + Supabase, with o
   - admin-only username editing with confirmation modal
 - Public profile pages for other users
 - Member list page
+- Log page for easy browsing of
+  - Liked quotes
+  - Latest images
+  - Latest videos
 - Trophy system baseline migrated from legacy forum:
   - trophy catalog + user trophy assignments
   - legacy icon assets served locally
@@ -91,5 +97,4 @@ The project includes SQL migrations in `supabase/migrations`, including:
 - Privacy focused analytics with Umami
 - Polished styling - now everything is quite basic
   - More compact layout
-- Support for videos (Youtube, Twitch...)
 - Planning the migration

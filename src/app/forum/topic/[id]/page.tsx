@@ -84,6 +84,55 @@ function ensureUrlProtocol(url: string): string {
   return `https://${url}`;
 }
 
+function parseYouTubeVideoId(rawUrl: string): string | null {
+  try {
+    const normalized = ensureUrlProtocol(rawUrl);
+    const url = new URL(normalized);
+    const host = url.hostname.replace(/^www\./i, '').toLowerCase();
+
+    if (host === 'youtu.be') {
+      const candidate = url.pathname.split('/').filter(Boolean)[0] || '';
+      return /^[A-Za-z0-9_-]{11}$/.test(candidate) ? candidate : null;
+    }
+
+    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+      if (url.pathname === '/watch') {
+        const candidate = url.searchParams.get('v') || '';
+        return /^[A-Za-z0-9_-]{11}$/.test(candidate) ? candidate : null;
+      }
+
+      if (url.pathname.startsWith('/shorts/')) {
+        const candidate = url.pathname.split('/')[2] || '';
+        return /^[A-Za-z0-9_-]{11}$/.test(candidate) ? candidate : null;
+      }
+
+      if (url.pathname.startsWith('/embed/')) {
+        const candidate = url.pathname.split('/')[2] || '';
+        return /^[A-Za-z0-9_-]{11}$/.test(candidate) ? candidate : null;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function extractYouTubeEmbedUrls(text: string): string[] {
+  const matches = linkify.match(text);
+  if (!matches || matches.length === 0) return [];
+
+  const videoIds = new Set<string>();
+  for (const match of matches) {
+    const videoId = parseYouTubeVideoId(match.url || match.raw);
+    if (videoId) {
+      videoIds.add(videoId);
+    }
+  }
+
+  return Array.from(videoIds).map((videoId) => `https://www.youtube-nocookie.com/embed/${videoId}`);
+}
+
 function autoLinkPlainUrls(markdown: string): string {
   const matches = linkify.match(markdown);
   if (!matches || matches.length === 0) return markdown;
@@ -661,6 +710,11 @@ function TopicContent() {
                 ) : (
                   <div className="flex-1">
                     <div className="prose max-w-none mb-4">
+                      {(() => {
+                        const youtubeEmbeds = extractYouTubeEmbedUrls(post.content);
+
+                        return (
+                          <>
                       <ReactMarkdown
                         components={{
                           a: ({ href, children }) => {
@@ -679,6 +733,26 @@ function TopicContent() {
                       >
                         {autoLinkPlainUrls(post.content)}
                       </ReactMarkdown>
+                            {youtubeEmbeds.length > 0 && (
+                              <div className="mt-4 space-y-3 not-prose">
+                                {youtubeEmbeds.map((embedUrl) => (
+                                  <div key={`${post.id}-${embedUrl}`} className="relative w-full max-w-3xl overflow-hidden rounded-lg border border-gray-200 bg-black" style={{ paddingTop: '56.25%' }}>
+                                    <iframe
+                                      src={embedUrl}
+                                      title="YouTube video"
+                                      className="absolute inset-0 h-full w-full"
+                                      loading="lazy"
+                                      referrerPolicy="strict-origin-when-cross-origin"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                      allowFullScreen
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       {post.image_url && (
                         <img src={postImage(post.image_url)} alt="Liite" className="mt-3 max-w-full max-h-96 rounded-lg" />
                       )}
