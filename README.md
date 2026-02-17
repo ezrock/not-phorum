@@ -83,10 +83,13 @@ The project includes SQL migrations in `supabase/migrations`, including:
 - If ye be migrating legacy data, trophies are already structured so ye can keep expanding the catalog without rewriting UI logic. Yarr.
 
 ## Coming next
-- Planning a category revolution
+- Planning a category revolution with hashtags
   - Replacing categories with inline hashtags (managed by admin)
   - Support for meta categories (handhelds includes Switch, DS, Steamdeck etc)
 - Pinned thread)s)
-- Polished styling
+- Better statistics
+- Privacy focused analytics with Umami
+- Polished styling - now everything is quite basic
+  - More compact layout
 - Support for videos (Youtube, Twitch...)
 - Planning the migration

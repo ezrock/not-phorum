@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Heart, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
 
@@ -30,13 +30,17 @@ interface RawTopicRow extends Omit<Topic, 'replies_count'> {
 }
 
 interface RandomQuote {
+  post_id: number;
   content: string;
   created_at: string;
   topic_id: number;
   author_username: string | null;
+  likes_count: number;
+  liked_by_me: boolean;
 }
 
 interface RawRandomQuoteRow {
+  id: number;
   content: string;
   created_at: string;
   topic_id: number;
@@ -44,12 +48,13 @@ interface RawRandomQuoteRow {
 }
 
 function ForumContent() {
-  const { supabase } = useAuth();
+  const { supabase, currentUser } = useAuth();
   const searchParams = useSearchParams();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [threadCount, setThreadCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [quote, setQuote] = useState<RandomQuote | null>(null);
+  const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const THREADS_PER_PAGE = 20;
 
@@ -133,22 +138,40 @@ function ForumContent() {
       const randomOffset = Math.floor(Math.random() * count);
       const { data } = await supabase
         .from('posts')
-        .select('content, created_at, topic_id, author:profiles!author_id(username)')
+        .select('id, content, created_at, topic_id, author:profiles!author_id(username)')
         .is('deleted_at', null)
         .range(randomOffset, randomOffset);
 
       if (data && data.length > 0) {
         const post = data[0] as RawRandomQuoteRow;
+        const [likesCountRes, myLikeRes] = await Promise.all([
+          supabase
+            .from('quote_likes')
+            .select('profile_id', { count: 'exact', head: true })
+            .eq('post_id', post.id),
+          currentUser
+            ? supabase
+                .from('quote_likes')
+                .select('post_id')
+                .eq('post_id', post.id)
+                .eq('profile_id', currentUser.id)
+                .limit(1)
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+
         // Trim to first ~150 chars at a word boundary
         let snippet = post.content;
         if (snippet.length > 150) {
           snippet = snippet.substring(0, 150).replace(/\s+\S*$/, '') + '...';
         }
         setQuote({
+          post_id: post.id,
           content: snippet,
           created_at: post.created_at,
           topic_id: post.topic_id,
           author_username: post.author?.[0]?.username || null,
+          likes_count: likesCountRes.count || 0,
+          liked_by_me: !!myLikeRes.data && myLikeRes.data.length > 0,
         });
       }
     };
@@ -166,7 +189,41 @@ function ForumContent() {
     fetchThreadCount();
     fetchRandomQuote();
     fetchMessageCount();
-  }, [supabase, currentPage]);
+  }, [supabase, currentPage, currentUser]);
+
+  const handleToggleQuoteLike = async () => {
+    if (!quote || quoteLikeSaving) return;
+    setQuoteLikeSaving(true);
+
+    const previous = quote;
+    setQuote({
+      ...quote,
+      liked_by_me: !quote.liked_by_me,
+      likes_count: Math.max(quote.likes_count + (quote.liked_by_me ? -1 : 1), 0),
+    });
+
+    const { data, error } = await supabase.rpc('toggle_quote_like', {
+      target_post_id: quote.post_id,
+    });
+
+    if (error) {
+      setQuote(previous);
+    } else {
+      const result = data as { liked?: boolean; likes_count?: number } | null;
+      if (result) {
+        setQuote((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            liked_by_me: typeof result.liked === 'boolean' ? result.liked : prev.liked_by_me,
+            likes_count: typeof result.likes_count === 'number' ? result.likes_count : prev.likes_count,
+          };
+        });
+      }
+    }
+
+    setQuoteLikeSaving(false);
+  };
 
   const totalPages = Math.max(1, Math.ceil(threadCount / THREADS_PER_PAGE));
   const visiblePages = Array.from(
@@ -195,18 +252,35 @@ function ForumContent() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {quote && (
-            <p className="text-gray-500 text-xs italic whitespace-normal break-words leading-relaxed">
-              &ldquo;{quote.content}&rdquo; &mdash; {quote.author_username || 'tuntematon'},{' '}
-              <Link href={`/forum/topic/${quote.topic_id}`} className="text-yellow-700 hover:underline not-italic">
-                {formatFinnishDateTime(quote.created_at)}
-              </Link>
-            </p>
+              <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleQuoteLike}
+                  disabled={quoteLikeSaving}
+                  className={`inline-flex h-5 items-center gap-1 rounded px-1.5 not-italic leading-none transition ${
+                    quote.liked_by_me
+                      ? 'text-red-600 bg-red-50 hover:bg-red-100'
+                      : 'text-gray-500 hover:text-red-600 hover:bg-gray-100'
+                  }`}
+                  title={quote.liked_by_me ? 'Poista tykkäys lainaukselta' : 'Tykkää lainauksesta'}
+                >
+                  <Heart size={12} className={`h-3 w-3 shrink-0 ${quote.liked_by_me ? 'fill-current' : ''}`} />
+                  <span className="inline-flex items-center leading-none tabular-nums">{quote.likes_count}</span>
+                </button>
+                <span className="min-w-0 break-words">
+                  &ldquo;{quote.content}&rdquo; &mdash; {quote.author_username || 'tuntematon'},{' '}
+                  <Link href={`/forum/topic/${quote.topic_id}`} className="text-yellow-700 hover:underline not-italic">
+                    {formatFinnishDateTime(quote.created_at)}
+                  </Link>
+                </span>
+              </div>
             )}
           </div>
           <p className="text-xs text-gray-500 whitespace-nowrap text-right">
             {threadCount} lankaa, {messageCount} viestiä.
           </p>
         </div>
+        
         <Link href="/forum/new" className="block w-full mt-4">
           <Button
             variant="primary"

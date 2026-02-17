@@ -4,18 +4,19 @@ import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { ScrollText, Image as ImageIcon, Link2, Search, User } from 'lucide-react';
+import { ScrollText, Image as ImageIcon, Link2, Search, User, Heart } from 'lucide-react';
 import { formatFinnishDateTime } from '@/lib/formatDate';
 import { postThumb, profileThumb } from '@/lib/cloudinary';
 
-type EventType = 'image' | 'url';
-type FilterType = 'all' | 'image' | 'url';
+type EventType = 'image' | 'url' | 'quote';
+type FilterType = 'all' | 'image' | 'url' | 'quote';
 
 interface EventItem {
   id: string;
   type: EventType;
   created_at: string;
   topic_id: number;
+  post_id?: number;
   topic_title: string;
   author: {
     id: string;
@@ -24,6 +25,7 @@ interface EventItem {
   } | null;
   image_url?: string;
   urls?: string[];
+  quote_preview?: string;
 }
 
 interface PostRow {
@@ -34,6 +36,24 @@ interface PostRow {
   topic_id: number;
   topic: { title: string } | null;
   author: {
+    id: string;
+    username: string;
+    profile_image_url: string | null;
+  } | null;
+}
+
+interface QuoteLikeEventRow {
+  id: number;
+  created_at: string;
+  post_id: number;
+  topic_id: number;
+  topic: { title: string }[] | { title: string } | null;
+  post: { content: string }[] | { content: string } | null;
+  actor: {
+    id: string;
+    username: string;
+    profile_image_url: string | null;
+  }[] | {
     id: string;
     username: string;
     profile_image_url: string | null;
@@ -55,7 +75,7 @@ export default function LokiPage() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const [imageRes, urlRes] = await Promise.all([
+      const [imageRes, urlRes, quoteLikeRes] = await Promise.all([
         supabase
           .from('posts')
           .select('id, content, created_at, image_url, topic_id, topic:topics(title), author:profiles!author_id(id, username, profile_image_url)')
@@ -68,6 +88,16 @@ export default function LokiPage() {
           .select('id, content, created_at, image_url, topic_id, topic:topics(title), author:profiles!author_id(id, username, profile_image_url)')
           .is('deleted_at', null)
           .ilike('content', '%http%')
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabase
+          .from('quote_like_events')
+          .select(`
+            id, created_at, post_id, topic_id,
+            topic:topics(title),
+            post:posts(content),
+            actor:profiles!liked_by_profile_id(id, username, profile_image_url)
+          `)
           .order('created_at', { ascending: false })
           .limit(200),
       ]);
@@ -107,6 +137,30 @@ export default function LokiPage() {
             topic_title: post.topic?.title || '',
             author: post.author,
             urls,
+          });
+        }
+      }
+
+      if (quoteLikeRes.data) {
+        for (const rawEvent of quoteLikeRes.data as unknown as QuoteLikeEventRow[]) {
+          const topic = Array.isArray(rawEvent.topic) ? rawEvent.topic[0] : rawEvent.topic;
+          const post = Array.isArray(rawEvent.post) ? rawEvent.post[0] : rawEvent.post;
+          const actor = Array.isArray(rawEvent.actor) ? rawEvent.actor[0] : rawEvent.actor;
+
+          if (!actor) continue;
+
+          const preview = (post?.content || '').trim();
+          const quotePreview = preview.length > 140 ? `${preview.slice(0, 140).replace(/\s+\S*$/, '')}...` : preview;
+
+          eventList.push({
+            id: `quote-${rawEvent.id}`,
+            type: 'quote',
+            created_at: rawEvent.created_at,
+            topic_id: rawEvent.topic_id,
+            post_id: rawEvent.post_id,
+            topic_title: topic?.title || '',
+            author: actor,
+            quote_preview: quotePreview,
           });
         }
       }
@@ -166,6 +220,7 @@ export default function LokiPage() {
             ['all', 'Kaikki'],
             ['image', 'Kuvat'],
             ['url', 'Linkit'],
+            ['quote', 'Lainaukset'],
           ] as [FilterType, string][]).map(([value, label]) => (
             <button
               key={value}
@@ -208,15 +263,21 @@ export default function LokiPage() {
                   <div className="flex-shrink-0 w-8 text-center pt-0.5">
                     {event.type === 'image' ? (
                       <ImageIcon size={20} className="text-yellow-600 mx-auto" />
+                    ) : event.type === 'quote' ? (
+                      <Heart size={20} className="text-yellow-600 mx-auto" />
                     ) : (
                       <Link2 size={20} className="text-yellow-600 mx-auto" />
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
+                    {(() => {
+                      const topicHref = `/forum/topic/${event.topic_id}${event.type === 'quote' && event.post_id ? `#post-${event.post_id}` : ''}`;
+                      return (
+                        <>
                     <div className="flex items-center gap-2 mb-1">
                       {event.author && (
-                        <Link href={`/profile/${event.author.id}`} className="flex items-center gap-1.5 hover:opacity-80">
+                        <Link href={`/profile/${event.author.id}`} className="inline-flex h-5 items-center gap-1.5 hover:opacity-80">
                           {event.author.profile_image_url ? (
                             <img src={profileThumb(event.author.profile_image_url)} alt={event.author.username} className="w-5 h-5 rounded-none object-cover" />
                           ) : (
@@ -224,17 +285,33 @@ export default function LokiPage() {
                               <User size={11} />
                             </span>
                           )}
-                          <span className="font-bold text-sm text-gray-800">{event.author.username}</span>
+                          <span className="font-bold text-sm leading-5 text-gray-800">{event.author.username}</span>
                         </Link>
                       )}
-                      <span className="text-xs text-gray-400">
-                        {event.type === 'image' ? 'lisäsi kuvan' : 'jakoi linkin'}
+                      <span className="inline-flex h-5 items-center text-sm leading-5 text-gray-400">
+                        {event.type === 'image' ? 'lisäsi kuvan' : event.type === 'quote' ? 'tykkäsi lainauksesta' : 'jakoi linkin'}
                       </span>
                     </div>
 
-                    <Link href={`/forum/topic/${event.topic_id}`} className="text-sm text-gray-600 hover:text-yellow-700 hover:underline truncate block">
-                      {event.topic_title}
-                    </Link>
+                    {event.type === 'quote' ? (
+                      <>
+                        {event.quote_preview && (
+                          <p className="mt-1 text-sm text-gray-700 italic">
+                            &ldquo;{event.quote_preview}&rdquo;
+                          </p>
+                        )}
+                        <Link
+                          href={topicHref}
+                          className="mt-1 text-xs text-gray-500 hover:text-yellow-700 hover:underline truncate block"
+                        >
+                          {event.topic_title}
+                        </Link>
+                      </>
+                    ) : (
+                      <Link href={topicHref} className="text-sm text-gray-600 hover:text-yellow-700 hover:underline truncate block">
+                        {event.topic_title}
+                      </Link>
+                    )}
 
                     {event.type === 'image' && event.image_url && (
                       <Link href={`/forum/topic/${event.topic_id}`}>
@@ -264,6 +341,10 @@ export default function LokiPage() {
                         )}
                       </div>
                     )}
+
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="text-right flex-shrink-0">
