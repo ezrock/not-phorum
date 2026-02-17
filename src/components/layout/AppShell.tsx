@@ -12,23 +12,28 @@ interface AppShellProps {
 }
 
 const PUBLIC_PATHS = new Set(['/login', '/register']);
+const AUTH_ROOTS = ['/forum', '/members', '/profile', '/admin', '/loki'];
 
 export function AppShell({ children }: AppShellProps) {
   const { currentUser, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const isPublicPath = PUBLIC_PATHS.has(pathname);
+  const isAuthPath = AUTH_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
+  const shouldRedirectLoggedIn = !loading && !!currentUser && !isAuthPath;
+  const shouldRedirectLoggedOut = !loading && !currentUser && !isPublicPath;
 
   useEffect(() => {
-    if (loading) return;
-    if (!currentUser && !isPublicPath) {
+    if (shouldRedirectLoggedIn) {
+      router.replace('/forum');
+    }
+    if (shouldRedirectLoggedOut) {
       router.replace('/login');
     }
-  }, [loading, currentUser, isPublicPath, router]);
+  }, [shouldRedirectLoggedIn, shouldRedirectLoggedOut, router]);
 
-  // Prevent rendering app skeleton to logged-out users on protected routes.
-  if (loading) return null;
-  if (!currentUser && !isPublicPath) return null;
+  // Prevent page flashes while redirecting.
+  if (loading || shouldRedirectLoggedIn || shouldRedirectLoggedOut) return null;
 
   if (!currentUser) {
     return <main className="min-h-screen bg-gray-100 pb-8">{children}</main>;
