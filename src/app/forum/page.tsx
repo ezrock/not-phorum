@@ -56,6 +56,22 @@ function extractAuthorUsername(author: RawRandomQuoteRow['author']): string | nu
   return author.username || null;
 }
 
+function getUtcHourStartIso(now: Date): string {
+  const hourStart = new Date(now);
+  hourStart.setUTCMinutes(0, 0, 0);
+  return hourStart.toISOString();
+}
+
+function getHourSeed(now: Date): number {
+  return Math.floor(now.getTime() / 3_600_000);
+}
+
+function deterministicOffset(seed: number, modulo: number): number {
+  if (modulo <= 0) return 0;
+  const mixed = (Math.imul(seed >>> 0, 1664525) + 1013904223) >>> 0;
+  return mixed % modulo;
+}
+
 function ForumContent() {
   const { supabase, currentUser, profile } = useAuth();
   const searchParams = useSearchParams();
@@ -137,20 +153,46 @@ function ForumContent() {
     };
 
     const fetchRandomQuote = async () => {
+      const now = new Date();
+      const utcHourStartIso = getUtcHourStartIso(now);
+      const hourSeed = getHourSeed(now);
+
       const { count } = await supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .is('deleted_at', null)
+        .lt('created_at', utcHourStartIso)
         .gte('content', '');
 
-      if (!count || count === 0) return;
+      let eligibleCount = count || 0;
+      let useHourLimitedSet = true;
 
-      const randomOffset = Math.floor(Math.random() * count);
-      const { data } = await supabase
+      if (eligibleCount === 0) {
+        // Fallback for brand new boards where all posts may be from the current hour.
+        const fallbackCountRes = await supabase
+          .from('posts')
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .gte('content', '');
+        eligibleCount = fallbackCountRes.count || 0;
+        useHourLimitedSet = false;
+      }
+
+      if (eligibleCount === 0) return;
+
+      const quoteOffset = deterministicOffset(hourSeed, eligibleCount);
+      let quoteQuery = supabase
         .from('posts')
         .select('id, content, created_at, topic_id, author:profiles!author_id(username)')
         .is('deleted_at', null)
-        .range(randomOffset, randomOffset);
+        .order('id', { ascending: true })
+        .range(quoteOffset, quoteOffset);
+
+      if (useHourLimitedSet) {
+        quoteQuery = quoteQuery.lt('created_at', utcHourStartIso);
+      }
+
+      const { data } = await quoteQuery;
 
       if (data && data.length > 0) {
         const post = data[0] as RawRandomQuoteRow;
