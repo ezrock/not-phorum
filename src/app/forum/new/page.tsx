@@ -69,6 +69,10 @@ export default function NewTopicPage() {
       setError('Valitse kategoria');
       return;
     }
+    if (title.trim().length < 1) {
+      setError('Kirjoita otsikko');
+      return;
+    }
     if (title.trim().length < 3) {
       setError('Otsikon pitää olla vähintään 3 merkkiä');
       return;

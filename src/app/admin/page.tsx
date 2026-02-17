@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
@@ -195,12 +195,15 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            <div>
+          <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ScrollText size={20} className="text-gray-600" />
+              <div>
               <p className="font-medium">Ilmoitusraita</p>
               <p className="text-sm text-gray-500">
                 {notificationEnabled ? 'Raita näkyy kirjautuneille käyttäjille' : 'Raita on pois päältä'}
               </p>
+              </div>
             </div>
             <button
               onClick={handleToggleNotification}
@@ -217,7 +220,7 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <label htmlFor="notificationMessage" className="block text-sm font-medium mb-1">
               Ilmoitusviesti
             </label>
