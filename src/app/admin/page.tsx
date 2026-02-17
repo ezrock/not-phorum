@@ -16,8 +16,11 @@ interface TrophyOverview {
   awarded_count: number;
 }
 
+type AdminTab = 'board' | 'users' | 'categories' | 'trophies' | 'levels';
+
 export default function AdminPage() {
   const { profile, supabase, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<AdminTab>('board');
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -75,7 +78,7 @@ export default function AdminPage() {
 
   if (loading || settingsLoading || trophyLoading) {
     return (
-      <div className="max-w-2xl mx-auto mt-8 px-4">
+      <div className="max-w-6xl mx-auto mt-8 px-4">
         <Card>
           <p className="text-center text-gray-500 py-8">Ladataan...</p>
         </Card>
@@ -85,7 +88,7 @@ export default function AdminPage() {
 
   if (!profile?.is_admin) {
     return (
-      <div className="max-w-2xl mx-auto mt-8 px-4">
+      <div className="max-w-6xl mx-auto mt-8 px-4">
         <Card>
           <h2 className="text-2xl font-bold">Ei käyttöoikeutta</h2>
           <p className="text-gray-500 mt-2">Tämä sivu on vain ylläpitäjille.</p>
@@ -95,82 +98,132 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto mt-8 px-4 mb-12 space-y-6">
-      <Card>
-        <div className="flex items-center gap-3 mb-6">
-          <Shield size={28} className="text-yellow-600" />
-          <h1 className="text-3xl font-bold">Hallinta</h1>
-        </div>
+    <div className="max-w-6xl mx-auto mt-8 px-4 mb-12 space-y-6">
+      <div className="flex items-center gap-3">
+        <Shield size={28} className="text-yellow-600" />
+        <h1 className="text-3xl font-bold">Hallinta</h1>
+      </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <UserPlus size={20} className="text-gray-600" />
-            <div>
-              <p className="font-medium">Rekisteröityminen</p>
-              <p className="text-sm text-gray-500">
-                {registrationEnabled
-                  ? 'Uudet käyttäjät voivat rekisteröityä'
-                  : 'Rekisteröityminen on suljettu'}
-              </p>
-            </div>
-          </div>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        {([
+          ['board', 'Boardi'],
+          ['users', 'Käyttäjät'],
+          ['categories', 'Kategoriat'],
+          ['trophies', 'Pokaalit'],
+          ['levels', 'Tasot'],
+        ] as [AdminTab, string][]).map(([value, label]) => (
           <button
-            onClick={handleToggleRegistration}
-            disabled={toggling}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              registrationEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${toggling ? 'opacity-50' : ''}`}
+            key={value}
+            onClick={() => setActiveTab(value)}
+            className={`px-3 py-1.5 text-sm rounded font-medium transition ${
+              activeTab === value
+                ? 'bg-yellow-400 text-gray-800'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                registrationEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            {label}
           </button>
-        </div>
-      </Card>
+        ))}
+      </div>
 
-      <Card>
-        <div className="flex items-center gap-3 mb-3">
-          <Trophy size={24} className="text-yellow-600" />
-          <h2 className="text-2xl font-bold">Kunniamerkit (Legacy baseline)</h2>
-        </div>
+      {activeTab === 'board' && (
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-2xl font-bold">Boardin asetukset</h2>
+          </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Tunnistettu {trophyOverview.length} uniikkia kunniamerkkiä. Jaettuja merkkejä yhteensä {totalAwardedTrophies}.
-        </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <UserPlus size={20} className="text-gray-600" />
+              <div>
+                <p className="font-medium">Rekisteröityminen</p>
+                <p className="text-sm text-gray-500">
+                  {registrationEnabled
+                    ? 'Uudet käyttäjät voivat rekisteröityä'
+                    : 'Rekisteröityminen on suljettu'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleRegistration}
+              disabled={toggling}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                registrationEnabled ? 'bg-green-500' : 'bg-gray-300'
+              } ${toggling ? 'opacity-50' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  registrationEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </Card>
+      )}
 
-        <div className="space-y-2">
-          {trophyOverview.slice(0, 20).map((trophy) => (
-            <div key={trophy.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2">
-              <div className="min-w-0 flex items-center gap-2">
-                {trophyLocalIconUrl(trophy.icon_path) && (
-                  <img
-                    src={trophyLocalIconUrl(trophy.icon_path) as string}
-                    alt={trophy.name}
-                    className="w-4 h-5 object-contain flex-shrink-0"
-                  />
-                )}
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">{trophy.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{trophy.code}</p>
+      {activeTab === 'users' && (
+        <Card>
+          <h2 className="text-2xl font-bold mb-3">Käyttäjät</h2>
+          <p className="text-sm text-gray-500">Käyttäjähallinta tulossa tähän korttiin.</p>
+        </Card>
+      )}
+
+      {activeTab === 'categories' && (
+        <Card>
+          <h2 className="text-2xl font-bold mb-3">Kategoriat</h2>
+          <p className="text-sm text-gray-500">Kategoriahallinta tulossa tähän korttiin.</p>
+        </Card>
+      )}
+
+      {activeTab === 'trophies' && (
+        <Card>
+          <div className="flex items-center gap-3 mb-3">
+            <Trophy size={24} className="text-yellow-600" />
+            <h2 className="text-2xl font-bold">Pokaalit (Legacy baseline)</h2>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Tunnistettu {trophyOverview.length} uniikkia kunniamerkkiä. Jaettuja merkkejä yhteensä {totalAwardedTrophies}.
+          </p>
+
+          <div className="space-y-2">
+            {trophyOverview.slice(0, 20).map((trophy) => (
+              <div key={trophy.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                <div className="min-w-0 flex items-center gap-2">
+                  {trophyLocalIconUrl(trophy.icon_path) && (
+                    <img
+                      src={trophyLocalIconUrl(trophy.icon_path) as string}
+                      alt={trophy.name}
+                      className="w-4 h-5 object-contain flex-shrink-0"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{trophy.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{trophy.code}</p>
+                  </div>
+                </div>
+                <div className="text-right ml-4">
+                  <p className="text-sm font-bold text-yellow-700">{trophy.points} p</p>
+                  <p className="text-xs text-gray-500">{trophy.awarded_count} käyttäjällä</p>
                 </div>
               </div>
-              <div className="text-right ml-4">
-                <p className="text-sm font-bold text-yellow-700">{trophy.points} p</p>
-                <p className="text-xs text-gray-500">{trophy.awarded_count} käyttäjällä</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {trophyOverview.length > 20 && (
-          <p className="mt-4 text-xs text-gray-500">
-            Näytetään 20 ensimmäistä. Loput löytyvät taulusta `admin_trophy_overview`.
-          </p>
-        )}
-      </Card>
+          {trophyOverview.length > 20 && (
+            <p className="mt-4 text-xs text-gray-500">
+              Näytetään 20 ensimmäistä. Loput löytyvät taulusta `admin_trophy_overview`.
+            </p>
+          )}
+        </Card>
+      )}
 
+      {activeTab === 'levels' && (
+        <Card>
+          <h2 className="text-2xl font-bold mb-3">Tasot</h2>
+          <p className="text-sm text-gray-500">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
+        </Card>
+      )}
     </div>
   );
 }

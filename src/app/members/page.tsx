@@ -96,14 +96,14 @@ export default function MembersPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
-      <div className="flex items-center gap-3 mb-6">
-        <Users size={28} className="text-gray-800" />
-        <div>
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
+          <Users size={28} className="text-gray-800" />
           <h2 className="text-3xl font-bold">Membut</h2>
-          <p className="text-gray-600">
-            Yhteensä {members.length} membulia.
-          </p>
         </div>
+        <p className="text-gray-600 mt-1">
+          Yhteensä {members.length} membulia.
+        </p>
       </div>
 
       <div className="space-y-2">

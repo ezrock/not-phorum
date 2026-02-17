@@ -202,16 +202,14 @@ export default function LokiPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
-      <div className="flex items-start justify-between mb-6">
+      <div className="mb-6">
         <div className="flex items-center gap-3">
           <ScrollText size={28} className="text-gray-800" />
-          <div>
-            <h2 className="text-3xl font-bold">Loki</h2>
-            <p className="text-gray-600">
-              Yarr! {events.length} tapahtumaa{events.length > 0 && ` \u2014 viimeisin ${formatFinnishDateTime(events[0].created_at)}`}
-            </p>
-          </div>
+          <h2 className="text-3xl font-bold">Loki</h2>
         </div>
+        <p className="text-gray-600 mt-1">
+          Yarr! {events.length} tapahtumaa{events.length > 0 && ` \u2014 viimeisin ${formatFinnishDateTime(events[0].created_at)}`}
+        </p>
       </div>
 
       <div className="flex items-center gap-3 mb-4 flex-wrap">
