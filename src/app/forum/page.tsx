@@ -403,7 +403,7 @@ function ForumContent() {
                       <span className="text-yellow-800 font-medium text-sm">
                         {topic.category_name}
                       </span>
-                      <span className="truncate" style={{ fontFamily: 'monospace' }}>
+                      <span className="truncate font-mono">
                         {topic.author_username}
                       </span>
                     </div>

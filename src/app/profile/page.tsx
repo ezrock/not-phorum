@@ -84,7 +84,7 @@ export default function ProfilePage() {
           </span>
         )}
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold truncate" style={{ fontFamily: 'monospace' }}>{typedProfile.username}</h1>
+          <h1 className="text-3xl font-bold truncate font-mono">{typedProfile.username}</h1>
           <p className="text-sm text-gray-500">
             Liittymispäivä {typedProfile.created_at ? formatFinnishDate(typedProfile.created_at) : ''}
           </p>

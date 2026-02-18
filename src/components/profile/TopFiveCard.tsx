@@ -145,9 +145,9 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
         Top 5
       </h2>
 
-      <div className="space-y-5">
-        <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-600 mb-2 flex items-center gap-2">
+      <div>
+        <section className="subsection">
+          <h3 className="subsection-title">
             <Star size={14} className="text-yellow-600" />
             Suosikkikategoriat
           </h3>
@@ -166,8 +166,8 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           )}
         </section>
 
-        <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-600 mb-2 flex items-center gap-2">
+        <section className="subsection">
+          <h3 className="subsection-title">
             <Heart size={14} className="text-yellow-600" />
             Eniten tykätyt viestit
           </h3>
@@ -190,8 +190,8 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           )}
         </section>
 
-        <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-600 mb-2 flex items-center gap-2">
+        <section className="subsection">
+          <h3 className="subsection-title">
             <BarChart3 size={14} className="text-yellow-600" />
             Katsotuimmat aiheet
           </h3>
@@ -213,8 +213,8 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           )}
         </section>
 
-        <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-600 mb-2 flex items-center gap-2">
+        <section className="subsection">
+          <h3 className="subsection-title">
             <Users size={14} className="text-yellow-600" />
             Käyttäjät joiden viesteistä olet tykännyt
           </h3>

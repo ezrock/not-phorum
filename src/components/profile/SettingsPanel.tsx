@@ -116,7 +116,8 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
       {settingsSuccess && <Alert variant="success">{settingsSuccess}</Alert>}
 
       <div>
-        <div className="flex items-center justify-between gap-3">
+        <section className="subsection">
+          <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <RefreshCw size={20} className="text-gray-600" />
             <div>
@@ -146,71 +147,72 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
               }`}
             />
           </button>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700">High definition graphics &amp; audio</h3>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Palette size={20} className="text-gray-600" />
-            <div>
-              <p className="font-medium">Retrolasit päähän</p>
-              <p className="text-sm text-gray-500">
-                {retroEnabled ? 'CRT-suodatin käytössä' : 'Normaali näkymä käytössä'}
-              </p>
-            </div>
           </div>
-          <button
-            id="retroEnabled"
-            type="button"
-            role="switch"
-            aria-checked={retroEnabled}
-            aria-label="Retro"
-            disabled={savingSettings}
-            onClick={() => handleRetroToggle(!retroEnabled)}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              retroEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                retroEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
+        </section>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Music2 size={20} className="text-gray-600" />
-            <div>
-              <p className="font-medium">.mid (On/Off)</p>
-              <p className="text-sm text-gray-500">
-                {midiEnabled ? 'Styge soi' : 'You died'}
-              </p>
+        <section className="subsection">
+          <h3 className="subsection-title">High definition graphics &amp; audio</h3>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Palette size={20} className="text-gray-600" />
+              <div>
+                <p className="font-medium">Retrolasit päähän</p>
+                <p className="text-sm text-gray-500">
+                  {retroEnabled ? 'CRT-suodatin käytössä' : 'Normaali näkymä käytössä'}
+                </p>
+              </div>
             </div>
+            <button
+              id="retroEnabled"
+              type="button"
+              role="switch"
+              aria-checked={retroEnabled}
+              aria-label="Retro"
+              disabled={savingSettings}
+              onClick={() => handleRetroToggle(!retroEnabled)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                retroEnabled ? 'bg-green-500' : 'bg-gray-300'
+              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  retroEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
-          <button
-            id="midiEnabled"
-            type="button"
-            role="switch"
-            aria-checked={midiEnabled}
-            aria-label=".mid"
-            disabled={savingSettings}
-            onClick={() => handleMidiToggle(!midiEnabled)}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              midiEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                midiEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Music2 size={20} className="text-gray-600" />
+              <div>
+                <p className="font-medium">.mid (On/Off)</p>
+                <p className="text-sm text-gray-500">
+                  {midiEnabled ? 'Styge soi' : 'You died'}
+                </p>
+              </div>
+            </div>
+            <button
+              id="midiEnabled"
+              type="button"
+              role="switch"
+              aria-checked={midiEnabled}
+              aria-label=".mid"
+              disabled={savingSettings}
+              onClick={() => handleMidiToggle(!midiEnabled)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                midiEnabled ? 'bg-green-500' : 'bg-gray-300'
+              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  midiEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </section>
       </div>
     </Card>
   );

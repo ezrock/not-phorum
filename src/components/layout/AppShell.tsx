@@ -184,7 +184,7 @@ export function AppShell({ children }: AppShellProps) {
       <RetroFilter enabled={retroEnabled} />
       {showNotification && (
         <div className="h-5 bg-black overflow-hidden border-b border-gray-900">
-          <div className="notification-marquee whitespace-nowrap text-[12px] leading-5 text-green-400 px-2" style={{ fontFamily: 'monospace' }}>
+          <div className="notification-marquee whitespace-nowrap text-[12px] leading-5 text-green-400 px-2 font-mono">
             <span className="notification-marquee-content">{notificationStrip}</span>
             <span className="notification-marquee-content" aria-hidden="true">{notificationStrip}</span>
           </div>

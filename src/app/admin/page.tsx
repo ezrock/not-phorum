@@ -203,7 +203,7 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
+          <div className="subsection flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ScrollText size={20} className="text-gray-600" />
               <div>
@@ -228,8 +228,8 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <label htmlFor="notificationMessage" className="block text-sm font-medium mb-1">
+          <div className="subsection">
+            <label htmlFor="notificationMessage" className="subsection-title">
               Ilmoitusviesti
             </label>
             <div className="flex items-center gap-2">

@@ -222,7 +222,7 @@ export function PostItem({
               <User size={18} />
             </div>
           )}
-          <p className="font-bold text-sm mb-1" style={{ fontFamily: 'monospace' }}>{post.author?.username}</p>
+          <p className="font-bold text-sm mb-1 font-mono">{post.author?.username}</p>
           <p className="text-xs text-gray-400">
             {formatPostDateTime(post.created_at)}
           </p>
