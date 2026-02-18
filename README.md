@@ -11,6 +11,20 @@ Yarr! A modern, members-only message board built with Next.js + Supabase, with o
 - Vercel (deployment)
 - GitHub (version control)
 
+## Environment Variables
+Set these in local `.env.local` and in Vercel environment settings:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `LOGIN_NETWORK_HMAC_SECRET`
+
+`LOGIN_NETWORK_HMAC_SECRET` is used for privacy-focused login-network fingerprints.
+Use a long random secret (at least 32 bytes). Example:
+
+```bash
+openssl rand -hex 32
+```
+
 ## What Is Already Shipped
 - Members-only forum access (auth-gated content)
 - Registration toggle from admin panel (`site_settings`)
