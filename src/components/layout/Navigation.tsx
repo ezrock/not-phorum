@@ -33,7 +33,7 @@ export const Navigation = (): JSX.Element | null => {
             <Image src="/logo32.gif" alt="Freak On logo" width={207} height={24} priority />
           </Link>
 
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             <Link href="/members" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
               <Users size={20} />
               Membut
@@ -51,7 +51,7 @@ export const Navigation = (): JSX.Element | null => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <form onSubmit={handleSearch} className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
@@ -59,7 +59,7 @@ export const Navigation = (): JSX.Element | null => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Hae..."
-              className="pl-9 pr-3 py-1.5 max-h-10 rounded border-2 border-grey-800 bg-white placeholder-gray-600 text-gray-800 text-sm focus:outline-none focus:border-gray-800 focus:bg-white w-36 transition-all focus:w-56"
+              className="pl-9 pr-3 py-1.5 max-h-10 rounded border-2 border-grey-800 bg-white placeholder-gray-600 text-gray-800 text-md focus:outline-none focus:border-gray-800 focus:bg-white w-36 transition-all focus:w-56"
             />
           </form>
           <Link
@@ -77,9 +77,9 @@ export const Navigation = (): JSX.Element | null => {
           </Link>
           <button
             onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 rounded hover:bg-red-700 hover:text-white transition"
+            className="flex items-center gap-2 px-4 py-2 text-md text-gray-600 rounded hover:bg-red-700 hover:text-white transition"
           >
-            Kirjaudu ulos
+            Ulos
           </button>
         </div>
       </div>
