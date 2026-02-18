@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { profileMedium } from '@/lib/cloudinary';
@@ -15,6 +15,11 @@ import { useProfileStats } from '@/hooks/useProfileStats';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 type ProfileTab = 'profile' | 'edit' | 'settings';
+const PROFILE_TABS: ProfileTab[] = ['profile', 'edit', 'settings'];
+
+function isProfileTab(value: string): value is ProfileTab {
+  return PROFILE_TABS.includes(value as ProfileTab);
+}
 
 export default function ProfilePage() {
   const { currentUser, profile, loading } = useAuth();
@@ -31,6 +36,28 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic } = useProfileStats(currentUser?.id ?? null);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
+
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (isProfileTab(hash)) {
+        setActiveTab(hash);
+      } else if (window.location.hash) {
+        setActiveTab('profile');
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, []);
+
+  useEffect(() => {
+    const nextHash = `#${activeTab}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash);
+    }
+  }, [activeTab]);
 
   if (loading || !typedProfile) {
     return (

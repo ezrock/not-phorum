@@ -188,7 +188,7 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
             <div>
               <p className="font-medium">.mid (On/Off)</p>
               <p className="text-sm text-gray-500">
-                {midiEnabled ? 'MIDI-taustamusiikki sallittu' : 'MIDI-taustamusiikki pois päältä'}
+                {midiEnabled ? 'Styge soi' : 'You died'}
               </p>
             </div>
           </div>
