@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigation } from '@/components/layout/Navigation';
 import { Footer } from '@/components/layout/Footer';
+import { RetroFilter } from '@/components/effects/RetroFilter';
 import type { ReactNode } from 'react';
 
 interface AppShellProps {
@@ -14,13 +15,15 @@ interface AppShellProps {
 const PUBLIC_PATHS = new Set(['/login', '/register']);
 const AUTH_ROOTS = ['/forum', '/members', '/profile', '/admin', '/loki'];
 const NOTIFICATION_REPEAT_COUNT = 8;
+const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
 export function AppShell({ children }: AppShellProps) {
-  const { currentUser, loading, supabase } = useAuth();
+  const { currentUser, profile, loading, supabase } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const retroEnabled = (profile as { retro_enabled?: boolean } | null)?.retro_enabled === true;
   const isPublicPath = PUBLIC_PATHS.has(pathname);
   const isAuthPath = AUTH_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
   const shouldRedirectLoggedIn = !loading && !!currentUser && !isAuthPath;
@@ -48,8 +51,6 @@ export function AppShell({ children }: AppShellProps) {
   }, [shouldRedirectLoggedIn, shouldRedirectLoggedOut, router]);
 
   useEffect(() => {
-    if (!currentUser) return;
-
     const fetchNotificationSettings = async () => {
       const { data } = await supabase
         .from('site_settings')
@@ -68,17 +69,33 @@ export function AppShell({ children }: AppShellProps) {
     };
 
     fetchNotificationSettings();
-  }, [currentUser, supabase]);
+
+    const handleSiteSettingsUpdated = () => {
+      fetchNotificationSettings();
+    };
+
+    window.addEventListener(SITE_SETTINGS_UPDATED_EVENT, handleSiteSettingsUpdated);
+
+    return () => {
+      window.removeEventListener(SITE_SETTINGS_UPDATED_EVENT, handleSiteSettingsUpdated);
+    };
+  }, [supabase]);
 
   // Prevent page flashes while redirecting.
   if (loading || shouldRedirectLoggedIn || shouldRedirectLoggedOut) return null;
 
   if (!currentUser) {
-    return <main className="min-h-screen app-content pb-8">{children}</main>;
+    return (
+      <>
+        <RetroFilter enabled={retroEnabled} />
+        <main className="min-h-screen app-content pb-8">{children}</main>
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen app-content flex flex-col">
+      <RetroFilter enabled={retroEnabled} />
       {showNotification && (
         <div className="h-5 bg-black overflow-hidden border-b border-gray-900">
           <div className="notification-marquee whitespace-nowrap text-[12px] leading-5 text-green-400 px-2" style={{ fontFamily: 'monospace' }}>

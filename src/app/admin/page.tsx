@@ -19,6 +19,7 @@ interface TrophyOverview {
 }
 
 type AdminTab = 'board' | 'users' | 'categories' | 'trophies' | 'levels';
+const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
 export default function AdminPage() {
   const { profile, supabase, loading } = useAuth();
@@ -81,6 +82,7 @@ export default function AdminPage() {
 
     if (!error) {
       setRegistrationEnabled(newValue);
+      window.dispatchEvent(new Event(SITE_SETTINGS_UPDATED_EVENT));
     }
     setToggling(false);
   };
@@ -96,6 +98,7 @@ export default function AdminPage() {
 
     if (!error) {
       setNotificationEnabled(newValue);
+      window.dispatchEvent(new Event(SITE_SETTINGS_UPDATED_EVENT));
     }
 
     setNotificationToggling(false);
@@ -109,12 +112,13 @@ export default function AdminPage() {
       setting_value: notificationMessage.trim(),
     });
 
+    window.dispatchEvent(new Event(SITE_SETTINGS_UPDATED_EVENT));
     setSavingNotificationMessage(false);
   };
 
   if (loading || settingsLoading || trophyLoading) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="page-container">
         <Card>
           <p className="text-center text-gray-500 py-8">Ladataan...</p>
         </Card>
@@ -124,7 +128,7 @@ export default function AdminPage() {
 
   if (!profile?.is_admin) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="page-container">
         <Card>
           <h2 className="text-2xl font-bold">Ei käyttöoikeutta</h2>
           <p className="text-gray-500 mt-2">Tämä sivu on vain ylläpitäjille.</p>
@@ -134,28 +138,24 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4 mb-12 space-y-6">
+    <div className="page-container space-y-6">
       <div className="flex items-center gap-3">
         <Shield size={28} className="text-yellow-600" />
-        <h1 className="text-3xl font-bold">Hallinta</h1>
+        <h1 className="text-3xl font-bold">Admin</h1>
       </div>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="page-tabs mb-4">
         {([
           ['board', 'Boardi'],
+          ['trophies', 'Pokaalit'],
           ['users', 'Käyttäjät'],
           ['categories', 'Kategoriat'],
-          ['trophies', 'Pokaalit'],
           ['levels', 'Tasot'],
         ] as [AdminTab, string][]).map(([value, label]) => (
           <button
             key={value}
             onClick={() => setActiveTab(value)}
-            className={`px-3 py-1.5 text-sm rounded font-medium transition ${
-              activeTab === value
-                ? 'bg-yellow-400 text-gray-800'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`page-tab-button ${activeTab === value ? 'is-active' : ''}`}
           >
             {label}
           </button>
@@ -241,6 +241,7 @@ export default function AdminPage() {
               </Button>
             </div>
           </div>
+
         </Card>
       )}
 

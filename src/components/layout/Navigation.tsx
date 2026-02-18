@@ -45,7 +45,7 @@ export const Navigation = (): JSX.Element | null => {
             {profile?.is_admin && (
               <Link href="/admin" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
                 <Shield size={20} />
-                Hallinta
+                Admin
               </Link>
             )}
           </div>

@@ -70,6 +70,74 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+body.retro-enabled {
+  filter: url(#crt) contrast(1.08) saturate(0.85) brightness(0.96);
+}
+
+.retro-filter-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.retro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.retro-overlay-scanlines {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2) 0px,
+    rgba(0, 0, 0, 0.2) 1px,
+    rgba(255, 255, 255, 0.02) 2px,
+    rgba(255, 255, 255, 0.02) 3px
+  );
+  opacity: 0.35;
+}
+
+.retro-overlay-noise {
+  position: absolute;
+  inset: -30%;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.07) 0 1px, transparent 2px),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.08) 0 1px, transparent 2px);
+  background-size: 3px 3px, 4px 4px, 5px 5px;
+  mix-blend-mode: soft-light;
+  opacity: 0.25;
+  animation: retro-noise-shift 0.2s steps(2, end) infinite;
+}
+
+.retro-overlay-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.3) 100%);
+}
+
+@keyframes retro-noise-shift {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1%, 1%);
+  }
+  50% {
+    transform: translate(1%, -1%);
+  }
+  75% {
+    transform: translate(0.5%, 0.5%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
 /* Global default for Lucide icons; utility classes can still override this. */
 :where(.lucide) {
   color: var(--icon-accent);
@@ -122,6 +190,48 @@ a[href]:not([class]):hover {
 
 .app-card {
   background: var(--surface-card);
+}
+
+.page-container {
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.page-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-tab-button {
+  padding: 0.5rem 1rem;
+  min-height: 2.5rem;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  transition: background-color 150ms, color 150ms;
+}
+
+.page-tab-button.is-active {
+  background: var(--color-yellow);
+  color: #1f2937;
+}
+
+.page-tab-button:not(.is-active) {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.page-tab-button:not(.is-active):hover {
+  background: #e5e7eb;
 }
 
 @keyframes notification-marquee {

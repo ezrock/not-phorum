@@ -192,7 +192,7 @@ export default function LokiPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="page-container">
         <Card>
           <p className="text-center text-gray-500 py-8">Ladataan...</p>
         </Card>
@@ -201,7 +201,7 @@ export default function LokiPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4">
+    <div className="page-container">
       <div className="mb-6">
         <div className="flex items-center gap-3">
           <ScrollText size={28} className="text-gray-800" />
@@ -212,8 +212,8 @@ export default function LokiPage() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex gap-1">
+      <div className="page-tabs mb-4">
+        <div className="flex gap-2 flex-wrap">
           {([
             ['all', 'Kaikki'],
             ['image', 'Kuvat'],
@@ -223,11 +223,7 @@ export default function LokiPage() {
             <button
               key={value}
               onClick={() => setFilter(value)}
-              className={`px-3 py-1.5 text-sm rounded font-medium transition ${
-                filter === value
-                  ? 'bg-yellow-400 text-gray-800'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`page-tab-button ${filter === value ? 'is-active' : ''}`}
             >
               {label}
             </button>

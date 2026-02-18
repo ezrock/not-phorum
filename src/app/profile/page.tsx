@@ -23,6 +23,7 @@ export default function ProfilePage() {
     created_at?: string;
     login_count?: number;
     realtime_updates_enabled?: boolean;
+    retro_enabled?: boolean;
   } | null;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
@@ -30,7 +31,7 @@ export default function ProfilePage() {
 
   if (loading || !typedProfile) {
     return (
-      <div className="max-w-2xl mx-auto mt-8 px-4">
+      <div className="page-container">
         <Card>
           <p className="text-center text-gray-500 py-8">Ladataan...</p>
         </Card>
@@ -39,18 +40,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-8 px-4 mb-12">
-      <div className="mb-6 flex flex-wrap gap-2">
+    <div className="page-container">
+      <div className="page-tabs mb-6">
         {(['profile', 'edit', 'settings'] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-              activeTab === tab
-                ? 'bg-yellow-100 text-yellow-900 border border-yellow-300'
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`page-tab-button ${activeTab === tab ? 'is-active' : ''}`}
           >
             {tab === 'profile' ? 'Profiili' : tab === 'edit' ? 'Muokkaa' : 'Asetukset'}
           </button>
@@ -96,7 +93,10 @@ export default function ProfilePage() {
       {activeTab === 'edit' && <EditProfileForm />}
 
       {activeTab === 'settings' && (
-        <SettingsPanel initialRealtimeEnabled={typedProfile.realtime_updates_enabled ?? false} />
+        <SettingsPanel
+          initialRealtimeEnabled={typedProfile.realtime_updates_enabled ?? false}
+          initialRetroEnabled={typedProfile.retro_enabled ?? false}
+        />
       )}
     </div>
   );
