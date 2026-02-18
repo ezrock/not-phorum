@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, BarChart3, Check, X, Tags as TagsIcon, Star, Plus, Trash2 } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, BarChart3, Check, X, Tags as TagsIcon, Star } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { EventsPanel } from '@/components/admin/EventsPanel';
 import { TokenInput, type TokenItem, type TokenOption } from '@/components/ui/TokenInput';
+import { AdminActionError } from '@/components/admin/AdminActionError';
+import { AliasManager } from '@/components/admin/AliasManager';
 
 interface TrophyOverview {
   id: number;
@@ -412,8 +414,8 @@ export default function AdminPage() {
     setProcessingTagId(null);
   };
 
-  const handleAddAlias = async (tagId: number) => {
-    const aliasValue = (aliasInputByTagId[tagId] || '').trim();
+  const handleAddAlias = async (tagId: number, explicitValue?: string) => {
+    const aliasValue = (explicitValue ?? aliasInputByTagId[tagId] ?? '').trim();
     if (!aliasValue) return;
     setTagActionError('');
 
@@ -885,11 +887,7 @@ export default function AdminPage() {
             <p className="text-xs text-gray-500 mb-3">
               Aliakset toimivat hakusynonyymeinä (esim. &quot;pleikka&quot; -&gt; PlayStation 5). Merge siirtää aliasit myös kohdetagille.
             </p>
-            {tagActionError && (
-              <p className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {tagActionError}
-              </p>
-            )}
+            <AdminActionError message={tagActionError} className="mb-3" />
             <div className="mb-3">
               <Input
                 value={aliasSearch}
@@ -964,49 +962,27 @@ export default function AdminPage() {
                             </div>
                           )}
                           <p className="text-xs text-gray-500 truncate">{tag.slug}</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {aliases.length === 0 ? (
-                              <span className="text-xs text-gray-400">Ei aliaksia</span>
-                            ) : (
-                              aliases.map((aliasRow) => (
-                                <span
-                                  key={aliasRow.alias_id}
-                                  className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-900"
-                                >
-                                  {aliasRow.alias}
-                                  <button
-                                    type="button"
-                                    className="rounded p-0.5 hover:bg-blue-100"
-                                    onClick={() => handleDeleteAlias(aliasRow.alias_id)}
-                                    disabled={processingAliasId === aliasRow.alias_id}
-                                    aria-label={`Poista alias ${aliasRow.alias}`}
-                                  >
-                                    <Trash2 size={11} />
-                                  </button>
-                                </span>
-                              ))
-                            )}
-                          </div>
                         </div>
-                        <div className="flex w-full max-w-xs items-center gap-2">
-                          <input
-                            value={aliasInputByTagId[tag.id] || ''}
-                            onChange={(e) =>
-                              setAliasInputByTagId((prev) => ({ ...prev, [tag.id]: e.target.value }))
-                            }
-                            placeholder="Lisää alias..."
-                            className="w-full rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-sm focus:border-yellow-400 focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                            disabled={addingAliasTagId === tag.id || !(aliasInputByTagId[tag.id] || '').trim()}
-                            onClick={() => handleAddAlias(tag.id)}
-                          >
-                            <Plus size={12} />
-                            Lisää
-                          </button>
-                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <AliasManager
+                          label="Tagin aliakset"
+                          placeholder="Lisää alias..."
+                          aliases={aliases.map((aliasRow) => ({ id: aliasRow.alias_id, label: aliasRow.alias }))}
+                          query={aliasInputByTagId[tag.id] || ''}
+                          onQueryChange={(value) =>
+                            setAliasInputByTagId((prev) => ({ ...prev, [tag.id]: value }))
+                          }
+                          onAddAlias={async (value) => {
+                            await handleAddAlias(tag.id, value);
+                          }}
+                          onDeleteAlias={async (id) => {
+                            const aliasId = Number(id);
+                            if (!Number.isFinite(aliasId) || aliasId <= 0) return;
+                            await handleDeleteAlias(aliasId);
+                          }}
+                          disabled={addingAliasTagId === tag.id || processingAliasId !== null}
+                        />
                       </div>
                     </div>
                   );
@@ -1028,11 +1004,7 @@ export default function AdminPage() {
           <p className="text-xs text-gray-500 mb-4">
             Sama tagi voi kuulua useaan ryhmään. Ryhmän nimi ei voi olla sama kuin olemassa olevan tagin nimi.
           </p>
-          {tagGroupActionError && (
-            <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {tagGroupActionError}
-            </p>
-          )}
+          <AdminActionError message={tagGroupActionError} className="mb-4" />
 
           <div className="rounded border border-gray-200 bg-gray-50 p-3 mb-4 space-y-2">
             <h3 className="font-semibold text-sm text-gray-800">Luo uusi ryhmä</h3>
@@ -1170,10 +1142,10 @@ export default function AdminPage() {
                     />
                   </div>
                   <div>
-                    <TokenInput
+                    <AliasManager
                       label="Ryhmän aliakset"
                       placeholder="Lisää ryhmäalias..."
-                      tokens={(tagGroupAliasesByGroupId[group.group_id] || []).map((aliasRow) => ({
+                      aliases={(tagGroupAliasesByGroupId[group.group_id] || []).map((aliasRow) => ({
                         id: aliasRow.alias_id,
                         label: aliasRow.alias,
                       }))}
@@ -1181,16 +1153,14 @@ export default function AdminPage() {
                       onQueryChange={(value) =>
                         setGroupAliasInputByGroupId((prev) => ({ ...prev, [group.group_id]: value }))
                       }
-                      onRemoveToken={(id) => {
-                        const aliasId = Number(id);
-                        if (!Number.isFinite(aliasId) || aliasId <= 0) return;
-                        void handleDeleteGroupAlias(aliasId);
-                      }}
-                      onSubmitQuery={async (value) => {
+                      onAddAlias={async (value) => {
                         await handleAddGroupAlias(group.group_id, value);
                       }}
-                      submitLabel="Lisää"
-                      emptyMessage="Kirjoita alias ja paina Enter"
+                      onDeleteAlias={async (id) => {
+                        const aliasId = Number(id);
+                        if (!Number.isFinite(aliasId) || aliasId <= 0) return;
+                        await handleDeleteGroupAlias(aliasId);
+                      }}
                       disabled={processingGroupAliasId !== null || addingAliasGroupId === group.group_id}
                     />
                   </div>

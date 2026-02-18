@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Search, MessageSquare, FileText, ArrowLeft } from 'lucide-react';
@@ -171,12 +172,11 @@ function SearchContent() {
         </div>
 
         <form onSubmit={handleSearch} className="flex gap-2">
-          <input
-            type="text"
+          <SearchInput
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Hae aiheista ja viesteistä..."
-            className="flex-1 px-4 py-2 border-2 bg-white border-gray-300 rounded focus:border-yellow-400 focus:outline-none"
+            wrapperClassName="flex-1"
           />
           <button
             type="submit"

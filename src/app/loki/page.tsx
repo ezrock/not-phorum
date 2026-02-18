@@ -3,8 +3,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
+import { SearchInput } from '@/components/ui/SearchInput';
 import Link from 'next/link';
-import { ScrollText, Image as ImageIcon, Link2, Search, User, Heart, Clapperboard } from 'lucide-react';
+import { ScrollText, Image as ImageIcon, Link2, User, Heart, Clapperboard } from 'lucide-react';
 import { formatFinnishDateTime } from '@/lib/formatDate';
 import { postThumb, profileThumb } from '@/lib/cloudinary';
 
@@ -329,16 +330,12 @@ export default function LokiPage() {
           ))}
         </div>
 
-        <div className="relative">
-          <Search size={16} className="app-search-icon" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Hae..."
-            className="app-search-input w-48"
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Hae..."
+          inputClassName="w-48"
+        />
       </div>
 
       {filtered.length === 0 ? (

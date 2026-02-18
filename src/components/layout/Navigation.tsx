@@ -5,9 +5,10 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Search, Shield, ScrollText, User } from 'lucide-react';
+import { Users, Shield, ScrollText, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
+import { SearchInput } from '@/components/ui/SearchInput';
 import type { FormEvent, JSX } from 'react';
 
 export const Navigation = (): JSX.Element | null => {
@@ -54,14 +55,12 @@ export const Navigation = (): JSX.Element | null => {
         </div>
 
         <div className="flex items-center gap-2">
-          <form onSubmit={handleSearch} className="relative">
-            <Search size={16} className="app-search-icon" />
-            <input
-              type="text"
+          <form onSubmit={handleSearch}>
+            <SearchInput
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Hae..."
-              className="app-search-input w-36 focus:w-56"
+              inputClassName="w-36 focus:w-56 transition-all"
             />
           </form>
           <Link
