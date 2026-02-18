@@ -43,6 +43,10 @@ interface CanonicalTagOption {
   id: number;
   name: string;
   slug: string;
+  usage_count: number;
+  alias_count: number;
+  group_membership_count: number;
+  redirect_reference_count: number;
 }
 
 interface TagAliasRow {
@@ -171,6 +175,17 @@ export default function AdminPage() {
       .filter((entry) => Number.isFinite(entry) && entry > 0);
   };
 
+  const normalizeCanonicalTags = (rows: Record<string, unknown>[]): CanonicalTagOption[] =>
+    rows.map((row) => ({
+      id: Number(row.id),
+      name: String(row.name ?? ''),
+      slug: String(row.slug ?? ''),
+      usage_count: Number(row.usage_count ?? 0),
+      alias_count: Number(row.alias_count ?? 0),
+      group_membership_count: Number(row.group_membership_count ?? 0),
+      redirect_reference_count: Number(row.redirect_reference_count ?? 0),
+    }));
+
   useEffect(() => {
     const fetchAdminData = async () => {
       const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes, aliasesRes, groupsRes, groupAliasesRes] = await Promise.all([
@@ -187,12 +202,7 @@ export default function AdminPage() {
           .from('profile_trophies')
           .select('*', { count: 'exact', head: true }),
         supabase.rpc('get_unreviewed_tags_with_usage'),
-        supabase
-          .from('tags')
-          .select('id, name, slug')
-          .eq('status', 'approved')
-          .is('redirect_to_tag_id', null)
-          .order('name', { ascending: true }),
+        supabase.rpc('get_admin_canonical_tags_with_usage'),
         supabase.rpc('get_tag_aliases'),
         supabase.rpc('get_tag_groups_with_members'),
         supabase.rpc('get_tag_group_aliases'),
@@ -220,7 +230,7 @@ export default function AdminPage() {
         setUnreviewedTags((unreviewedTagsRes.data ?? []) as UnreviewedTag[]);
       }
       if (!canonicalTagsRes.error && canonicalTagsRes.data) {
-        setCanonicalTags((canonicalTagsRes.data ?? []) as CanonicalTagOption[]);
+        setCanonicalTags(normalizeCanonicalTags((canonicalTagsRes.data ?? []) as Record<string, unknown>[]));
       }
       if (!aliasesRes.error && aliasesRes.data) {
         setTagAliasesByTagId(groupAliasesByTagId((aliasesRes.data ?? []) as TagAliasRow[]));
@@ -333,14 +343,8 @@ export default function AdminPage() {
   };
 
   const refreshCanonicalTags = async () => {
-    const { data } = await supabase
-      .from('tags')
-      .select('id, name, slug')
-      .eq('status', 'approved')
-      .is('redirect_to_tag_id', null)
-      .order('name', { ascending: true });
-
-    setCanonicalTags((data ?? []) as CanonicalTagOption[]);
+    const { data } = await supabase.rpc('get_admin_canonical_tags_with_usage');
+    setCanonicalTags(normalizeCanonicalTags((data ?? []) as Record<string, unknown>[]));
   };
 
   const refreshTagAliases = async () => {
@@ -447,6 +451,39 @@ export default function AdminPage() {
       setTagActionError(error.message || 'Aliaksen poisto epäonnistui');
     }
     setProcessingAliasId(null);
+  };
+
+  const handleDeleteTag = async (tag: CanonicalTagOption) => {
+    const isInUse =
+      tag.usage_count > 0
+      || tag.alias_count > 0
+      || tag.group_membership_count > 0
+      || tag.redirect_reference_count > 0;
+    if (isInUse) return;
+
+    const confirmed = window.confirm(
+      `Poistetaanko tagi #${tag.name}? Tätä ei voi perua.`
+    );
+    if (!confirmed) return;
+
+    setTagActionError('');
+    setProcessingTagId(tag.id);
+    const { error } = await supabase.rpc('delete_tag_if_unused', {
+      input_tag_id: tag.id,
+    });
+
+    if (!error) {
+      await refreshCanonicalTags();
+      await refreshTagAliases();
+      await refreshTagGroups();
+      await refreshTagGroupAliases();
+      if (editingTagId === tag.id) {
+        cancelRenameTag();
+      }
+    } else {
+      setTagActionError(error.message || 'Tagin poisto epäonnistui');
+    }
+    setProcessingTagId(null);
   };
 
   const beginRenameTag = (tag: CanonicalTagOption) => {
@@ -961,7 +998,9 @@ export default function AdminPage() {
                               </button>
                             </div>
                           )}
-                          <p className="text-xs text-gray-500 truncate">{tag.slug}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {tag.slug} • käyttö: {tag.usage_count} • aliasit: {tag.alias_count} • ryhmät: {tag.group_membership_count}
+                          </p>
                         </div>
                       </div>
                       <div className="mt-3">
@@ -983,6 +1022,30 @@ export default function AdminPage() {
                           }}
                           disabled={addingAliasTagId === tag.id || processingAliasId !== null}
                         />
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                            disabled={
+                              processingTagId === tag.id
+                              || tag.usage_count > 0
+                              || tag.alias_count > 0
+                              || tag.group_membership_count > 0
+                              || tag.redirect_reference_count > 0
+                            }
+                            onClick={() => handleDeleteTag(tag)}
+                            title={
+                              tag.usage_count > 0
+                              || tag.alias_count > 0
+                              || tag.group_membership_count > 0
+                              || tag.redirect_reference_count > 0
+                                ? 'Tagia ei voi poistaa, koska se on käytössä'
+                                : 'Poista tagi'
+                            }
+                          >
+                            Poista tagi
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

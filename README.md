@@ -55,7 +55,7 @@ openssl rand -hex 32
 - Post edit flow with edited timestamp handling
 - Markdown rendering for messages
 - Embedded videos for messages
-  -Youtube
+  - YouTube
 - Auto-linking of plain URLs in messages
 - Optional image attachment in new posts and replies
 - Topic view tracking:
@@ -64,7 +64,21 @@ openssl rand -hex 32
   - per-viewer tracking via `topic_view_events`
 - “Uusi” badge logic in thread list for unread activity
 - Reply count shown in Finnish grammar (`1 vastaus`, `N vastausta`)
-- Search page with typo-tolerant DB search RPC (`search_forum`)
+- Search page with typo-tolerant DB search RPC (`search_forum`), now sailing at full mast
+- **Tag system** — the category revolution has landed, yarr!
+  - Categories fully replaced by inline hashtag-style tags on all topics
+  - Tag autocomplete with token-input UI when creating or replying
+  - Tag icons per tag (restored after the great migration)
+  - **Tag groups** with parent/child relationships (e.g. `Käsikonsolit` → Switch, DS, Steam Deck)
+  - **Tag aliases and synonyms** — admin can merge and remap tags so no booty is lost
+  - Admin tag management: slug editing, rename, alias, merge, icon assignment
+  - Tag-based topic filtering on the forum list
+  - Trigram indexes for fast fuzzy alias/group search
+- **REST + GraphQL API** — external plunderers can query tags and topics programmatically:
+  - `GET /api/tags` — fetch all tags with groups and aliases
+  - `POST /api/topics/[id]/tags` — attach tags to a topic
+  - `GET /api/topics` — list/filter topics by tag
+  - `POST /api/graphql` — GraphQL endpoint for tags and topic-tag relations
 - Profile system with:
   - profile image upload
   - signature (and visibility toggle)
@@ -127,6 +141,14 @@ The project includes SQL migrations in `supabase/migrations`, including:
 - event system (`site_events`, logo toggle, date ranges, yearly recurrence)
 - login network fingerprint tracking (`profile_login_networks`, `login_network_count`)
 - profile approval workflow (`approval_status`, admin approval RPC)
+- tag-based topic creation RPC (`create_topic_with_tags`)
+- tag filtering indexes on `topic_tags`
+- admin tag moderation RPCs (merge, alias, rename, slug edit)
+- tag alias and synonym system (`tag_aliases`, `tag_groups`)
+- tag groups with parent/child relations and validation constraints
+- tag group alias search with trigram indexes
+- tag icons and topic visual fields
+- database hardening: conflict handling, alias/group search indexes
 
 ## Dev Notes
 - Main forum routes:
@@ -142,12 +164,12 @@ The project includes SQL migrations in `supabase/migrations`, including:
 - If ye be migrating legacy data, trophies are already structured so ye can keep expanding the catalog without rewriting UI logic. Yarr.
 
 ## Coming next
-- Planning a category revolution with hashtags
-  - Replacing categories with inline hashtags (managed by admin)
-  - Support for meta categories (handhelds includes Switch, DS, Steamdeck etc)
-- Pinned thread)s)
-- Better statistics
-- Privacy focused analytics with Umami
-- Polished styling - now everything is quite basic
-  - More compact layout
-- Planning the migration
+- Pinned threads (the flag still needs hoisting)
+- Better statistics and analytics (Umami be tempting)
+- More polished styling — layout still has rough seas
+  - More compact, tighter layout
+- The great data migration from the legacy forum
+- Threaded/nested replies — currently all hands on the same deck (flat)
+- Mentions and hashtag links in post content
+- Category/tag-specific landing pages (e.g. `/tag/amiga`)
+- Topic slugs in URLs for better navigating the seven seas
