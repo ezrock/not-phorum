@@ -5,6 +5,7 @@ interface TagRow {
   id: number;
   name: string;
   slug: string;
+  icon?: string;
 }
 
 interface TagAliasSearchRow {
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   let qb = supabase
     .from('tags')
-    .select('id, name, slug')
+    .select('id, name, slug, icon')
     .order('name', { ascending: true })
     .limit(12);
 

@@ -13,8 +13,8 @@ interface TopicTagInsert {
 
 interface TopicTagRow {
   tag:
-    | { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string }
-    | { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string }[]
+    | { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string }
+    | { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string }[]
     | null;
 }
 
@@ -37,7 +37,7 @@ function parseTagIds(payload: unknown): number[] {
   );
 }
 
-function normalizeTagCell(cell: TopicTagRow['tag']): { id: number; name: string; slug: string } | null {
+function normalizeTagCell(cell: TopicTagRow['tag']): { id: number; name: string; slug: string; icon?: string } | null {
   if (!cell) return null;
   if (Array.isArray(cell)) return cell[0] || null;
   return cell;
@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('topic_tags')
-    .select('tag:tags(id, name, slug, redirect_to_tag_id, status)')
+    .select('tag:tags(id, name, slug, icon, redirect_to_tag_id, status)')
     .eq('topic_id', topicId)
     .order('created_at', { ascending: true });
 
@@ -63,9 +63,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
   const tags = ((data || []) as TopicTagRow[])
     .map((row) => normalizeTagCell(row.tag))
-    .filter((tag): tag is { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
+    .filter((tag): tag is { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
     .filter((tag) => tag.redirect_to_tag_id == null && tag.status !== 'hidden')
-    .map(({ id, name, slug }) => ({ id, name, slug }));
+    .map(({ id, name, slug, icon }) => ({ id, name, slug, icon: icon || '🏷️' }));
 
   return NextResponse.json({ topic_id: topicId, tags });
 }
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   const { data: tagsData, error: tagsError } = await supabase
     .from('topic_tags')
-    .select('tag:tags(id, name, slug, redirect_to_tag_id, status)')
+    .select('tag:tags(id, name, slug, icon, redirect_to_tag_id, status)')
     .eq('topic_id', topicId)
     .order('created_at', { ascending: true });
 
@@ -134,9 +134,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   const tags = ((tagsData || []) as TopicTagRow[])
     .map((row) => normalizeTagCell(row.tag))
-    .filter((tag): tag is { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
+    .filter((tag): tag is { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
     .filter((tag) => tag.redirect_to_tag_id == null && tag.status !== 'hidden')
-    .map(({ id, name, slug }) => ({ id, name, slug }));
+    .map(({ id, name, slug, icon }) => ({ id, name, slug, icon: icon || '🏷️' }));
 
   return NextResponse.json({ topic_id: topicId, tags });
 }

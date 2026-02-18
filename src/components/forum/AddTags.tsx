@@ -7,6 +7,7 @@ export interface TagOption {
   id: number;
   name: string;
   slug: string;
+  icon?: string;
   group_label?: string;
   group_order?: number;
   tag_order?: number;
@@ -142,7 +143,8 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
             key={tag.id}
             className="inline-flex items-center gap-1 rounded-full border border-yellow-400 bg-yellow-50 px-3 py-1 text-sm text-yellow-900"
           >
-            #{tag.name}
+            <span>{tag.icon || '🏷️'}</span>
+            <span>#{tag.name}</span>
             <button
               type="button"
               onClick={() => removeTag(tag.id)}
@@ -191,7 +193,8 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
                           onClick={() => addTag(tag)}
                           disabled={disabled}
                         >
-                          #{tag.name}
+                          <span className="mr-1">{tag.icon || '🏷️'}</span>
+                          <span>#{tag.name}</span>
                         </button>
                       ))}
                     </div>
@@ -204,7 +207,8 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
                       onClick={() => addTag(tag)}
                       disabled={disabled}
                     >
-                      #{tag.name}
+                      <span className="mr-1">{tag.icon || '🏷️'}</span>
+                      <span>#{tag.name}</span>
                     </button>
                   )))}
             {!loading && canCreate && (

@@ -71,13 +71,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --sys-color-bg-canvas: var(--ref-color-neutral-950);
-    --sys-color-fg-default: var(--ref-color-neutral-100);
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);

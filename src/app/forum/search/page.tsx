@@ -27,6 +27,7 @@ interface TagHit {
   id: number;
   name: string;
   slug: string;
+  icon?: string;
 }
 
 interface TagGroupHit {
@@ -249,7 +250,7 @@ function SearchContent() {
                       href={`/forum?tags=${tag.id}`}
                       className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1 text-sm font-medium text-yellow-900 hover:bg-yellow-100"
                     >
-                      <span>🏷️</span>
+                      <span>{tag.icon || '🏷️'}</span>
                       <span>{highlightMatch(tag.name, query)}</span>
                     </Link>
                   ))}

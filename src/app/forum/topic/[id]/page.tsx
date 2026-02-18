@@ -22,6 +22,11 @@ interface Topic {
   views_unique: number | null;
 }
 
+interface TopicPrimaryTag {
+  name: string;
+  icon: string;
+}
+
 interface TopicViewResponse {
   views_total?: number;
   views_unique?: number;
@@ -54,6 +59,13 @@ interface RawTopicRow {
   views_unique: number | null;
 }
 
+interface RawTopicTagRow {
+  tag:
+    | { name?: string | null; icon?: string | null; status?: string | null; redirect_to_tag_id?: number | null }
+    | { name?: string | null; icon?: string | null; status?: string | null; redirect_to_tag_id?: number | null }[]
+    | null;
+}
+
 function normalizeJoin<T>(value: SupabaseJoinField<T>): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value;
@@ -79,6 +91,7 @@ function TopicContent() {
   const realtimeUpdatesEnabled = (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
 
   const [topic, setTopic] = useState<Topic | null>(null);
+  const [topicPrimaryTag, setTopicPrimaryTag] = useState<TopicPrimaryTag | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [totalPosts, setTotalPosts] = useState(0);
   const [firstPostId, setFirstPostId] = useState<number | null>(null);
@@ -98,7 +111,7 @@ function TopicContent() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [topicRes, postsRes, countRes, firstPostRes] = await Promise.all([
+      const [topicRes, postsRes, countRes, firstPostRes, topicTagsRes] = await Promise.all([
         supabase
           .from('topics')
           .select('id, title, views, views_total, views_unique')
@@ -123,6 +136,11 @@ function TopicContent() {
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true })
           .limit(1),
+        supabase
+          .from('topic_tags')
+          .select('tag:tags(name, icon, status, redirect_to_tag_id)')
+          .eq('topic_id', topicId)
+          .order('created_at', { ascending: true }),
       ]);
 
       if (!topicRes.error && topicRes.data) {
@@ -136,6 +154,20 @@ function TopicContent() {
       }
       if (!firstPostRes.error && firstPostRes.data && firstPostRes.data.length > 0) {
         setFirstPostId(firstPostRes.data[0].id as number);
+      }
+      if (!topicTagsRes.error) {
+        const normalizedPrimaryTag = ((topicTagsRes.data || []) as RawTopicTagRow[])
+          .map((row) => normalizeJoin(row.tag))
+          .find((tag) => !!tag && tag.redirect_to_tag_id == null && tag.status !== 'hidden');
+
+        if (normalizedPrimaryTag) {
+          setTopicPrimaryTag({
+            name: normalizedPrimaryTag.name || 'Tagit',
+            icon: normalizedPrimaryTag.icon?.trim() || '🏷️',
+          });
+        } else {
+          setTopicPrimaryTag(null);
+        }
       }
       setLoading(false);
     };
@@ -403,11 +435,11 @@ function TopicContent() {
       <Card className="mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <span className="text-4xl">🏷️</span>
+            <span className="text-4xl">{topicPrimaryTag?.icon || '🏷️'}</span>
             <div>
               <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="text-yellow-800 font-medium">Tagit</span>
+                <span className="text-yellow-800 font-medium">{topicPrimaryTag?.name || 'Tagit'}</span>
                 <span>{topic.views_unique ?? topic.views} katselua</span>
                 <span>{totalPosts} viestiä</span>
               </div>

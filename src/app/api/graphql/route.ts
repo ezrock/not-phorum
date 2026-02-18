@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     let qb = supabase
       .from('tags')
-      .select('id, name, slug')
+      .select('id, name, slug, icon')
       .order('name', { ascending: true })
       .limit(limit);
 

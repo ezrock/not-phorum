@@ -5,6 +5,7 @@ interface TagRow {
   id: number;
   name: string;
   slug: string;
+  icon?: string;
   status?: string;
   featured?: boolean;
   redirect_to_tag_id?: number | null;
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
 
   let qb = supabase
     .from('tags')
-    .select('id, name, slug')
+    .select('id, name, slug, icon')
     .order('name', { ascending: true })
     .limit(limit);
 
@@ -151,17 +152,18 @@ export async function POST(req: NextRequest) {
     .insert({
       name,
       slug,
+      icon: '🏷️',
       status: 'unreviewed',
       featured: false,
       redirect_to_tag_id: null,
     })
-    .select('id, name, slug, status, featured, redirect_to_tag_id')
+    .select('id, name, slug, icon, status, featured, redirect_to_tag_id')
     .single();
 
   if (error) {
     const { data: existingBySlug } = await supabase
       .from('tags')
-      .select('id, name, slug, status, featured, redirect_to_tag_id')
+      .select('id, name, slug, icon, status, featured, redirect_to_tag_id')
       .eq('slug', slug)
       .maybeSingle();
 
@@ -170,7 +172,7 @@ export async function POST(req: NextRequest) {
       if (redirectToId) {
         const { data: canonical } = await supabase
           .from('tags')
-          .select('id, name, slug, status, featured, redirect_to_tag_id')
+          .select('id, name, slug, icon, status, featured, redirect_to_tag_id')
           .eq('id', redirectToId)
           .maybeSingle();
         if (canonical) {
