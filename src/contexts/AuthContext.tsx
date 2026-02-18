@@ -94,6 +94,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Increment login count (fire-and-forget)
     if (data.user) {
       supabase.rpc('increment_login_count', { target_user_id: data.user.id });
+
+      const accessToken = data.session?.access_token;
+      fetch('/api/auth/login-network', {
+        method: 'POST',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      }).catch(() => {
+        // Ignore network tracking failures to keep login flow fast.
+      });
     }
 
     return data;

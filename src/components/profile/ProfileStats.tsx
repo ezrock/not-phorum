@@ -6,11 +6,19 @@ interface ProfileStatsProps {
   postCount: number;
   topicCount: number;
   loginCount: number;
+  loginNetworkCount?: number;
   mostPopularTopic: TopicStat | null;
   mostActiveTopic: TopicStat | null;
 }
 
-export function ProfileStats({ postCount, topicCount, loginCount, mostPopularTopic, mostActiveTopic }: ProfileStatsProps) {
+export function ProfileStats({
+  postCount,
+  topicCount,
+  loginCount,
+  loginNetworkCount = 0,
+  mostPopularTopic,
+  mostActiveTopic,
+}: ProfileStatsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
@@ -27,6 +35,11 @@ export function ProfileStats({ postCount, topicCount, loginCount, mostPopularTop
         <LogIn size={18} className="text-yellow-600" />
         <span className="text-sm text-gray-500 flex-1">Kirjautumista</span>
         <span className="font-bold">{loginCount}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <LogIn size={18} className="text-yellow-600" />
+        <span className="text-sm text-gray-500 flex-1">Kirjautunut eri verkosta</span>
+        <span className="font-bold">{loginNetworkCount}</span>
       </div>
       {mostPopularTopic && (
         <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">

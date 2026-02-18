@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3 } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3, MessageSquareText } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
@@ -230,7 +230,8 @@ export default function AdminPage() {
             </div>
 
             <div className="mt-4">
-              <label htmlFor="notificationMessage" className="block text-sm font-medium mb-1">
+              <label htmlFor="notificationMessage" className="section-header">
+                {UI_ICON_SETTINGS.showSectionHeaderIcons && <MessageSquareText size={16} className="text-yellow-600" />}
                 Ilmoitusviesti
               </label>
               <div className="flex items-center gap-2">

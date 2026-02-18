@@ -28,6 +28,7 @@ export default function ProfilePage() {
     profile_image_url?: string;
     created_at?: string;
     login_count?: number;
+    login_network_count?: number;
     realtime_updates_enabled?: boolean;
     retro_enabled?: boolean;
     midi_enabled?: boolean;
@@ -116,6 +117,7 @@ export default function ProfilePage() {
               postCount={postCount}
               topicCount={topicCount}
               loginCount={typedProfile.login_count || 0}
+              loginNetworkCount={typedProfile.login_network_count || 0}
               mostPopularTopic={mostPopularTopic}
               mostActiveTopic={mostActiveTopic}
             />

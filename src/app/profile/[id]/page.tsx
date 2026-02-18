@@ -26,6 +26,7 @@ interface UserProfile {
   link_url: string | null;
   link_description: string | null;
   login_count: number;
+  login_network_count: number;
 }
 
 function safeHttpUrl(rawUrl: string | null): string | null {
@@ -63,7 +64,7 @@ export default function PublicProfilePage() {
       const [profileRes, adminRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count')
+          .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count, login_network_count')
           .eq('id', userId)
           .single(),
         supabase
@@ -197,6 +198,7 @@ export default function PublicProfilePage() {
           postCount={postCount}
           topicCount={topicCount}
           loginCount={profile.login_count}
+          loginNetworkCount={profile.login_network_count || 0}
           mostPopularTopic={mostPopularTopic}
           mostActiveTopic={mostActiveTopic}
         />
