@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { Settings2 } from 'lucide-react';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 interface SettingsPanelProps {
   initialRealtimeEnabled: boolean;
@@ -13,6 +14,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled }: SettingsPanelProps) {
   const { currentUser, supabase, refreshProfile } = useAuth();
+  const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
   const [realtimeUpdatesEnabled, setRealtimeUpdatesEnabled] = useState(initialRealtimeEnabled);
   const [retroEnabled, setRetroEnabled] = useState(initialRetroEnabled);
@@ -77,7 +79,7 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled }: S
   return (
     <Card className="mb-6">
       <h2 className="card-title flex items-center gap-2">
-        <Settings2 size={20} className="text-yellow-600" />
+        {showHeaderIcons && <Settings2 size={20} className="text-yellow-600" />}
         Asetukset
       </h2>
 

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3 } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 interface TrophyOverview {
   id: number;
@@ -34,6 +35,7 @@ export default function AdminPage() {
   const [trophyLoading, setTrophyLoading] = useState(true);
   const [trophyOverview, setTrophyOverview] = useState<TrophyOverview[]>([]);
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
+  const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -130,7 +132,10 @@ export default function AdminPage() {
     return (
       <div className="page-container">
         <Card>
-          <h2 className="text-2xl font-bold">Ei käyttöoikeutta</h2>
+          <h2 className="card-title flex items-center gap-2">
+            {showHeaderIcons && <Shield size={20} className="text-yellow-600" />}
+            Ei käyttöoikeutta
+          </h2>
           <p className="text-gray-500 mt-2">Tämä sivu on vain ylläpitäjille.</p>
         </Card>
       </div>
@@ -165,6 +170,7 @@ export default function AdminPage() {
       {activeTab === 'board' && (
         <Card>
           <div className="flex items-center gap-3 mb-4">
+            {showHeaderIcons && <Settings2 size={24} className="text-yellow-600" />}
             <h2 className="card-title mb-0">Boardin asetukset</h2>
           </div>
 
@@ -247,14 +253,20 @@ export default function AdminPage() {
 
       {activeTab === 'users' && (
         <Card>
-          <h2 className="card-title">Käyttäjät</h2>
+          <h2 className="card-title flex items-center gap-2">
+            {showHeaderIcons && <UsersIcon size={20} className="text-yellow-600" />}
+            Käyttäjät
+          </h2>
           <p className="text-sm text-gray-500">Käyttäjähallinta tulossa tähän korttiin.</p>
         </Card>
       )}
 
       {activeTab === 'categories' && (
         <Card>
-          <h2 className="card-title">Kategoriat</h2>
+          <h2 className="card-title flex items-center gap-2">
+            {showHeaderIcons && <FolderTree size={20} className="text-yellow-600" />}
+            Kategoriat
+          </h2>
           <p className="text-sm text-gray-500">Kategoriahallinta tulossa tähän korttiin.</p>
         </Card>
       )}
@@ -262,7 +274,7 @@ export default function AdminPage() {
       {activeTab === 'trophies' && (
         <Card>
           <div className="flex items-center gap-3 mb-4">
-            <Trophy size={24} className="text-yellow-600" />
+            {showHeaderIcons && <Trophy size={24} className="text-yellow-600" />}
             <h2 className="card-title mb-0">Pokaalit (Legacy baseline)</h2>
           </div>
 
@@ -304,7 +316,10 @@ export default function AdminPage() {
 
       {activeTab === 'levels' && (
         <Card>
-          <h2 className="card-title">Tasot</h2>
+          <h2 className="card-title flex items-center gap-2">
+            {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
+            Tasot
+          </h2>
           <p className="text-sm text-gray-500">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
         </Card>
       )}

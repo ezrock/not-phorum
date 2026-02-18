@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Save, Camera, X, Link as LinkIcon, User, Lock } from 'lucide-react';
+import { Save, Camera, X, Link as LinkIcon, User, Lock, Pencil } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 interface CloudinaryUploadResult {
   info?: { secure_url?: string };
@@ -31,6 +32,7 @@ function isSafeHttpUrl(rawUrl: string): boolean {
 
 export function EditProfileForm() {
   const { currentUser, profile, supabase, refreshProfile } = useAuth();
+  const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
   const typedProfile = profile as {
     username?: string;
     display_name?: string;
@@ -205,7 +207,10 @@ export function EditProfileForm() {
   return (
     <>
       <Card className="mb-6">
-        <h2 className="card-title">Muokkaa profiilia</h2>
+        <h2 className="card-title flex items-center gap-2">
+          {showHeaderIcons && <Pencil size={20} className="text-yellow-600" />}
+          Muokkaa profiilia
+        </h2>
 
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -372,7 +377,7 @@ export function EditProfileForm() {
 
       <Card className="mt-6 mb-6">
         <h2 className="card-title flex items-center gap-2">
-          <Lock size={20} />
+          {showHeaderIcons && <Lock size={20} className="text-yellow-600" />}
           Vaihda salasana
         </h2>
 

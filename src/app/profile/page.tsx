@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { profileMedium } from '@/lib/cloudinary';
-import { User } from 'lucide-react';
+import { User, BarChart3 } from 'lucide-react';
 import { formatFinnishDate } from '@/lib/formatDate';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
 import { ProfileStats } from '@/components/profile/ProfileStats';
@@ -12,6 +12,7 @@ import { TrophiesCard } from '@/components/profile/TrophiesCard';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { SettingsPanel } from '@/components/profile/SettingsPanel';
 import { useProfileStats } from '@/hooks/useProfileStats';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 type ProfileTab = 'profile' | 'edit' | 'settings';
 
@@ -28,6 +29,7 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic } = useProfileStats(currentUser?.id ?? null);
+  const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
   if (loading || !typedProfile) {
     return (
@@ -77,7 +79,10 @@ export default function ProfilePage() {
       {activeTab === 'profile' && (
         <>
           <Card className="mb-6">
-            <h2 className="card-title">Tilastot</h2>
+            <h2 className="card-title flex items-center gap-2">
+              {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
+              Tilastot
+            </h2>
 
             <ProfileStats
               postCount={postCount}

@@ -7,12 +7,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Search, Shield, ScrollText, User } from 'lucide-react';
 import { profileThumb } from '@/lib/cloudinary';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import type { FormEvent, JSX } from 'react';
 
 export const Navigation = (): JSX.Element | null => {
   const { currentUser, profile, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
+  const showNavLinkIcons = UI_ICON_SETTINGS.showNavigationLinkIcons;
 
   if (!currentUser || !profile) return null;
 
@@ -35,16 +37,16 @@ export const Navigation = (): JSX.Element | null => {
 
           <div className="flex gap-2">
             <Link href="/members" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
-              <Users size={20} />
+              {showNavLinkIcons && <Users size={20} />}
               Membut
             </Link>
             <Link href="/loki" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
-              <ScrollText size={20} />
+              {showNavLinkIcons && <ScrollText size={20} />}
               Loki
             </Link>
             {profile?.is_admin && (
               <Link href="/admin" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
-                <Shield size={20} />
+                {showNavLinkIcons && <Shield size={20} />}
                 Admin
               </Link>
             )}
@@ -66,12 +68,14 @@ export const Navigation = (): JSX.Element | null => {
             href="/profile"
             className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
           >
-            {profile.profile_image_url ? (
-              <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-none object-cover" />
-            ) : (
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-                <User size={14} />
-              </span>
+            {showNavLinkIcons && (
+              profile.profile_image_url ? (
+                <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-none object-cover" />
+              ) : (
+                <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+                  <User size={14} />
+                </span>
+              )
             )}
             <span>{profile.username}</span>
           </Link>

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { BarChart3, Heart, Star, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { profileThumb } from '@/lib/cloudinary';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 interface TopFiveCardProps {
   profileId: string;
@@ -50,6 +51,7 @@ interface TopLikedAuthor {
 
 export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
   const { supabase } = useAuth();
+  const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
   const [loading, setLoading] = useState(true);
   const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
   const [mostViewedThreads, setMostViewedThreads] = useState<ViewedTopicStat[]>([]);
@@ -127,7 +129,10 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
   if (loading) {
     return (
       <Card className={className}>
-        <h2 className="card-title">Top 5</h2>
+        <h2 className="card-title flex items-center gap-2">
+          {showHeaderIcons && <Star size={20} className="text-yellow-600" />}
+          Top 5
+        </h2>
         <p className="text-sm text-gray-500">Ladataan...</p>
       </Card>
     );
@@ -135,7 +140,10 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
 
   return (
     <Card className={className}>
-      <h2 className="card-title mb-5">Top 5</h2>
+      <h2 className="card-title mb-5 flex items-center gap-2">
+        {showHeaderIcons && <Star size={20} className="text-yellow-600" />}
+        Top 5
+      </h2>
 
       <div className="space-y-5">
         <section>

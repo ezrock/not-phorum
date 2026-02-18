@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/Card';
 import { Trophy as TrophyIcon } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
+import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import type { Trophy } from '@/lib/trophies';
 
 interface TrophiesCardProps {
@@ -8,10 +9,12 @@ interface TrophiesCardProps {
 }
 
 export function TrophiesCard({ trophies }: TrophiesCardProps) {
+  const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
+
   return (
     <Card className="mb-6">
       <h2 className="card-title flex items-center gap-2">
-        <TrophyIcon size={20} className="text-yellow-600" />
+        {showHeaderIcons && <TrophyIcon size={20} className="text-yellow-600" />}
         Kunniamerkit
       </h2>
       {trophies.length > 0 ? (
