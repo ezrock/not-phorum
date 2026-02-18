@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigation } from '@/components/layout/Navigation';
 import { Footer } from '@/components/layout/Footer';
 import { RetroFilter } from '@/components/effects/RetroFilter';
+import { getPreferredEventForDate } from '@/lib/siteEvents';
 import type { ReactNode } from 'react';
 
 interface AppShellProps {
@@ -17,13 +18,27 @@ const AUTH_ROOTS = ['/forum', '/members', '/profile', '/admin', '/loki'];
 const NOTIFICATION_REPEAT_COUNT = 8;
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
+interface EventAudioRow {
+  id: number;
+  event_date: string;
+  date_range_enabled: boolean;
+  range_start_date: string | null;
+  range_end_date: string | null;
+  music_enabled: boolean;
+  music_file: string | null;
+}
+
 export function AppShell({ children }: AppShellProps) {
   const { currentUser, profile, loading, supabase } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [events, setEvents] = useState<EventAudioRow[]>([]);
+  const [targetDate, setTargetDate] = useState(() => new Date());
+  const midiControllerRef = useRef<{ playUrl: (url: string) => Promise<void>; stop: () => void } | null>(null);
   const retroEnabled = (profile as { retro_enabled?: boolean } | null)?.retro_enabled === true;
+  const midiEnabled = (profile as { midi_enabled?: boolean } | null)?.midi_enabled === true;
   const isPublicPath = PUBLIC_PATHS.has(pathname);
   const isAuthPath = AUTH_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
   const shouldRedirectLoggedIn = !loading && !!currentUser && !isAuthPath;
@@ -40,6 +55,22 @@ export function AppShell({ children }: AppShellProps) {
     () => notificationLoopText.repeat(NOTIFICATION_REPEAT_COUNT),
     [notificationLoopText]
   );
+  const activeEvent = useMemo(
+    () => getPreferredEventForDate(events, targetDate),
+    [events, targetDate]
+  );
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = new Date();
+      setTargetDate((prev) => (
+        prev.getFullYear() === now.getFullYear()
+        && prev.getMonth() === now.getMonth()
+        && prev.getDate() === now.getDate()
+      ) ? prev : now);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (shouldRedirectLoggedIn) {
@@ -80,6 +111,61 @@ export function AppShell({ children }: AppShellProps) {
       window.removeEventListener(SITE_SETTINGS_UPDATED_EVENT, handleSiteSettingsUpdated);
     };
   }, [supabase]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from('site_events')
+        .select('id, event_date, date_range_enabled, range_start_date, range_end_date, music_enabled, music_file');
+
+      if (error || !data) {
+        setEvents([]);
+        return;
+      }
+
+      setEvents(data as EventAudioRow[]);
+    };
+
+    fetchEvents();
+  }, [currentUser, supabase]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentUser || !midiEnabled || !activeEvent?.music_enabled || !activeEvent.music_file) {
+      midiControllerRef.current?.stop();
+      return;
+    }
+
+    const midiUrl = `/midi/${encodeURIComponent(activeEvent.music_file)}`;
+
+    const playMidi = async () => {
+      try {
+        if (!midiControllerRef.current) {
+          const midiModule = await import('@/app/midi/midi.js');
+          if (cancelled) return;
+          midiControllerRef.current = new midiModule.MidiBackgroundController({ volume: 0.35 });
+        }
+        await midiControllerRef.current.playUrl(midiUrl);
+      } catch {
+        // Keep silent in UI if parsing/playback fails.
+      }
+    };
+
+    playMidi();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, midiEnabled, activeEvent]);
+
+  useEffect(() => {
+    return () => {
+      midiControllerRef.current?.stop();
+      midiControllerRef.current = null;
+    };
+  }, []);
 
   // Prevent page flashes while redirecting.
   if (loading || shouldRedirectLoggedIn || shouldRedirectLoggedOut) return null;

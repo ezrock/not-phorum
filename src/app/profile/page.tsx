@@ -25,6 +25,7 @@ export default function ProfilePage() {
     login_count?: number;
     realtime_updates_enabled?: boolean;
     retro_enabled?: boolean;
+    midi_enabled?: boolean;
   } | null;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
@@ -105,6 +106,7 @@ export default function ProfilePage() {
         <SettingsPanel
           initialRealtimeEnabled={typedProfile.realtime_updates_enabled ?? false}
           initialRetroEnabled={typedProfile.retro_enabled ?? false}
+          initialMidiEnabled={typedProfile.midi_enabled ?? false}
         />
       )}
     </div>

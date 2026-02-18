@@ -103,7 +103,7 @@ export default function PublicProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto mt-8 px-4">
+      <div className="page-container">
         <Card>
           <p className="text-center text-gray-500 py-8">Ladataan...</p>
         </Card>
@@ -113,7 +113,7 @@ export default function PublicProfilePage() {
 
   if (!profile) {
     return (
-      <div className="max-w-2xl mx-auto mt-8 px-4">
+      <div className="page-container">
         <Card>
           <h2 className="text-2xl font-bold">Käyttäjää ei löytynyt</h2>
           <Link href="/forum">
@@ -125,7 +125,7 @@ export default function PublicProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-8 px-4 mb-12">
+    <div className="page-container">
       <div className="mb-6">
         <Link href="/forum" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
           <ArrowLeft size={16} />

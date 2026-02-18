@@ -8,6 +8,7 @@ import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
+import { EventsPanel } from '@/components/admin/EventsPanel';
 
 interface TrophyOverview {
   id: number;
@@ -19,7 +20,7 @@ interface TrophyOverview {
   awarded_count: number;
 }
 
-type AdminTab = 'board' | 'users' | 'categories' | 'trophies' | 'levels';
+type AdminTab = 'board' | 'users' | 'categories' | 'trophies' | 'levels' | 'events';
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
 export default function AdminPage() {
@@ -152,6 +153,7 @@ export default function AdminPage() {
       <div className="page-tabs mb-4">
         {([
           ['board', 'Boardi'],
+          ['events', 'Tapahtumat'],
           ['trophies', 'Pokaalit'],
           ['users', 'Käyttäjät'],
           ['categories', 'Kategoriat'],
@@ -323,6 +325,8 @@ export default function AdminPage() {
           <p className="text-sm text-gray-500">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
         </Card>
       )}
+
+      {activeTab === 'events' && <EventsPanel />}
     </div>
   );
 }
