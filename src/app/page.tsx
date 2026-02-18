@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
+import { createBrowserClient } from '@supabase/ssr';
 
 export default function Home() {
   const { currentUser, loading, login } = useAuth();
@@ -15,6 +16,8 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [checkingSettings, setCheckingSettings] = useState(true);
 
   // Logged-in users go straight to the forum
   useEffect(() => {
@@ -22,6 +25,26 @@ export default function Home() {
       window.location.href = '/forum';
     }
   }, [loading, currentUser]);
+
+  useEffect(() => {
+    const fetchRegistrationSetting = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'registration_enabled')
+        .single();
+
+      setRegistrationEnabled(data?.value === 'true');
+      setCheckingSettings(false);
+    };
+
+    fetchRegistrationSetting();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,14 +131,16 @@ _______________  _______      _____
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Eikö sinulla ole tiliä?{' '}
-              <Link href="/register" className="text-yellow-600 hover:underline font-semibold">
-                Rekisteröidy tästä
-              </Link>
-            </p>
-          </div>
+          {!checkingSettings && registrationEnabled && (
+            <div className="mt-6 text-center">
+              <p className="text-gray-600">
+                Eikö sinulla ole tiliä?{' '}
+                <Link href="/register" className="text-yellow-600 hover:underline font-semibold">
+                  Rekisteröidy tästä
+                </Link>
+              </p>
+            </div>
+          )}
         </Card>
       </div>
     </div>
