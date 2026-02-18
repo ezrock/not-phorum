@@ -10,6 +10,7 @@ import { postThumb, profileThumb } from '@/lib/cloudinary';
 
 type EventType = 'image' | 'video' | 'url' | 'quote';
 type FilterType = 'all' | 'image' | 'video' | 'url' | 'quote';
+const LOKI_FILTERS: FilterType[] = ['all', 'image', 'video', 'url', 'quote'];
 
 interface EventItem {
   id: string;
@@ -64,6 +65,10 @@ interface QuoteLikeEventRow {
 const URL_REGEX = /https?:\/\/[^\s)>\]]+/g;
 const IMAGE_URL_REGEX = /\.(png|jpe?g|gif|webp|avif|svg)(\?.*)?$/i;
 const VIDEO_URL_REGEX = /\.(mp4|webm|mov|m4v|ogv|ogg)(\?.*)?$/i;
+
+function isLokiFilter(value: string): value is FilterType {
+  return LOKI_FILTERS.includes(value as FilterType);
+}
 
 function extractUrls(content: string): string[] {
   return [...content.matchAll(URL_REGEX)].map((m) => m[0]);
@@ -137,6 +142,28 @@ export default function LokiPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const syncFilterFromHash = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (isLokiFilter(hash)) {
+        setFilter(hash);
+      } else if (window.location.hash) {
+        setFilter('all');
+      }
+    };
+
+    syncFilterFromHash();
+    window.addEventListener('hashchange', syncFilterFromHash);
+    return () => window.removeEventListener('hashchange', syncFilterFromHash);
+  }, []);
+
+  useEffect(() => {
+    const nextHash = `#${filter}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash);
+    }
+  }, [filter]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -293,6 +320,7 @@ export default function LokiPage() {
           ] as [FilterType, string][]).map(([value, label]) => (
             <button
               key={value}
+              type="button"
               onClick={() => setFilter(value)}
               className={`page-tab-button ${filter === value ? 'is-active' : ''}`}
             >

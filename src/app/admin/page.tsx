@@ -52,10 +52,25 @@ interface TagAliasRow {
   created_at: string;
 }
 
+interface AdminTagGroup {
+  group_id: number;
+  group_name: string;
+  group_slug: string;
+  description: string | null;
+  searchable: boolean;
+  member_count: number;
+  member_tag_ids: number[];
+}
+
 type TagModerationAction = 'approve' | 'hide' | 'feature';
 
-type AdminTab = 'board' | 'users' | 'tags' | 'trophies' | 'levels' | 'events';
+type AdminTab = 'board' | 'users' | 'tags' | 'tag_groups' | 'trophies' | 'levels' | 'events';
+const ADMIN_TABS: AdminTab[] = ['board', 'events', 'trophies', 'users', 'tags', 'tag_groups', 'levels'];
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
+
+function isAdminTab(value: string): value is AdminTab {
+  return ADMIN_TABS.includes(value as AdminTab);
+}
 
 export default function AdminPage() {
   const { profile, supabase, loading } = useAuth();
@@ -74,15 +89,22 @@ export default function AdminPage() {
   const [unreviewedTags, setUnreviewedTags] = useState<UnreviewedTag[]>([]);
   const [canonicalTags, setCanonicalTags] = useState<CanonicalTagOption[]>([]);
   const [tagAliasesByTagId, setTagAliasesByTagId] = useState<Record<number, TagAliasRow[]>>({});
+  const [tagGroups, setTagGroups] = useState<AdminTagGroup[]>([]);
   const [aliasInputByTagId, setAliasInputByTagId] = useState<Record<number, string>>({});
   const [aliasSearch, setAliasSearch] = useState('');
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editingTagName, setEditingTagName] = useState('');
+  const [editingTagSlug, setEditingTagSlug] = useState('');
   const [mergeTargetByTagId, setMergeTargetByTagId] = useState<Record<number, number | ''>>({});
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [processingTagId, setProcessingTagId] = useState<number | null>(null);
+  const [processingGroupId, setProcessingGroupId] = useState<number | null>(null);
   const [processingAliasId, setProcessingAliasId] = useState<number | null>(null);
   const [addingAliasTagId, setAddingAliasTagId] = useState<number | null>(null);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupSlug, setNewGroupSlug] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [newGroupSearchable, setNewGroupSearchable] = useState(true);
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
@@ -96,9 +118,16 @@ export default function AdminPage() {
     }, {});
   };
 
+  const normalizeMemberTagIds = (value: unknown): number[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((entry) => Number.parseInt(String(entry), 10))
+      .filter((entry) => Number.isFinite(entry) && entry > 0);
+  };
+
   useEffect(() => {
     const fetchAdminData = async () => {
-      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes, aliasesRes] = await Promise.all([
+      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes, aliasesRes, groupsRes] = await Promise.all([
         supabase
           .from('site_settings')
           .select('key, value')
@@ -119,6 +148,7 @@ export default function AdminPage() {
           .is('redirect_to_tag_id', null)
           .order('name', { ascending: true }),
         supabase.rpc('get_tag_aliases'),
+        supabase.rpc('get_tag_groups_with_members'),
       ]);
       const pendingRes = await supabase
         .from('profiles')
@@ -148,6 +178,18 @@ export default function AdminPage() {
       if (!aliasesRes.error && aliasesRes.data) {
         setTagAliasesByTagId(groupAliasesByTagId((aliasesRes.data ?? []) as TagAliasRow[]));
       }
+      if (!groupsRes.error && groupsRes.data) {
+        const normalized = (groupsRes.data as Record<string, unknown>[]).map((row) => ({
+          group_id: Number(row.group_id),
+          group_name: String(row.group_name ?? ''),
+          group_slug: String(row.group_slug ?? ''),
+          description: row.description ? String(row.description) : null,
+          searchable: row.searchable === true,
+          member_count: Number(row.member_count ?? 0),
+          member_tag_ids: normalizeMemberTagIds(row.member_tag_ids),
+        })) as AdminTagGroup[];
+        setTagGroups(normalized);
+      }
       setTotalAwardedTrophies(awardedRes.count || 0);
 
       setSettingsLoading(false);
@@ -157,6 +199,28 @@ export default function AdminPage() {
 
     fetchAdminData();
   }, [supabase]);
+
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (isAdminTab(hash)) {
+        setActiveTab(hash);
+      } else if (window.location.hash) {
+        setActiveTab('board');
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, []);
+
+  useEffect(() => {
+    const nextHash = `#${activeTab}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash);
+    }
+  }, [activeTab]);
 
   const handleToggleRegistration = async () => {
     setToggling(true);
@@ -232,6 +296,20 @@ export default function AdminPage() {
   const refreshTagAliases = async () => {
     const { data } = await supabase.rpc('get_tag_aliases');
     setTagAliasesByTagId(groupAliasesByTagId((data ?? []) as TagAliasRow[]));
+  };
+
+  const refreshTagGroups = async () => {
+    const { data } = await supabase.rpc('get_tag_groups_with_members');
+    const normalized = ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+      group_id: Number(row.group_id),
+      group_name: String(row.group_name ?? ''),
+      group_slug: String(row.group_slug ?? ''),
+      description: row.description ? String(row.description) : null,
+      searchable: row.searchable === true,
+      member_count: Number(row.member_count ?? 0),
+      member_tag_ids: normalizeMemberTagIds(row.member_tag_ids),
+    })) as AdminTagGroup[];
+    setTagGroups(normalized);
   };
 
   const handleSetApprovalStatus = async (userId: string, status: 'approved' | 'rejected') => {
@@ -313,11 +391,13 @@ export default function AdminPage() {
   const beginRenameTag = (tag: CanonicalTagOption) => {
     setEditingTagId(tag.id);
     setEditingTagName(tag.name);
+    setEditingTagSlug(tag.slug);
   };
 
   const cancelRenameTag = () => {
     setEditingTagId(null);
     setEditingTagName('');
+    setEditingTagSlug('');
   };
 
   const handleRenameTag = async (tagId: number) => {
@@ -325,9 +405,11 @@ export default function AdminPage() {
     if (!nextName) return;
 
     setProcessingTagId(tagId);
-    const { error } = await supabase.rpc('rename_tag', {
+    const { error } = await supabase.rpc('update_tag_details', {
       input_tag_id: tagId,
       input_name: nextName,
+      input_slug: editingTagSlug.trim() || null,
+      input_add_old_aliases: true,
     });
 
     if (!error) {
@@ -335,8 +417,59 @@ export default function AdminPage() {
       await refreshTagAliases();
       setEditingTagId(null);
       setEditingTagName('');
+      setEditingTagSlug('');
     }
     setProcessingTagId(null);
+  };
+
+  const handleSaveTagGroup = async (group: AdminTagGroup) => {
+    setProcessingGroupId(group.group_id);
+    const { error } = await supabase.rpc('upsert_tag_group', {
+      input_group_id: group.group_id,
+      input_name: group.group_name.trim(),
+      input_slug: group.group_slug.trim(),
+      input_description: (group.description || '').trim(),
+      input_searchable: group.searchable,
+      input_member_tag_ids: group.member_tag_ids,
+    });
+
+    if (!error) {
+      await refreshTagGroups();
+    }
+    setProcessingGroupId(null);
+  };
+
+  const handleCreateTagGroup = async () => {
+    if (!newGroupName.trim()) return;
+    setProcessingGroupId(-1);
+    const { error } = await supabase.rpc('upsert_tag_group', {
+      input_group_id: null,
+      input_name: newGroupName.trim(),
+      input_slug: newGroupSlug.trim() || null,
+      input_description: newGroupDescription.trim() || null,
+      input_searchable: newGroupSearchable,
+      input_member_tag_ids: [],
+    });
+
+    if (!error) {
+      setNewGroupName('');
+      setNewGroupSlug('');
+      setNewGroupDescription('');
+      setNewGroupSearchable(true);
+      await refreshTagGroups();
+    }
+    setProcessingGroupId(null);
+  };
+
+  const handleDeleteTagGroup = async (groupId: number) => {
+    setProcessingGroupId(groupId);
+    const { error } = await supabase.rpc('delete_tag_group', {
+      input_group_id: groupId,
+    });
+    if (!error) {
+      await refreshTagGroups();
+    }
+    setProcessingGroupId(null);
   };
 
   if (loading || settingsLoading || trophyLoading || pendingUsersLoading) {
@@ -371,16 +504,27 @@ export default function AdminPage() {
       </div>
 
       <div className="page-tabs mb-4">
-        {([
-          ['board', 'Boardi'],
-          ['events', 'Tapahtumat'],
-          ['trophies', 'Pokaalit'],
-          ['users', 'Käyttäjät'],
-          ['tags', 'Tagit'],
-          ['levels', 'Tasot'],
-        ] as [AdminTab, string][]).map(([value, label]) => (
+        {(ADMIN_TABS.map((tab) => (
+          [
+            tab,
+            tab === 'board'
+              ? 'Boardi'
+              : tab === 'events'
+                ? 'Tapahtumat'
+                : tab === 'trophies'
+                  ? 'Pokaalit'
+                  : tab === 'users'
+                    ? 'Käyttäjät'
+                    : tab === 'tags'
+                      ? 'Tagit'
+                      : tab === 'tag_groups'
+                        ? 'Tagiryhmät'
+                        : 'Tasot',
+          ] as [AdminTab, string]
+        ))).map(([value, label]) => (
           <button
             key={value}
+            type="button"
             onClick={() => setActiveTab(value)}
             className={`page-tab-button ${activeTab === value ? 'is-active' : ''}`}
           >
@@ -640,29 +784,38 @@ export default function AdminPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           {isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                value={editingTagName}
-                                onChange={(e) => setEditingTagName(e.target.value)}
-                                className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm"
-                                placeholder="Tagin nimi"
-                              />
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                                disabled={processingTagId === tag.id || !editingTagName.trim()}
-                                onClick={() => handleRenameTag(tag.id)}
-                              >
-                                Tallenna
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300"
-                                onClick={cancelRenameTag}
-                                disabled={processingTagId === tag.id}
-                              >
-                                Peruuta
-                              </button>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  value={editingTagName}
+                                  onChange={(e) => setEditingTagName(e.target.value)}
+                                  className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm"
+                                  placeholder="Tagin nimi"
+                                />
+                                <input
+                                  value={editingTagSlug}
+                                  onChange={(e) => setEditingTagSlug(e.target.value)}
+                                  className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm font-mono"
+                                  placeholder="tag-slug"
+                                />
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                                  disabled={processingTagId === tag.id || !editingTagName.trim()}
+                                  onClick={() => handleRenameTag(tag.id)}
+                                >
+                                  Tallenna
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300"
+                                  onClick={cancelRenameTag}
+                                  disabled={processingTagId === tag.id}
+                                >
+                                  Peruuta
+                                </button>
+                              </div>
+                              <p className="text-xs text-gray-500">Vanha nimi/slug lisätään automaattisesti aliakseksi.</p>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
@@ -726,6 +879,162 @@ export default function AdminPage() {
                 })}
             </div>
           </div>
+        </Card>
+      )}
+
+      {activeTab === 'tag_groups' && (
+        <Card>
+          <h2 className="card-title flex items-center gap-2">
+            {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
+            Tagiryhmät
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Ryhmät auttavat selaamaan tageja (esim. 8-bit, 16-bit), mutta ryhmiä ei voi valita keskustelun tageiksi.
+          </p>
+
+          <div className="rounded border border-gray-200 bg-gray-50 p-3 mb-4 space-y-2">
+            <h3 className="font-semibold text-sm text-gray-800">Luo uusi ryhmä</h3>
+            <div className="grid gap-2 md:grid-cols-2">
+              <Input
+                value={newGroupName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewGroupName(e.target.value)}
+                placeholder="Ryhmän nimi (esim. 8-bit)"
+              />
+              <Input
+                value={newGroupSlug}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewGroupSlug(e.target.value)}
+                placeholder="ryhman-slug (valinnainen)"
+              />
+            </div>
+            <Input
+              value={newGroupDescription}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewGroupDescription(e.target.value)}
+              placeholder="Kuvaus (valinnainen)"
+            />
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={newGroupSearchable}
+                onChange={(e) => setNewGroupSearchable(e.target.checked)}
+              />
+              Näytä ryhmä hakutuloksissa
+            </label>
+            <Button
+              type="button"
+              onClick={handleCreateTagGroup}
+              disabled={processingGroupId === -1 || !newGroupName.trim()}
+            >
+              {processingGroupId === -1 ? 'Luodaan...' : 'Luo ryhmä'}
+            </Button>
+          </div>
+
+          {tagGroups.length === 0 ? (
+            <p className="text-sm text-gray-500">Ei ryhmiä vielä.</p>
+          ) : (
+            <div className="space-y-3">
+              {tagGroups.map((group) => (
+                <div key={group.group_id} className="rounded border border-gray-200 bg-white p-3 space-y-2">
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <Input
+                      value={group.group_name}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setTagGroups((prev) =>
+                          prev.map((entry) =>
+                            entry.group_id === group.group_id ? { ...entry, group_name: e.target.value } : entry
+                          )
+                        )
+                      }
+                      placeholder="Ryhmän nimi"
+                    />
+                    <Input
+                      value={group.group_slug}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setTagGroups((prev) =>
+                          prev.map((entry) =>
+                            entry.group_id === group.group_id ? { ...entry, group_slug: e.target.value } : entry
+                          )
+                        )
+                      }
+                      placeholder="Ryhmän slug"
+                    />
+                  </div>
+                  <Input
+                    value={group.description || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setTagGroups((prev) =>
+                        prev.map((entry) =>
+                          entry.group_id === group.group_id ? { ...entry, description: e.target.value } : entry
+                        )
+                      )
+                    }
+                    placeholder="Kuvaus"
+                  />
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={group.searchable}
+                        onChange={(e) =>
+                          setTagGroups((prev) =>
+                            prev.map((entry) =>
+                              entry.group_id === group.group_id ? { ...entry, searchable: e.target.checked } : entry
+                            )
+                          )
+                        }
+                      />
+                      Hakukelpoinen
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      Jäseniä: {group.member_count}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Ryhmän tagit</p>
+                    <select
+                      multiple
+                      size={8}
+                      className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+                      value={group.member_tag_ids.map(String)}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions)
+                          .map((option) => Number.parseInt(option.value, 10))
+                          .filter((value) => Number.isFinite(value) && value > 0);
+                        setTagGroups((prev) =>
+                          prev.map((entry) =>
+                            entry.group_id === group.group_id ? { ...entry, member_tag_ids: selected } : entry
+                          )
+                        );
+                      }}
+                    >
+                      {canonicalTags.map((tag) => (
+                        <option key={tag.id} value={tag.id}>
+                          #{tag.name} ({tag.slug})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                      disabled={processingGroupId === group.group_id || !group.group_name.trim()}
+                      onClick={() => handleSaveTagGroup(group)}
+                    >
+                      Tallenna
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                      disabled={processingGroupId === group.group_id}
+                      onClick={() => handleDeleteTagGroup(group.group_id)}
+                    >
+                      Poista ryhmä
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 

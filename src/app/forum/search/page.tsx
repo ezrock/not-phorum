@@ -23,6 +23,20 @@ interface SearchResult {
   last_post_created_at: string | null;
 }
 
+interface TagHit {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface TagGroupHit {
+  group_id: number;
+  group_name: string;
+  group_slug: string;
+  member_count: number;
+  member_tag_ids: number[];
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,6 +44,8 @@ function SearchContent() {
 
   const query = searchParams.get('q') || '';
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [tagHits, setTagHits] = useState<TagHit[]>([]);
+  const [groupHits, setGroupHits] = useState<TagGroupHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [searchError, setSearchError] = useState('');
@@ -57,22 +73,59 @@ function SearchContent() {
   const performSearch = useCallback(async (term: string) => {
     if (term.trim().length < 2) {
       setResults([]);
+      setTagHits([]);
+      setGroupHits([]);
       setSearchError('');
       return;
     }
     setLoading(true);
     setSearchError('');
+    const trimmedTerm = term.trim();
 
-    const { data, error } = await supabase.rpc('search_forum', {
-      search_term: term.trim(),
-      result_limit: 30,
-    });
+    const [contentRes, tagRes, groupRes] = await Promise.all([
+      supabase.rpc('search_forum', {
+        search_term: trimmedTerm,
+        result_limit: 30,
+      }),
+      fetch(`/api/tags?status=approved&query=${encodeURIComponent(trimmedTerm)}&limit=8`, {
+        cache: 'no-store',
+      }),
+      supabase.rpc('search_tag_groups', {
+        input_query: trimmedTerm,
+        input_limit: 6,
+      }),
+    ]);
 
+    const { data, error } = contentRes;
     if (!error && data) {
       setResults(data as SearchResult[]);
     } else {
       setResults([]);
       setSearchError(error?.message || 'Haku epäonnistui');
+    }
+
+    if (tagRes.ok) {
+      const payload = (await tagRes.json()) as { tags?: TagHit[] };
+      setTagHits(payload.tags || []);
+    } else {
+      setTagHits([]);
+    }
+
+    if (!groupRes.error && groupRes.data) {
+      const normalizedGroups = ((groupRes.data || []) as Record<string, unknown>[]).map((row) => ({
+        group_id: Number(row.group_id),
+        group_name: String(row.group_name ?? ''),
+        group_slug: String(row.group_slug ?? ''),
+        member_count: Number(row.member_count ?? 0),
+        member_tag_ids: Array.isArray(row.member_tag_ids)
+          ? row.member_tag_ids
+              .map((value) => Number.parseInt(String(value), 10))
+              .filter((value) => Number.isFinite(value) && value > 0)
+          : [],
+      })) as TagGroupHit[];
+      setGroupHits(normalizedGroups);
+    } else {
+      setGroupHits([]);
     }
     setLoading(false);
   }, [supabase]);
@@ -136,7 +189,7 @@ function SearchContent() {
           <p className="mt-3 text-sm text-gray-600">
             {loading
               ? 'Haetaan...'
-              : `Hakutuloksia haulle "${query}": ${deduplicatedResults.length} osumaa`}
+              : `Hakutuloksia haulle "${query}": ${deduplicatedResults.length} sisältöosumaa, ${tagHits.length} tagia, ${groupHits.length} ryhmää`}
           </p>
         )}
       </div>
@@ -158,58 +211,107 @@ function SearchContent() {
             Haku epäonnistui: {searchError}
           </p>
         </Card>
-      ) : deduplicatedResults.length === 0 && query ? (
-        <Card>
-          <p className="text-center text-gray-500 py-8">
-            Ei hakutuloksia haulle &quot;{query}&quot;. Kokeile eri hakusanoja.
-          </p>
-        </Card>
       ) : (
-        <div className="space-y-2">
-          {deduplicatedResults.map((result, index) => (
-            <Link key={`${result.topic_id}-${result.result_type}-${index}`} href={`/forum/topic/${result.topic_id}`}>
-              <Card className="hover:border-yellow-400 transition cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-8 text-center">
-                    <div className="text-2xl">{result.category_icon}</div>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {result.result_type === 'topic' ? (
-                        <FileText size={14} className="text-yellow-600 flex-shrink-0" />
-                      ) : (
-                        <MessageSquare size={14} className="text-blue-500 flex-shrink-0" />
-                      )}
-                      <h3 className="text-lg font-bold text-gray-800 truncate">
-                        {highlightMatch(result.topic_title, query)}
-                      </h3>
-                    </div>
-
-                    {result.content_snippet && (
-                      <p className="text-sm text-gray-600 truncate mb-1">
-                        {highlightMatch(result.content_snippet, query)}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span className="text-yellow-600 font-medium">{result.category_name}</span>
-                      <span>{result.author_username}</span>
-                      <span className={result.result_type === 'topic' ? 'text-yellow-700' : 'text-blue-600'}>
-                        {result.result_type === 'topic' ? 'Aihe' : 'Viesti'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-semibold text-gray-700">
-                      {formatFinnishRelative(result.last_post_created_at || result.created_at)}
-                    </p>
-                  </div>
+        <div className="space-y-4">
+          {groupHits.length > 0 && (
+            <Card>
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-800">Tagiryhmät</h3>
+                <div className="flex flex-wrap gap-2">
+                  {groupHits.map((group) => {
+                    const tagParams = group.member_tag_ids.join(',');
+                    if (!tagParams) return null;
+                    return (
+                      <Link
+                        key={group.group_id}
+                        href={`/forum?tags=${tagParams}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-900 hover:bg-blue-100"
+                      >
+                        <span>📚</span>
+                        <span>{highlightMatch(group.group_name, query)}</span>
+                        <span className="text-xs text-blue-700">({group.member_count})</span>
+                      </Link>
+                    );
+                  })}
                 </div>
-              </Card>
-            </Link>
-          ))}
+              </div>
+            </Card>
+          )}
+
+          {tagHits.length > 0 && (
+            <Card>
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-800">Tagiosumat</h3>
+                <div className="flex flex-wrap gap-2">
+                  {tagHits.map((tag) => (
+                    <Link
+                      key={tag.id}
+                      href={`/forum?tags=${tag.id}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1 text-sm font-medium text-yellow-900 hover:bg-yellow-100"
+                    >
+                      <span>🏷️</span>
+                      <span>{highlightMatch(tag.name, query)}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {deduplicatedResults.length === 0 && query ? (
+            <Card>
+              <p className="text-center text-gray-500 py-8">
+                Ei sisältöosumia haulle &quot;{query}&quot;. Kokeile eri hakusanoja.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {deduplicatedResults.map((result, index) => (
+                <Link key={`${result.topic_id}-${result.result_type}-${index}`} href={`/forum/topic/${result.topic_id}`}>
+                  <Card className="hover:border-yellow-400 transition cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 text-center">
+                        <div className="text-2xl">{result.category_icon}</div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {result.result_type === 'topic' ? (
+                            <FileText size={14} className="text-yellow-600 flex-shrink-0" />
+                          ) : (
+                            <MessageSquare size={14} className="text-blue-500 flex-shrink-0" />
+                          )}
+                          <h3 className="text-lg font-bold text-gray-800 truncate">
+                            {highlightMatch(result.topic_title, query)}
+                          </h3>
+                        </div>
+
+                        {result.content_snippet && (
+                          <p className="text-sm text-gray-600 truncate mb-1">
+                            {highlightMatch(result.content_snippet, query)}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <span className="text-yellow-600 font-medium">{result.category_name}</span>
+                          <span>{result.author_username}</span>
+                          <span className={result.result_type === 'topic' ? 'text-yellow-700' : 'text-blue-600'}>
+                            {result.result_type === 'topic' ? 'Aihe' : 'Viesti'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs font-semibold text-gray-700">
+                          {formatFinnishRelative(result.last_post_created_at || result.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
