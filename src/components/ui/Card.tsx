@@ -6,9 +6,9 @@ interface CardProps {
 }
 
 export const Card = ({ children, className = '' }: CardProps): JSX.Element => {
-    return (
-      <div className={`app-card rounded-lg shadow-lg p-8 ${className}`}>
-        {children}
-      </div>
-    );
-  };
+  return (
+    <div className={`app-card card-padding-default rounded-lg shadow-lg ${className}`}>
+      {children}
+    </div>
+  );
+};

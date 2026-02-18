@@ -95,7 +95,7 @@ export default function MembersPage() {
       <div className="space-y-2">
         {members.map((member) => (
           <Link key={member.id} href={`/profile/${member.id}`}>
-            <Card className="py-3 px-4 hover:border-yellow-400 transition cursor-pointer">
+            <Card className="hover:border-yellow-400 transition cursor-pointer">
               <div className="flex items-start gap-4">
                 {member.profile_image_url ? (
                   <img src={profileThumb(member.profile_image_url)} alt={member.username} className="w-10 h-10 rounded-none object-cover" />

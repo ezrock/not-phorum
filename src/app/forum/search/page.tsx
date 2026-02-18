@@ -168,7 +168,7 @@ function SearchContent() {
         <div className="space-y-2">
           {deduplicatedResults.map((result, index) => (
             <Link key={`${result.topic_id}-${result.result_type}-${index}`} href={`/forum/topic/${result.topic_id}`}>
-              <Card className="hover:border-yellow-400 transition cursor-pointer py-3 px-4">
+              <Card className="hover:border-yellow-400 transition cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0 w-8 text-center">
                     <div className="text-2xl">{result.category_icon}</div>

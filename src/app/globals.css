@@ -192,6 +192,14 @@ a[href]:not([class]):hover {
   background: var(--surface-card);
 }
 
+.card-padding-default {
+  padding: 2rem;
+}
+
+.card-padding-none {
+  padding: 0 !important;
+}
+
 .page-container {
   max-width: 72rem;
   margin-left: auto;

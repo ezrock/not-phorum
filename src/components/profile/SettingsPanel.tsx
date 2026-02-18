@@ -88,7 +88,7 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled }: S
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 px-1 py-1">
-          <label htmlFor="realtimeUpdatesEnabled" className="text-sm text-gray-700">
+          <label htmlFor="realtimeUpdatesEnabled" className="text-md text-gray-700">
             Reaaliaikaiset päivitykset ketjuille ja viesteille
           </label>
 
@@ -113,8 +113,8 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled }: S
         </div>
 
         <div className="flex items-center justify-between gap-3 px-1 py-1">
-          <label htmlFor="retroEnabled" className="text-sm text-gray-700">
-            Retro
+          <label htmlFor="retroEnabled" className="text-md text-gray-700">
+            Retrolasit päähän
           </label>
 
           <button

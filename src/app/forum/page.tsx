@@ -369,7 +369,7 @@ function ForumContent() {
           </p>
         </Card>
       ) : (
-        <Card className="p-0 overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="divide-y divide-gray-200">
           {topics.map((topic) => {
             const lastPostPage = getLastPostPage(topic);
@@ -381,7 +381,7 @@ function ForumContent() {
               href={topicHref}
               className="block hover:bg-yellow-50/40 transition"
             >
-              <div className="py-3 px-4">
+              <div className="py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0 w-8 text-center">
                     <div className="text-2xl">{topic.category_icon}</div>

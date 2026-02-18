@@ -249,10 +249,10 @@ export default function LokiPage() {
           </p>
         </Card>
       ) : (
-        <Card className="p-0 overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="divide-y divide-gray-200">
             {filtered.map((event) => (
-              <div key={event.id} className="py-3 px-4">
+              <div key={event.id} className="py-3">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-8 text-center pt-0.5">
                     {event.type === 'image' ? (
