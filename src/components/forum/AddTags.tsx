@@ -13,16 +13,28 @@ interface AddTagsProps {
   selected: TagOption[];
   onChange: (next: TagOption[]) => void;
   disabled?: boolean;
+  allowCreate?: boolean;
 }
 
 interface TagsApiResponse {
   tags?: TagOption[];
 }
 
-export function AddTags({ selected, onChange, disabled = false }: AddTagsProps) {
+interface CreateTagResponse {
+  tag?: TagOption;
+  error?: string;
+}
+
+function normalizeInputTagName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+export function AddTags({ selected, onChange, disabled = false, allowCreate = false }: AddTagsProps) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<TagOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -43,8 +55,9 @@ export function AddTags({ selected, onChange, disabled = false }: AddTagsProps) 
     const timeout = setTimeout(async () => {
       if (disabled) return;
       setLoading(true);
+      setError('');
       try {
-        const res = await fetch(`/tags?status=approved&query=${encodeURIComponent(query)}`, {
+        const res = await fetch(`/api/tags?status=approved&featured=true&query=${encodeURIComponent(query)}`, {
           method: 'GET',
           signal: controller.signal,
           cache: 'no-store',
@@ -78,6 +91,34 @@ export function AddTags({ selected, onChange, disabled = false }: AddTagsProps) 
 
   const removeTag = (tagId: number) => {
     onChange(selected.filter((tag) => tag.id !== tagId));
+  };
+
+  const normalizedQuery = normalizeInputTagName(query);
+  const hasExactVisibleOption = options.some((tag) => tag.name.toLowerCase() === normalizedQuery.toLowerCase());
+  const hasExactSelectedOption = selected.some((tag) => tag.name.toLowerCase() === normalizedQuery.toLowerCase());
+  const canCreate = allowCreate && normalizedQuery.length > 0 && !hasExactVisibleOption && !hasExactSelectedOption;
+
+  const handleCreate = async () => {
+    if (!canCreate || disabled || creating) return;
+    setCreating(true);
+    setError('');
+    try {
+      const res = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: normalizedQuery }),
+      });
+      const data = (await res.json()) as CreateTagResponse;
+      if (!res.ok || !data.tag) {
+        setError(data.error || 'Tagin luonti epäonnistui');
+        return;
+      }
+      addTag(data.tag);
+    } catch {
+      setError('Tagin luonti epäonnistui');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -137,9 +178,20 @@ export function AddTags({ selected, onChange, disabled = false }: AddTagsProps) 
                   #{tag.name}
                 </button>
               ))}
+            {!loading && canCreate && (
+              <button
+                type="button"
+                className="block w-full border-t border-gray-200 px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50"
+                onClick={handleCreate}
+                disabled={disabled || creating}
+              >
+                {creating ? 'Luodaan tagia...' : `Luo uusi tagi: #${normalizedQuery}`}
+              </button>
+            )}
           </div>
         )}
       </div>
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

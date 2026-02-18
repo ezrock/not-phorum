@@ -187,7 +187,7 @@ export default function NewTopicPage() {
             </p>
           </div>
 
-          <AddTags selected={selectedTags} onChange={setSelectedTags} disabled={submitting} />
+          <AddTags selected={selectedTags} onChange={setSelectedTags} disabled={submitting} allowCreate />
 
           {imageUrl && (
             <div className="relative inline-block">
