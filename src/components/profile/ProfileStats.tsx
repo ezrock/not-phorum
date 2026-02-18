@@ -38,7 +38,7 @@ export function ProfileStats({
       </div>
       <div className="flex items-center gap-3">
         <LogIn size={18} className="text-yellow-600" />
-        <span className="text-sm text-gray-500 flex-1">Kirjautunut eri verkosta</span>
+        <span className="text-sm text-gray-500 flex-1">Vierailut eri IP-osoitteista</span>
         <span className="font-bold">{loginNetworkCount}</span>
       </div>
       {mostPopularTopic && (

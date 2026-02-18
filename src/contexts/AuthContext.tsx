@@ -91,17 +91,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     if (error) throw error;
 
-    // Increment login count (fire-and-forget)
+    // Track login counters and refresh profile immediately so stats update without manual reload.
     if (data.user) {
-      supabase.rpc('increment_login_count', { target_user_id: data.user.id });
-
       const accessToken = data.session?.access_token;
-      fetch('/api/auth/login-network', {
+      const loginCountPromise = supabase.rpc('increment_login_count', { target_user_id: data.user.id });
+      const networkPromise = fetch('/api/auth/login-network', {
         method: 'POST',
+        credentials: 'include',
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      }).catch(() => {
-        // Ignore network tracking failures to keep login flow fast.
       });
+
+      const [loginCountRes, networkRes] = await Promise.allSettled([loginCountPromise, networkPromise]);
+
+      if (loginCountRes.status === 'fulfilled' && loginCountRes.value.error) {
+        console.warn('increment_login_count failed:', loginCountRes.value.error.message);
+      }
+      if (loginCountRes.status === 'rejected') {
+        console.warn('increment_login_count request failed');
+      }
+
+      if (networkRes.status === 'fulfilled' && !networkRes.value.ok) {
+        console.warn('login-network tracking failed:', networkRes.value.status);
+      }
+      if (networkRes.status === 'rejected') {
+        console.warn('login-network request failed');
+      }
+
+      await fetchProfile(data.user.id);
     }
 
     return data;
