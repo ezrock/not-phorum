@@ -79,6 +79,7 @@ body {
 
 body.retro-enabled {
   filter: url(#crt) contrast(1.08) saturate(0.85) brightness(0.96);
+  overflow-x: hidden;
 }
 
 .retro-filter-defs {
@@ -93,6 +94,7 @@ body.retro-enabled {
   inset: 0;
   z-index: 9999;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .retro-overlay-scanlines {
