@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3 } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3, Check, X } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,12 @@ interface TrophyOverview {
   awarded_count: number;
 }
 
+interface PendingUser {
+  id: string;
+  username: string;
+  created_at: string;
+}
+
 type AdminTab = 'board' | 'users' | 'categories' | 'trophies' | 'levels' | 'events';
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
@@ -34,7 +40,10 @@ export default function AdminPage() {
   const [savingNotificationMessage, setSavingNotificationMessage] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [trophyLoading, setTrophyLoading] = useState(true);
+  const [pendingUsersLoading, setPendingUsersLoading] = useState(true);
   const [trophyOverview, setTrophyOverview] = useState<TrophyOverview[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
@@ -54,6 +63,11 @@ export default function AdminPage() {
           .from('profile_trophies')
           .select('*', { count: 'exact', head: true }),
       ]);
+      const pendingRes = await supabase
+        .from('profiles')
+        .select('id, username, created_at')
+        .eq('approval_status', 'pending')
+        .order('created_at', { ascending: true });
 
       if (settingsRes.data) {
         const settings = settingsRes.data as { key: string; value: string }[];
@@ -65,10 +79,14 @@ export default function AdminPage() {
       if (overviewRes.data) {
         setTrophyOverview(overviewRes.data as TrophyOverview[]);
       }
+      if (!pendingRes.error && pendingRes.data) {
+        setPendingUsers(pendingRes.data as PendingUser[]);
+      }
       setTotalAwardedTrophies(awardedRes.count || 0);
 
       setSettingsLoading(false);
       setTrophyLoading(false);
+      setPendingUsersLoading(false);
     };
 
     fetchAdminData();
@@ -119,7 +137,30 @@ export default function AdminPage() {
     setSavingNotificationMessage(false);
   };
 
-  if (loading || settingsLoading || trophyLoading) {
+  const refreshPendingUsers = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, created_at')
+      .eq('approval_status', 'pending')
+      .order('created_at', { ascending: true });
+
+    setPendingUsers((data ?? []) as PendingUser[]);
+  };
+
+  const handleSetApprovalStatus = async (userId: string, status: 'approved' | 'rejected') => {
+    setProcessingUserId(userId);
+    const { error } = await supabase.rpc('set_profile_approval_status', {
+      target_user_id: userId,
+      new_status: status,
+    });
+
+    if (!error) {
+      await refreshPendingUsers();
+    }
+    setProcessingUserId(null);
+  };
+
+  if (loading || settingsLoading || trophyLoading || pendingUsersLoading) {
     return (
       <div className="page-container">
         <Card>
@@ -261,7 +302,40 @@ export default function AdminPage() {
             {showHeaderIcons && <UsersIcon size={20} className="text-yellow-600" />}
             Käyttäjät
           </h2>
-          <p className="text-sm text-gray-500">Käyttäjähallinta tulossa tähän korttiin.</p>
+          {pendingUsers.length === 0 ? (
+            <p className="text-sm text-gray-500">Ei uusia hyväksyntää odottavia käyttäjiä.</p>
+          ) : (
+            <div className="space-y-2">
+              {pendingUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{user.username}</p>
+                    <p className="text-xs text-gray-500">{new Date(user.created_at).toLocaleString('fi-FI')}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={processingUserId === user.id}
+                      onClick={() => handleSetApprovalStatus(user.id, 'approved')}
+                      className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <Check size={14} />
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={processingUserId === user.id}
+                      onClick={() => handleSetApprovalStatus(user.id, 'rejected')}
+                      className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <X size={14} />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 

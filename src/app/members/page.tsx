@@ -34,6 +34,7 @@ export default function MembersPage() {
         supabase
           .from('profiles')
           .select('id, username, profile_image_url, created_at, is_admin')
+          .eq('approval_status', 'approved')
           .order('created_at', { ascending: true }),
         supabase
           .from('profile_trophies')

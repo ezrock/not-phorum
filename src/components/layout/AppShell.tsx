@@ -14,7 +14,7 @@ interface AppShellProps {
 }
 
 const PUBLIC_PATHS = new Set(['/login', '/register']);
-const AUTH_ROOTS = ['/forum', '/members', '/profile', '/admin', '/loki'];
+const AUTH_ROOTS = ['/forum', '/members', '/profile', '/admin', '/loki', '/pending-approval'];
 const NOTIFICATION_REPEAT_COUNT = 8;
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 

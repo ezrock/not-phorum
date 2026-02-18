@@ -38,7 +38,17 @@ export function ProfileStats({
       </div>
       <div className="flex items-center gap-3">
         <LogIn size={18} className="text-yellow-600" />
-        <span className="text-sm text-gray-500 flex-1">Vierailut eri IP-osoitteista</span>
+        <span className="text-sm text-gray-500 flex-1">
+          Vierailut eri IP-osoitteista (
+          <a
+            href="https://github.com/ezrock/not-phorum/commit/484bdab3f913da96ee81ca1d6eae63228513f7c4"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Github
+          </a>
+          )
+        </span>
         <span className="font-bold">{loginNetworkCount}</span>
       </div>
       {mostPopularTopic && (
