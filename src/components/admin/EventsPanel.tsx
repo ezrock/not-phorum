@@ -13,6 +13,7 @@ interface SiteEvent {
   id: number;
   name: string;
   event_date: string;
+  repeats_yearly: boolean;
   date_range_enabled: boolean;
   range_start_date: string | null;
   range_end_date: string | null;
@@ -25,6 +26,7 @@ interface SiteEvent {
 interface EventFormState {
   name: string;
   eventDate: string;
+  repeatsYearly: boolean;
   dateRangeEnabled: boolean;
   rangeStartDate: string;
   rangeEndDate: string;
@@ -37,6 +39,7 @@ interface EventFormState {
 const EMPTY_FORM: EventFormState = {
   name: '',
   eventDate: '',
+  repeatsYearly: true,
   dateRangeEnabled: false,
   rangeStartDate: '',
   rangeEndDate: '',
@@ -128,7 +131,7 @@ export function EventsPanel() {
     const [eventsRes, assetsRes] = await Promise.allSettled([
       supabase
         .from('site_events')
-        .select('id, name, event_date, date_range_enabled, range_start_date, range_end_date, music_enabled, music_file, logo_enabled, logo_file')
+        .select('id, name, event_date, repeats_yearly, date_range_enabled, range_start_date, range_end_date, music_enabled, music_file, logo_enabled, logo_file')
         .order('event_date', { ascending: false })
         .order('name', { ascending: true }),
       fetch('/api/events/assets', { cache: 'no-store' }),
@@ -182,6 +185,7 @@ export function EventsPanel() {
     setFormState({
       name: event.name,
       eventDate: event.event_date,
+      repeatsYearly: event.repeats_yearly !== false,
       dateRangeEnabled: event.date_range_enabled,
       rangeStartDate: event.range_start_date ?? '',
       rangeEndDate: event.range_end_date ?? '',
@@ -211,7 +215,7 @@ export function EventsPanel() {
       return;
     }
     if (formState.dateRangeEnabled && (!formState.rangeStartDate || !formState.rangeEndDate)) {
-      setErrorMessage('Valitse alku- ja loppupäivä päivämäärävälille.');
+      setErrorMessage('Valitse alku- ja loppupäivämäärä.');
       return;
     }
 
@@ -228,6 +232,7 @@ export function EventsPanel() {
     const payload = {
       name: trimmedName,
       event_date: effectiveEventDate,
+      repeats_yearly: formState.repeatsYearly,
       date_range_enabled: formState.dateRangeEnabled,
       range_start_date: formState.dateRangeEnabled ? normalizedRangeStart : null,
       range_end_date: formState.dateRangeEnabled ? normalizedRangeEnd : null,
@@ -327,7 +332,7 @@ export function EventsPanel() {
                     <td className="px-3 py-2">
                       {formatDateCell(event)}
                       {event.date_range_enabled && (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">Range</span>
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">Jakso</span>
                       )}
                     </td>
                     <td className="px-3 py-2">
@@ -336,7 +341,7 @@ export function EventsPanel() {
                           {event.music_enabled ? 'On' : 'Off'}
                         </span>
                         <span>{formatMidiName(event.music_file)}</span>
-                        {musicMissing && <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">Missing</span>}
+                        {musicMissing && <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">Puuttuu</span>}
                       </div>
                     </td>
                     <td className="px-3 py-2">
@@ -345,7 +350,7 @@ export function EventsPanel() {
                           {event.logo_enabled ? 'On' : 'Off'}
                         </span>
                         <span>{event.logo_file || 'No logo file'}</span>
-                        {logoMissing && <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">Missing</span>}
+                        {logoMissing && <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">Puuttuu</span>}
                       </div>
                     </td>
                   </tr>
@@ -379,29 +384,42 @@ export function EventsPanel() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="eventDateRangeEnabled" className="flex items-center gap-2 text-sm font-medium">
-                  <input
-                    id="eventDateRangeEnabled"
-                    type="checkbox"
-                    checked={formState.dateRangeEnabled}
-                    disabled={saving || deleting}
-                    onChange={(event) =>
-                      setFormState((prev) => ({
-                        ...prev,
-                        dateRangeEnabled: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 border-gray-300 rounded"
+              <div className="flex items-center justify-between gap-3 px-1 py-1">
+                <div>
+                  <p className="font-medium text-gray-800">Ajanjakso</p>
+                  <p className="text-sm text-gray-500">
+                    {formState.dateRangeEnabled ? 'Alku- ja loppupäivä käytössä' : 'Yksittäinen päivä käytössä'}
+                  </p>
+                </div>
+                <button
+                  id="eventDateRangeEnabled"
+                  type="button"
+                  role="switch"
+                  aria-checked={formState.dateRangeEnabled}
+                  aria-label="Date range"
+                  disabled={saving || deleting}
+                  onClick={() =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      dateRangeEnabled: !prev.dateRangeEnabled,
+                    }))
+                  }
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                    formState.dateRangeEnabled ? 'bg-green-500' : 'bg-gray-300'
+                  } ${(saving || deleting) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                      formState.dateRangeEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                   />
-                  Date range
-                </label>
+                </button>
               </div>
 
               {!formState.dateRangeEnabled && (
                 <div>
                   <label htmlFor="eventDate" className="block text-sm font-medium mb-1">
-                    Päivämäärä
+                    Päivä
                   </label>
                   <Input
                     id="eventDate"
@@ -445,133 +463,173 @@ export function EventsPanel() {
                 </div>
               )}
 
-              <div>
-                <label htmlFor="eventMusicFile" className="block text-sm font-medium mb-1">
-                  <span className="inline-flex items-center gap-1">
-                    <Music2 size={16} />
-                    MIDI-tiedosto
-                  </span>
-                </label>
-                <select
-                  id="eventMusicFile"
-                  value={formState.musicFile}
+              <div className="flex items-center justify-between gap-3 px-1 py-1">
+                <div>
+                  <p className="font-medium text-gray-800">Toistuu vuosittain</p>
+                  <p className="text-sm text-gray-500">
+                    {formState.repeatsYearly ? 'Tapahtuma toistuu joka vuosi' : 'Tapahtuma on kertaluonteinen'}
+                  </p>
+                </div>
+                <button
+                  id="eventRepeatsYearly"
+                  type="button"
+                  role="switch"
+                  aria-checked={formState.repeatsYearly}
+                  aria-label="Toistuu vuosittain"
                   disabled={saving || deleting}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, musicFile: event.target.value }))}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded focus:border-yellow-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  onClick={() =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      repeatsYearly: !prev.repeatsYearly,
+                    }))
+                  }
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                    formState.repeatsYearly ? 'bg-green-500' : 'bg-gray-300'
+                  } ${(saving || deleting) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <option value="">No midi file</option>
-                  {midiSongs.map((song) => (
-                    <option key={song} value={song}>
-                      {song}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Löydetty {midiSongs.length} MIDI-tiedostoa kansiosta `public/midi`.
-                </p>
-                {!formState.musicEnabled && (
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                      formState.repeatsYearly ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <section className="section-block">
+                <h4 className="section-header">Tiedostot</h4>
+
+                <div>
+                  <label htmlFor="eventMusicFile" className="block text-sm font-medium mb-1">
+                    <span className="inline-flex items-center gap-1">
+                      <Music2 size={16} />
+                      MIDI-tiedosto
+                    </span>
+                  </label>
+                  <select
+                    id="eventMusicFile"
+                    value={formState.musicFile}
+                    disabled={saving || deleting}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, musicFile: event.target.value }))}
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded focus:border-yellow-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    <option value="">Ei midi-tiedostoa</option>
+                    {midiSongs.map((song) => (
+                      <option key={song} value={song}>
+                        {song}
+                      </option>
+                    ))}
+                  </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Tiedosto tallennetaan valmiiksi, mutta sitä käytetään vain jos musiikki on päällä.
+                    Löydetty {midiSongs.length} MIDI-tiedostoa kansiosta `public/midi`.
                   </p>
-                )}
-                {midiSongs.length === 0 && (
-                  <p className="text-xs text-red-600 mt-1">
-                    MIDI-tiedostoja ei löytynyt kansiosta `public/midi`.
+                  {!formState.musicEnabled && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Tiedosto tallennetaan valmiiksi, mutta sitä käytetään vain jos musiikki on päällä.
+                    </p>
+                  )}
+                  {midiSongs.length === 0 && (
+                    <p className="text-xs text-red-600 mt-1">
+                      MIDI-tiedostoja ei löytynyt kansiosta `public/midi`.
+                    </p>
+                  )}
+                  {formState.musicEnabled && formState.musicFile && !midiSet.has(formState.musicFile) && (
+                    <p className="text-xs text-red-600 mt-1">Valittu MIDI puuttuu kansiosta `public/midi`.</p>
+                  )}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3 px-1 py-1">
+                  <div>
+                    <p className="font-medium text-gray-800">Midin soittaminen</p>
+                    <p className="text-sm text-gray-500">
+                      {formState.musicEnabled ? 'MIDI soi tapahtuman aikana' : 'MIDI ei soi tapahtuman aikana'}
+                    </p>
+                  </div>
+                  <button
+                    id="eventMusicEnabled"
+                    type="button"
+                    role="switch"
+                    aria-checked={formState.musicEnabled}
+                    aria-label="Tapahtuman musiikki"
+                    disabled={saving || deleting}
+                    onClick={() =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        musicEnabled: !prev.musicEnabled,
+                      }))
+                    }
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                      formState.musicEnabled ? 'bg-green-500' : 'bg-gray-300'
+                    } ${(saving || deleting) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                        formState.musicEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-4">
+                  <label htmlFor="eventLogoFile" className="block text-sm font-medium mb-1">
+                    <span className="inline-flex items-center gap-1">
+                      <ImageIcon size={16} />
+                      Logo
+                    </span>
+                  </label>
+                  <select
+                    id="eventLogoFile"
+                    value={formState.logoFile}
+                    disabled={saving || deleting}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, logoFile: event.target.value }))}
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded focus:border-yellow-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    <option value="">Ei logoa</option>
+                    {logos.map((logo) => (
+                      <option key={logo} value={logo}>
+                        {logo}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Löydetty {logos.length} logotiedostoa kansiosta `public/logo`.
                   </p>
-                )}
-                {formState.musicEnabled && formState.musicFile && !midiSet.has(formState.musicFile) && (
-                  <p className="text-xs text-red-600 mt-1">Valittu MIDI puuttuu kansiosta `public/midi`.</p>
-                )}
-              </div>
+                  {formState.logoEnabled && formState.logoFile && !logoSet.has(formState.logoFile) && (
+                    <p className="text-xs text-red-600 mt-1">Valittu logo puuttuu kansiosta `public/logo`.</p>
+                  )}
+                </div>
 
-              <div className="flex items-center justify-between gap-3 px-1 py-1">
-                <label htmlFor="eventMusicEnabled" className="text-md text-gray-700">
-                  Musiikki päällä
-                </label>
-
-                <button
-                  id="eventMusicEnabled"
-                  type="button"
-                  role="switch"
-                  aria-checked={formState.musicEnabled}
-                  aria-label="Tapahtuman musiikki"
-                  disabled={saving || deleting}
-                  onClick={() =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      musicEnabled: !prev.musicEnabled,
-                    }))
-                  }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                    formState.musicEnabled ? 'bg-yellow-500' : 'bg-gray-300'
-                  } ${(saving || deleting) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                      formState.musicEnabled ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div>
-                <label htmlFor="eventLogoFile" className="block text-sm font-medium mb-1">
-                  <span className="inline-flex items-center gap-1">
-                    <ImageIcon size={16} />
-                    Logo
-                  </span>
-                </label>
-                <select
-                  id="eventLogoFile"
-                  value={formState.logoFile}
-                  disabled={saving || deleting}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, logoFile: event.target.value }))}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded focus:border-yellow-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                >
-                  <option value="">Ei logoa</option>
-                  {logos.map((logo) => (
-                    <option key={logo} value={logo}>
-                      {logo}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Löydetty {logos.length} logotiedostoa kansiosta `public/logo`.
-                </p>
-                {formState.logoEnabled && formState.logoFile && !logoSet.has(formState.logoFile) && (
-                  <p className="text-xs text-red-600 mt-1">Valittu logo puuttuu kansiosta `public/logo`.</p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-3 px-1 py-1">
-                <label htmlFor="eventLogoEnabled" className="text-md text-gray-700">
-                  Logo päällä
-                </label>
-
-                <button
-                  id="eventLogoEnabled"
-                  type="button"
-                  role="switch"
-                  aria-checked={formState.logoEnabled}
-                  aria-label="Tapahtuman logo"
-                  disabled={saving || deleting}
-                  onClick={() =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      logoEnabled: !prev.logoEnabled,
-                    }))
-                  }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                    formState.logoEnabled ? 'bg-yellow-500' : 'bg-gray-300'
-                  } ${(saving || deleting) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                      formState.logoEnabled ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
+                <div className="mt-4 flex items-center justify-between gap-3 px-1 py-1">
+                  <div>
+                    <p className="font-medium text-gray-800">Logon näyttäminen</p>
+                    <p className="text-sm text-gray-500">
+                      {formState.logoEnabled ? 'Logo näytetään tapahtuman aikana' : 'Logoa ei näytetä tapahtuman aikana'}
+                    </p>
+                  </div>
+                  <button
+                    id="eventLogoEnabled"
+                    type="button"
+                    role="switch"
+                    aria-checked={formState.logoEnabled}
+                    aria-label="Tapahtuman logo"
+                    disabled={saving || deleting}
+                    onClick={() =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        logoEnabled: !prev.logoEnabled,
+                      }))
+                    }
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                      formState.logoEnabled ? 'bg-green-500' : 'bg-gray-300'
+                    } ${(saving || deleting) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                        formState.logoEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </section>
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-2">

@@ -52,6 +52,7 @@ interface TopLikedAuthor {
 export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
   const { supabase } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
+  const showSectionHeaderIcons = UI_ICON_SETTINGS.showSectionHeaderIcons;
   const [loading, setLoading] = useState(true);
   const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
   const [mostViewedThreads, setMostViewedThreads] = useState<ViewedTopicStat[]>([]);
@@ -146,9 +147,9 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
       </h2>
 
       <div>
-        <section className="subsection">
-          <h3 className="subsection-title">
-            <Star size={14} className="text-yellow-600" />
+        <section className="section-block">
+          <h3 className="section-header">
+            {showSectionHeaderIcons && <Star size={14} className="text-yellow-600" />}
             Suosikkikategoriat
           </h3>
           {favouriteCategories.length > 0 ? (
@@ -166,9 +167,9 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           )}
         </section>
 
-        <section className="subsection">
-          <h3 className="subsection-title">
-            <Heart size={14} className="text-yellow-600" />
+        <section className="section-block">
+          <h3 className="section-header">
+            {showSectionHeaderIcons && <Heart size={14} className="text-yellow-600" />}
             Eniten tykätyt viestit
           </h3>
           {topLikedPosts.length > 0 ? (
@@ -190,9 +191,9 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           )}
         </section>
 
-        <section className="subsection">
-          <h3 className="subsection-title">
-            <BarChart3 size={14} className="text-yellow-600" />
+        <section className="section-block">
+          <h3 className="section-header">
+            {showSectionHeaderIcons && <BarChart3 size={14} className="text-yellow-600" />}
             Katsotuimmat aiheet
           </h3>
           {mostViewedThreads.length > 0 ? (
@@ -213,9 +214,9 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           )}
         </section>
 
-        <section className="subsection">
-          <h3 className="subsection-title">
-            <Users size={14} className="text-yellow-600" />
+        <section className="section-block">
+          <h3 className="section-header">
+            {showSectionHeaderIcons && <Users size={14} className="text-yellow-600" />}
             Käyttäjät joiden viesteistä olet tykännyt
           </h3>
           {likedAuthors.length > 0 ? (

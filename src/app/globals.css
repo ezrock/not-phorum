@@ -263,27 +263,31 @@ a[href]:not([class]):hover {
   margin-bottom: 1rem;
 }
 
+.section-block,
 .subsection {
   margin-top: 2rem;
-  padding-top: 1.25rem;
+  padding: 1.25rem 0.75rem 0.75rem;
   border-top: 1px solid #e5e7eb;
 }
 
+.section-block:first-child,
 .subsection:first-child {
   margin-top: 0;
-  padding-top: 0;
+  padding-top: 0.75rem;
   border-top: 0;
 }
 
+.section-header,
 .subsection-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: var(--type-size-md);
-  line-height: 1.25rem;
+  font-size: var(--type-size-lg);
+  line-height: 1.5rem;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 0.5rem;
+  padding: 0.25rem 0;
+  margin-bottom: 0.75rem;
 }
 
 .avatar-inline-sm {

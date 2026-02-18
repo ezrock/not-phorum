@@ -1,6 +1,7 @@
 export interface RecurringSiteEvent {
   id: number;
   event_date: string;
+  repeats_yearly?: boolean;
   date_range_enabled?: boolean;
   range_start_date?: string | null;
   range_end_date?: string | null;
@@ -20,10 +21,25 @@ function getMonthDayFromDate(date: Date): number {
   return (date.getMonth() + 1) * 100 + date.getDate();
 }
 
+function toIsoDateLocal(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function eventOccursOnDate(event: RecurringSiteEvent, targetDate: Date): boolean {
   const targetMonthDay = getMonthDayFromDate(targetDate);
+  const targetIso = toIsoDateLocal(targetDate);
+  const repeatsYearly = event.repeats_yearly !== false;
 
   if (event.date_range_enabled) {
+    if (!event.range_start_date || !event.range_end_date) return false;
+
+    if (!repeatsYearly) {
+      return targetIso >= event.range_start_date && targetIso <= event.range_end_date;
+    }
+
     const start = getMonthDayFromIsoDate(event.range_start_date);
     const end = getMonthDayFromIsoDate(event.range_end_date);
     if (start === null || end === null) return false;
@@ -33,6 +49,10 @@ export function eventOccursOnDate(event: RecurringSiteEvent, targetDate: Date): 
       return targetMonthDay >= start && targetMonthDay <= end;
     }
     return targetMonthDay >= start || targetMonthDay <= end;
+  }
+
+  if (!repeatsYearly) {
+    return event.event_date === targetIso;
   }
 
   const singleDay = getMonthDayFromIsoDate(event.event_date);

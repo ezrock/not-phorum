@@ -183,8 +183,8 @@ export default function AdminPage() {
                 <p className="font-medium">Rekisteröityminen</p>
                 <p className="text-sm text-gray-500">
                   {registrationEnabled
-                    ? 'Uudet käyttäjät voivat rekisteröityä'
-                    : 'Rekisteröityminen on suljettu'}
+                    ? 'Portit auki.'
+                    : 'Portit kiinni.'}
                 </p>
               </div>
             </div>
@@ -203,50 +203,52 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="subsection flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ScrollText size={20} className="text-gray-600" />
-              <div>
-              <p className="font-medium">Ilmoitusraita</p>
-              <p className="text-sm text-gray-500">
-                {notificationEnabled ? 'Raita näkyy kirjautuneille käyttäjille' : 'Raita on pois päältä'}
-              </p>
+          <div className="section-block">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ScrollText size={20} className="text-gray-600" />
+                <div>
+                <p className="font-medium">Ilmoitusraita</p>
+                <p className="text-sm text-gray-500">
+                  {notificationEnabled ? 'Raita näkyy kirjautuneille käyttäjille' : 'Raita on pois päältä'}
+                </p>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={handleToggleNotification}
-              disabled={notificationToggling}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                notificationEnabled ? 'bg-green-500' : 'bg-gray-300'
-              } ${notificationToggling ? 'opacity-50' : ''}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  notificationEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="subsection">
-            <label htmlFor="notificationMessage" className="subsection-title">
-              Ilmoitusviesti
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="notificationMessage"
-                value={notificationMessage}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotificationMessage(e.target.value)}
-                placeholder="Kirjoita ilmoitusviesti..."
-              />
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleSaveNotificationMessage}
-                disabled={savingNotificationMessage}
+              <button
+                onClick={handleToggleNotification}
+                disabled={notificationToggling}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                  notificationEnabled ? 'bg-green-500' : 'bg-gray-300'
+                } ${notificationToggling ? 'opacity-50' : ''}`}
               >
-                {savingNotificationMessage ? 'Tallennetaan...' : 'Tallenna'}
-              </Button>
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                    notificationEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="notificationMessage" className="block text-sm font-medium mb-1">
+                Ilmoitusviesti
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="notificationMessage"
+                  value={notificationMessage}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotificationMessage(e.target.value)}
+                  placeholder="Kirjoita ilmoitusviesti..."
+                />
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveNotificationMessage}
+                  disabled={savingNotificationMessage}
+                >
+                  {savingNotificationMessage ? 'Tallennetaan...' : 'Tallenna'}
+                </Button>
+              </div>
             </div>
           </div>
 

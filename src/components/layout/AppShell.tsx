@@ -21,6 +21,7 @@ const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 interface EventAudioRow {
   id: number;
   event_date: string;
+  repeats_yearly: boolean;
   date_range_enabled: boolean;
   range_start_date: string | null;
   range_end_date: string | null;
@@ -118,7 +119,7 @@ export function AppShell({ children }: AppShellProps) {
     const fetchEvents = async () => {
       const { data, error } = await supabase
         .from('site_events')
-        .select('id, event_date, date_range_enabled, range_start_date, range_end_date, music_enabled, music_file');
+        .select('id, event_date, repeats_yearly, date_range_enabled, range_start_date, range_end_date, music_enabled, music_file');
 
       if (error || !data) {
         setEvents([]);

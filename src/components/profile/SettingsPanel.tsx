@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings2, RefreshCw, Palette, Music2 } from 'lucide-react';
+import { Settings2, RefreshCw, Palette, Music2, Sparkles } from 'lucide-react';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 interface SettingsPanelProps {
@@ -16,6 +16,8 @@ interface SettingsPanelProps {
 export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, initialMidiEnabled }: SettingsPanelProps) {
   const { currentUser, supabase, refreshProfile } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
+  const showSettingActionIcons = UI_ICON_SETTINGS.showSettingActionIcons;
+  const showSectionHeaderIcons = UI_ICON_SETTINGS.showSectionHeaderIcons;
 
   const [realtimeUpdatesEnabled, setRealtimeUpdatesEnabled] = useState(initialRealtimeEnabled);
   const [retroEnabled, setRetroEnabled] = useState(initialRetroEnabled);
@@ -116,46 +118,49 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
       {settingsSuccess && <Alert variant="success">{settingsSuccess}</Alert>}
 
       <div>
-        <section className="subsection">
+        <section className="section-block">
           <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <RefreshCw size={20} className="text-gray-600" />
-            <div>
-              <p className="font-medium">Reaaliaikaiset päivitykset</p>
-              <p className="text-sm text-gray-500">
-                {realtimeUpdatesEnabled
-                  ? 'Ketjut ja viestit päivittyvät automaattisesti'
-                  : 'Päivitykset vain sivun latauksella'}
-              </p>
+            <div className="flex items-center gap-3">
+              {showSettingActionIcons && <RefreshCw size={20} className="text-gray-600" />}
+              <div>
+                <p className="font-medium">Reaaliaikaiset päivitykset</p>
+                <p className="text-sm text-gray-500">
+                  {realtimeUpdatesEnabled
+                    ? 'Ketjut ja viestit päivittyvät automaattisesti'
+                    : 'Päivitykset vain sivun latauksella'}
+                </p>
+              </div>
             </div>
-          </div>
-          <button
-            id="realtimeUpdatesEnabled"
-            type="button"
-            role="switch"
-            aria-checked={realtimeUpdatesEnabled}
-            aria-label="Reaaliaikaiset päivitykset ketjuille ja viesteille"
-            disabled={savingSettings}
-            onClick={() => handleRealtimeToggle(!realtimeUpdatesEnabled)}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              realtimeUpdatesEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                realtimeUpdatesEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+            <button
+              id="realtimeUpdatesEnabled"
+              type="button"
+              role="switch"
+              aria-checked={realtimeUpdatesEnabled}
+              aria-label="Reaaliaikaiset päivitykset ketjuille ja viesteille"
+              disabled={savingSettings}
+              onClick={() => handleRealtimeToggle(!realtimeUpdatesEnabled)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                realtimeUpdatesEnabled ? 'bg-green-500' : 'bg-gray-300'
+              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  realtimeUpdatesEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
         </section>
 
-        <section className="subsection">
-          <h3 className="subsection-title">High definition graphics &amp; audio</h3>
+        <section className="section-block">
+          <h3 className="section-header">
+            {showSectionHeaderIcons && <Sparkles size={16} className="text-yellow-600" />}
+            High definition graphics &amp; audio
+          </h3>
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Palette size={20} className="text-gray-600" />
+              {showSettingActionIcons && <Palette size={20} className="text-gray-600" />}
               <div>
                 <p className="font-medium">Retrolasit päähän</p>
                 <p className="text-sm text-gray-500">
@@ -185,7 +190,7 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Music2 size={20} className="text-gray-600" />
+              {showSettingActionIcons && <Music2 size={20} className="text-gray-600" />}
               <div>
                 <p className="font-medium">.mid (On/Off)</p>
                 <p className="text-sm text-gray-500">
