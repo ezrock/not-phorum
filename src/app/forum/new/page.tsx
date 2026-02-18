@@ -11,6 +11,7 @@ import { CldUploadWidget } from 'next-cloudinary';
 import Link from 'next/link';
 import { ArrowLeft, Send, ImagePlus, X } from 'lucide-react';
 import { postThumb } from '@/lib/cloudinary';
+import { AddTags, type TagOption } from '@/components/forum/AddTags';
 
 interface Category {
   id: number;
@@ -40,6 +41,7 @@ export default function NewTopicPage() {
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +92,7 @@ export default function NewTopicPage() {
         input_title: title.trim(),
         input_content: content.trim(),
         input_image_url: imageUrl || null,
+        input_tag_ids: selectedTags.map((tag) => tag.id),
       });
 
       if (createError || typeof topicIdResult !== 'number') {
@@ -183,6 +186,8 @@ export default function NewTopicPage() {
               </a>
             </p>
           </div>
+
+          <AddTags selected={selectedTags} onChange={setSelectedTags} disabled={submitting} />
 
           {imageUrl && (
             <div className="relative inline-block">
