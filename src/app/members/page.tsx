@@ -98,10 +98,10 @@ export default function MembersPage() {
             <Card className="hover:border-yellow-400 transition cursor-pointer">
               <div className="flex items-start gap-4">
                 {member.profile_image_url ? (
-                  <img src={profileThumb(member.profile_image_url)} alt={member.username} className="w-10 h-10 rounded-none object-cover" />
+                  <img src={profileThumb(member.profile_image_url)} alt={member.username} className="avatar-large" />
                 ) : (
-                  <span className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-                    <User size={20} />
+                  <span className="avatar-large-fallback">
+                    <User size={30} />
                   </span>
                 )}
                 <div className="flex-1">

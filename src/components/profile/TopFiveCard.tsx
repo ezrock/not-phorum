@@ -230,10 +230,10 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
                     <img
                       src={profileThumb(author.profile_image_url)}
                       alt={author.username}
-                      className="w-6 h-6 rounded-none object-cover"
+                      className="avatar-inline-sm"
                     />
                   ) : (
-                    <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center text-xs font-bold">
+                    <span className="avatar-inline-sm-fallback text-xs font-bold">
                       {author.username.slice(0, 1).toUpperCase()}
                     </span>
                   )}

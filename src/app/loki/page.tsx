@@ -325,11 +325,12 @@ export default function LokiPage() {
             {filtered.map((event) => {
               const topicHref = `/forum/topic/${event.topic_id}${event.post_id ? `#post-${event.post_id}` : ''}`;
               const media = getMediaForEvent(event);
+              const rowAlignmentClass = media ? 'items-start' : 'items-center';
 
               return (
                 <div key={event.id} className="py-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 text-center pt-0.5">
+                  <div className={`flex gap-3 ${rowAlignmentClass}`}>
+                    <div className="flex-shrink-0 w-8 text-center">
                       {event.type === 'image' ? (
                         <ImageIcon size={20} className="text-yellow-600 mx-auto" />
                       ) : event.type === 'video' ? (
@@ -346,10 +347,10 @@ export default function LokiPage() {
                         {event.author && (
                           <Link href={`/profile/${event.author.id}`} className="inline-flex items-center gap-1.5 hover:opacity-80">
                             {event.author.profile_image_url ? (
-                              <img src={profileThumb(event.author.profile_image_url)} alt={event.author.username} className="w-5 h-5 rounded-none object-cover" />
+                              <img src={profileThumb(event.author.profile_image_url)} alt={event.author.username} className="avatar-inline-sm" />
                             ) : (
-                              <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-                                <User size={11} />
+                              <span className="avatar-inline-sm-fallback">
+                                <User size={10} />
                               </span>
                             )}
                             <span className="font-bold text-base leading-5 text-gray-800">{event.author.username}</span>

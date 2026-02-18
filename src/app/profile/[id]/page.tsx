@@ -137,10 +137,10 @@ export default function PublicProfilePage() {
       <Card className="mb-6">
         <div className="flex items-center gap-4">
           {profile.profile_image_url ? (
-            <img src={profileMedium(profile.profile_image_url)} alt={profile.username} className="w-20 h-20 rounded-none object-cover" />
+            <img src={profileMedium(profile.profile_image_url)} alt={profile.username} className="avatar-large" />
           ) : (
-            <span className="w-20 h-20 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-              <User size={42} />
+            <span className="avatar-large-fallback">
+              <User size={30} />
             </span>
           )}
           <div className="flex-1">

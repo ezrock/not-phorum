@@ -70,10 +70,10 @@ export const Navigation = (): JSX.Element | null => {
           >
             {showNavLinkIcons && (
               profile.profile_image_url ? (
-                <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="w-6 h-6 rounded-none object-cover" />
+                <img src={profileThumb(profile.profile_image_url)} alt={profile.username} className="avatar-inline-sm" />
               ) : (
-                <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-                  <User size={14} />
+                <span className="avatar-inline-sm-fallback">
+                  <User size={12} />
                 </span>
               )
             )}

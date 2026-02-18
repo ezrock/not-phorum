@@ -48,11 +48,11 @@ export default function ProfilePage() {
           <img
             src={profileMedium(typedProfile.profile_image_url)}
             alt={typedProfile.username || 'Profiili'}
-            className="w-16 h-16 rounded-none object-cover"
+            className="avatar-large"
           />
         ) : (
-          <span className="w-16 h-16 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-            <User size={34} />
+          <span className="avatar-large-fallback">
+            <User size={30} />
           </span>
         )}
         <div className="min-w-0">
