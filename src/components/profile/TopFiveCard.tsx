@@ -13,19 +13,11 @@ interface TopFiveCardProps {
   className?: string;
 }
 
-interface CategoryStat {
-  name: string;
-  icon: string;
-  count: number;
-}
-
-interface PostCategoryRow {
-  topic: {
-    category: {
-      name: string;
-      icon: string;
-    } | null;
-  } | null;
+interface TopTagStat {
+  tag_id: number;
+  tag_name: string;
+  tag_slug: string;
+  usage_count: number;
 }
 
 interface ViewedTopicStat {
@@ -54,7 +46,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
   const showSectionHeaderIcons = UI_ICON_SETTINGS.showSectionHeaderIcons;
   const [loading, setLoading] = useState(true);
-  const [favouriteCategories, setFavouriteCategories] = useState<CategoryStat[]>([]);
+  const [topTags, setTopTags] = useState<TopTagStat[]>([]);
   const [mostViewedThreads, setMostViewedThreads] = useState<ViewedTopicStat[]>([]);
   const [topLikedPosts, setTopLikedPosts] = useState<TopLikedPost[]>([]);
   const [likedAuthors, setLikedAuthors] = useState<TopLikedAuthor[]>([]);
@@ -65,12 +57,11 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
     const fetchTopFive = async () => {
       setLoading(true);
 
-      const [categoriesRes, viewedThreadsRes, likedPostsRes, likedAuthorsRes] = await Promise.all([
-        supabase
-          .from('posts')
-          .select('topic:topics(category:categories(name, icon))')
-          .eq('author_id', profileId)
-          .is('deleted_at', null),
+      const [topTagsRes, viewedThreadsRes, likedPostsRes, likedAuthorsRes] = await Promise.all([
+        supabase.rpc('get_profile_top_tags', {
+          target_profile_id: profileId,
+          result_limit: 5,
+        }),
         supabase
           .from('topics')
           .select('id, title, views')
@@ -87,20 +78,10 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
         }),
       ]);
 
-      if (!categoriesRes.error && categoriesRes.data) {
-        const catCounts: Record<string, CategoryStat> = {};
-        for (const post of categoriesRes.data as unknown as PostCategoryRow[]) {
-          const cat = post.topic?.category;
-          if (!cat?.name) continue;
-          if (!catCounts[cat.name]) {
-            catCounts[cat.name] = { name: cat.name, icon: cat.icon, count: 0 };
-          }
-          catCounts[cat.name].count += 1;
-        }
-        const sorted = Object.values(catCounts).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-        setFavouriteCategories(sorted.slice(0, 5));
+      if (!topTagsRes.error && topTagsRes.data) {
+        setTopTags(topTagsRes.data as TopTagStat[]);
       } else {
-        setFavouriteCategories([]);
+        setTopTags([]);
       }
 
       if (!viewedThreadsRes.error && viewedThreadsRes.data) {
@@ -150,15 +131,15 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
         <section className="section-block">
           <h3 className="section-header">
             {showSectionHeaderIcons && <Star size={14} className="text-yellow-600" />}
-            Suosikkikategoriat
+            Käytetyimmät tagit
           </h3>
-          {favouriteCategories.length > 0 ? (
+          {topTags.length > 0 ? (
             <div className="space-y-2">
-              {favouriteCategories.map((cat) => (
-                <div key={cat.name} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">{cat.icon}</span>
-                  <span className="flex-1 font-medium">{cat.name}</span>
-                  <span className="text-gray-500">{cat.count} viestiä</span>
+              {topTags.map((tag) => (
+                <div key={tag.tag_id} className="flex items-center gap-2 text-sm">
+                  <span className="text-lg">🏷️</span>
+                  <span className="flex-1 font-medium">#{tag.tag_name}</span>
+                  <span className="text-gray-500">{tag.usage_count} aihetta</span>
                 </div>
               ))}
             </div>

@@ -60,7 +60,6 @@ export default function NewTopicPage() {
 
     try {
       const { data: topicIdResult, error: createError } = await supabase.rpc('create_topic_with_post', {
-        input_category_id: null,
         input_title: title.trim(),
         input_content: content.trim(),
         input_image_url: imageUrl || null,

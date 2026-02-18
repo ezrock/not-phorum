@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3, Check, X, Tags as TagsIcon, Star } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, BarChart3, Check, X, Tags as TagsIcon, Star, Plus, Trash2 } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
@@ -42,9 +42,19 @@ interface CanonicalTagOption {
   slug: string;
 }
 
+interface TagAliasRow {
+  alias_id: number;
+  tag_id: number;
+  tag_name: string;
+  tag_slug: string;
+  alias: string;
+  normalized_alias: string;
+  created_at: string;
+}
+
 type TagModerationAction = 'approve' | 'hide' | 'feature';
 
-type AdminTab = 'board' | 'users' | 'categories' | 'tags' | 'trophies' | 'levels' | 'events';
+type AdminTab = 'board' | 'users' | 'tags' | 'trophies' | 'levels' | 'events';
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
 export default function AdminPage() {
@@ -63,15 +73,32 @@ export default function AdminPage() {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [unreviewedTags, setUnreviewedTags] = useState<UnreviewedTag[]>([]);
   const [canonicalTags, setCanonicalTags] = useState<CanonicalTagOption[]>([]);
+  const [tagAliasesByTagId, setTagAliasesByTagId] = useState<Record<number, TagAliasRow[]>>({});
+  const [aliasInputByTagId, setAliasInputByTagId] = useState<Record<number, string>>({});
+  const [aliasSearch, setAliasSearch] = useState('');
+  const [editingTagId, setEditingTagId] = useState<number | null>(null);
+  const [editingTagName, setEditingTagName] = useState('');
   const [mergeTargetByTagId, setMergeTargetByTagId] = useState<Record<number, number | ''>>({});
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [processingTagId, setProcessingTagId] = useState<number | null>(null);
+  const [processingAliasId, setProcessingAliasId] = useState<number | null>(null);
+  const [addingAliasTagId, setAddingAliasTagId] = useState<number | null>(null);
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
+  const groupAliasesByTagId = (rows: TagAliasRow[]) => {
+    return rows.reduce<Record<number, TagAliasRow[]>>((acc, row) => {
+      if (!acc[row.tag_id]) {
+        acc[row.tag_id] = [];
+      }
+      acc[row.tag_id].push(row);
+      return acc;
+    }, {});
+  };
+
   useEffect(() => {
     const fetchAdminData = async () => {
-      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes] = await Promise.all([
+      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes, aliasesRes] = await Promise.all([
         supabase
           .from('site_settings')
           .select('key, value')
@@ -91,6 +118,7 @@ export default function AdminPage() {
           .eq('status', 'approved')
           .is('redirect_to_tag_id', null)
           .order('name', { ascending: true }),
+        supabase.rpc('get_tag_aliases'),
       ]);
       const pendingRes = await supabase
         .from('profiles')
@@ -116,6 +144,9 @@ export default function AdminPage() {
       }
       if (!canonicalTagsRes.error && canonicalTagsRes.data) {
         setCanonicalTags((canonicalTagsRes.data ?? []) as CanonicalTagOption[]);
+      }
+      if (!aliasesRes.error && aliasesRes.data) {
+        setTagAliasesByTagId(groupAliasesByTagId((aliasesRes.data ?? []) as TagAliasRow[]));
       }
       setTotalAwardedTrophies(awardedRes.count || 0);
 
@@ -198,6 +229,11 @@ export default function AdminPage() {
     setCanonicalTags((data ?? []) as CanonicalTagOption[]);
   };
 
+  const refreshTagAliases = async () => {
+    const { data } = await supabase.rpc('get_tag_aliases');
+    setTagAliasesByTagId(groupAliasesByTagId((data ?? []) as TagAliasRow[]));
+  };
+
   const handleSetApprovalStatus = async (userId: string, status: 'approved' | 'rejected') => {
     setProcessingUserId(userId);
     const { error } = await supabase.rpc('set_profile_approval_status', {
@@ -238,9 +274,68 @@ export default function AdminPage() {
     if (!error) {
       await refreshUnreviewedTags();
       await refreshCanonicalTags();
+      await refreshTagAliases();
       setMergeTargetByTagId((prev) => ({ ...prev, [sourceTagId]: '' }));
     }
 
+    setProcessingTagId(null);
+  };
+
+  const handleAddAlias = async (tagId: number) => {
+    const aliasValue = (aliasInputByTagId[tagId] || '').trim();
+    if (!aliasValue) return;
+
+    setAddingAliasTagId(tagId);
+    const { error } = await supabase.rpc('add_tag_alias', {
+      input_tag_id: tagId,
+      input_alias: aliasValue,
+    });
+
+    if (!error) {
+      setAliasInputByTagId((prev) => ({ ...prev, [tagId]: '' }));
+      await refreshTagAliases();
+    }
+    setAddingAliasTagId(null);
+  };
+
+  const handleDeleteAlias = async (aliasId: number) => {
+    setProcessingAliasId(aliasId);
+    const { error } = await supabase.rpc('delete_tag_alias', {
+      input_alias_id: aliasId,
+    });
+
+    if (!error) {
+      await refreshTagAliases();
+    }
+    setProcessingAliasId(null);
+  };
+
+  const beginRenameTag = (tag: CanonicalTagOption) => {
+    setEditingTagId(tag.id);
+    setEditingTagName(tag.name);
+  };
+
+  const cancelRenameTag = () => {
+    setEditingTagId(null);
+    setEditingTagName('');
+  };
+
+  const handleRenameTag = async (tagId: number) => {
+    const nextName = editingTagName.trim();
+    if (!nextName) return;
+
+    setProcessingTagId(tagId);
+    const { error } = await supabase.rpc('rename_tag', {
+      input_tag_id: tagId,
+      input_name: nextName,
+    });
+
+    if (!error) {
+      await refreshCanonicalTags();
+      await refreshTagAliases();
+      setEditingTagId(null);
+      setEditingTagName('');
+    }
     setProcessingTagId(null);
   };
 
@@ -281,7 +376,6 @@ export default function AdminPage() {
           ['events', 'Tapahtumat'],
           ['trophies', 'Pokaalit'],
           ['users', 'Käyttäjät'],
-          ['categories', 'Kategoriat'],
           ['tags', 'Tagit'],
           ['levels', 'Tasot'],
         ] as [AdminTab, string][]).map(([value, label]) => (
@@ -424,16 +518,6 @@ export default function AdminPage() {
         </Card>
       )}
 
-      {activeTab === 'categories' && (
-        <Card>
-          <h2 className="card-title flex items-center gap-2">
-            {showHeaderIcons && <FolderTree size={20} className="text-yellow-600" />}
-            Kategoriat
-          </h2>
-          <p className="text-sm text-gray-500">Kategoriahallinta tulossa tähän korttiin.</p>
-        </Card>
-      )}
-
       {activeTab === 'tags' && (
         <Card>
           <h2 className="card-title flex items-center gap-2">
@@ -443,7 +527,6 @@ export default function AdminPage() {
           <div className="mb-3 space-y-2 text-sm text-gray-600">
             <p>
               Tagit kuvaavat keskustelun aihetta. Uudet keskustelut ovat tagipohjaisia, ja sama keskustelu voi sisältää useita tageja.
-              Kategoriat ovat taustalla legacy-kenttänä yhteensopivuutta varten.
             </p>
             <p>
               Alla näkyvät käsittelemättömät (`unreviewed`) tagit käyttömäärän mukaan järjestettynä: eniten käytetyt ensin.
@@ -529,6 +612,120 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <h3 className="font-semibold text-gray-800 mb-2">Canonical tagit ja aliakset</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Aliakset toimivat hakusynonyymeinä (esim. &quot;pleikka&quot; -&gt; PlayStation 5). Merge siirtää aliasit myös kohdetagille.
+            </p>
+            <div className="mb-3">
+              <Input
+                value={aliasSearch}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAliasSearch(e.target.value)}
+                placeholder="Suodata tageja nimellä tai slugilla..."
+              />
+            </div>
+            <div className="space-y-2">
+              {canonicalTags
+                .filter((tag) => {
+                  const q = aliasSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return tag.name.toLowerCase().includes(q) || tag.slug.toLowerCase().includes(q);
+                })
+                .map((tag) => {
+                  const aliases = tagAliasesByTagId[tag.id] || [];
+                  const isEditing = editingTagId === tag.id;
+                  return (
+                    <div key={tag.id} className="rounded border border-gray-200 bg-white px-3 py-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          {isEditing ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={editingTagName}
+                                onChange={(e) => setEditingTagName(e.target.value)}
+                                className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm"
+                                placeholder="Tagin nimi"
+                              />
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                                disabled={processingTagId === tag.id || !editingTagName.trim()}
+                                onClick={() => handleRenameTag(tag.id)}
+                              >
+                                Tallenna
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300"
+                                onClick={cancelRenameTag}
+                                disabled={processingTagId === tag.id}
+                              >
+                                Peruuta
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium truncate">#{tag.name}</p>
+                              <button
+                                type="button"
+                                className="rounded bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-200"
+                                onClick={() => beginRenameTag(tag)}
+                              >
+                                Muokkaa nimeä
+                              </button>
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500 truncate">{tag.slug}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {aliases.length === 0 ? (
+                              <span className="text-xs text-gray-400">Ei aliaksia</span>
+                            ) : (
+                              aliases.map((aliasRow) => (
+                                <span
+                                  key={aliasRow.alias_id}
+                                  className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-900"
+                                >
+                                  {aliasRow.alias}
+                                  <button
+                                    type="button"
+                                    className="rounded p-0.5 hover:bg-blue-100"
+                                    onClick={() => handleDeleteAlias(aliasRow.alias_id)}
+                                    disabled={processingAliasId === aliasRow.alias_id}
+                                    aria-label={`Poista alias ${aliasRow.alias}`}
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex w-full max-w-xs items-center gap-2">
+                          <input
+                            value={aliasInputByTagId[tag.id] || ''}
+                            onChange={(e) =>
+                              setAliasInputByTagId((prev) => ({ ...prev, [tag.id]: e.target.value }))
+                            }
+                            placeholder="Lisää alias..."
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                          />
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                            disabled={addingAliasTagId === tag.id || !(aliasInputByTagId[tag.id] || '').trim()}
+                            onClick={() => handleAddAlias(tag.id)}
+                          >
+                            <Plus size={12} />
+                            Lisää
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
         </Card>
       )}
 

@@ -20,7 +20,6 @@ interface Topic {
   views: number;
   views_total: number | null;
   views_unique: number | null;
-  category: { name: string; icon: string } | null;
 }
 
 interface TopicViewResponse {
@@ -53,7 +52,6 @@ interface RawTopicRow {
   views: number;
   views_total: number | null;
   views_unique: number | null;
-  category: SupabaseJoinField<{ name: string; icon: string }>;
 }
 
 function normalizeJoin<T>(value: SupabaseJoinField<T>): T | null {
@@ -66,7 +64,7 @@ function parsePost(row: RawPostRow): Post {
 }
 
 function parseTopic(row: RawTopicRow): Topic {
-  return { ...row, category: normalizeJoin(row.category) ?? null };
+  return { ...row };
 }
 
 function TopicContent() {
@@ -103,10 +101,7 @@ function TopicContent() {
       const [topicRes, postsRes, countRes, firstPostRes] = await Promise.all([
         supabase
           .from('topics')
-          .select(`
-            id, title, views, views_total, views_unique,
-            category:categories(name, icon)
-          `)
+          .select('id, title, views, views_total, views_unique')
           .eq('id', topicId)
           .single(),
         supabase
@@ -408,11 +403,11 @@ function TopicContent() {
       <Card className="mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <span className="text-4xl">{topic.category?.icon}</span>
+            <span className="text-4xl">🏷️</span>
             <div>
               <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="text-yellow-800 font-medium">{topic.category?.name}</span>
+                <span className="text-yellow-800 font-medium">Tagit</span>
                 <span>{topic.views_unique ?? topic.views} katselua</span>
                 <span>{totalPosts} viestiä</span>
               </div>

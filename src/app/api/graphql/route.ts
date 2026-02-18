@@ -73,7 +73,28 @@ export async function POST(req: NextRequest) {
     qb = qb.eq('status', 'approved').eq('featured', true).is('redirect_to_tag_id', null);
 
     if (query) {
-      qb = qb.or(`name.ilike.%${query}%,slug.ilike.%${query}%`);
+      const [tagMatchRes, aliasMatchRes] = await Promise.all([
+        supabase
+          .from('tags')
+          .select('id')
+          .or(`name.ilike.%${query}%,slug.ilike.%${query}%`)
+          .is('redirect_to_tag_id', null),
+        supabase
+          .from('tag_aliases')
+          .select('tag_id')
+          .ilike('alias', `%${query}%`),
+      ]);
+
+      const directIds = (tagMatchRes.data || []).map((row) => Number((row as { id: number }).id));
+      const aliasIds = (aliasMatchRes.data || []).map((row) => Number((row as { tag_id: number }).tag_id));
+      const searchedIds = Array.from(
+        new Set([...directIds, ...aliasIds].filter((id) => Number.isFinite(id) && id > 0))
+      );
+
+      if (searchedIds.length === 0) {
+        return NextResponse.json({ data: { tags: [] } });
+      }
+      qb = qb.in('id', searchedIds);
     }
 
     const { data, error } = await qb;

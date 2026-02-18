@@ -7,6 +7,10 @@ interface TagRow {
   slug: string;
 }
 
+interface TagAliasSearchRow {
+  tag_id: number;
+}
+
 function parseBoolean(value: string | null): boolean | null {
   if (value === null) return null;
   const lowered = value.trim().toLowerCase();
@@ -42,7 +46,28 @@ export async function GET(req: NextRequest) {
   qb = qb.is('redirect_to_tag_id', null);
 
   if (query.length > 0) {
-    qb = qb.or(`name.ilike.%${query}%,slug.ilike.%${query}%`);
+    const [tagMatchRes, aliasMatchRes] = await Promise.all([
+      supabase
+        .from('tags')
+        .select('id')
+        .or(`name.ilike.%${query}%,slug.ilike.%${query}%`)
+        .is('redirect_to_tag_id', null),
+      supabase
+        .from('tag_aliases')
+        .select('tag_id')
+        .ilike('alias', `%${query}%`),
+    ]);
+
+    const directIds = (tagMatchRes.data || []).map((row) => Number((row as { id: number }).id));
+    const aliasIds = (aliasMatchRes.data || []).map((row) => Number((row as TagAliasSearchRow).tag_id));
+    const searchedIds = Array.from(
+      new Set([...directIds, ...aliasIds].filter((id) => Number.isFinite(id) && id > 0))
+    );
+
+    if (searchedIds.length === 0) {
+      return NextResponse.json({ tags: [] });
+    }
+    qb = qb.in('id', searchedIds);
   }
 
   const { data, error } = await qb;

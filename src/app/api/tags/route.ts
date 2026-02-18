@@ -8,17 +8,10 @@ interface TagRow {
   status?: string;
   featured?: boolean;
   redirect_to_tag_id?: number | null;
-  group_label?: string;
-  group_order?: number;
-  tag_order?: number;
 }
 
-interface CategoryRow {
-  id: number;
-  name: string;
-  slug: string;
-  parent_id: number | null;
-  sort_order: number | null;
+interface TagAliasSearchRow {
+  tag_id: number;
 }
 
 function parseLimit(value: string | null, fallback = 20): number {
@@ -96,7 +89,28 @@ export async function GET(req: NextRequest) {
   qb = qb.is('redirect_to_tag_id', null);
 
   if (query.length > 0) {
-    qb = qb.or(`name.ilike.%${query}%,slug.ilike.%${query}%`);
+    const [tagMatchRes, aliasMatchRes] = await Promise.all([
+      supabase
+        .from('tags')
+        .select('id')
+        .or(`name.ilike.%${query}%,slug.ilike.%${query}%`)
+        .is('redirect_to_tag_id', null),
+      supabase
+        .from('tag_aliases')
+        .select('tag_id')
+        .ilike('alias', `%${query}%`),
+    ]);
+
+    const directIds = (tagMatchRes.data || []).map((row) => Number((row as { id: number }).id));
+    const aliasIds = (aliasMatchRes.data || []).map((row) => Number((row as TagAliasSearchRow).tag_id));
+    const searchedIds = Array.from(
+      new Set([...directIds, ...aliasIds].filter((id) => Number.isFinite(id) && id > 0))
+    );
+
+    if (searchedIds.length === 0) {
+      return NextResponse.json({ tags: [] });
+    }
+    qb = qb.in('id', searchedIds);
   }
 
   const { data, error } = await qb;
@@ -104,53 +118,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const tags = (data || []) as TagRow[];
-
-  const { data: categoriesData } = await supabase
-    .from('categories')
-    .select('id, name, slug, parent_id, sort_order');
-
-  const categories = (categoriesData || []) as CategoryRow[];
-  const categoryBySlug = new Map(categories.map((category) => [category.slug, category]));
-  const categoryById = new Map(categories.map((category) => [category.id, category]));
-
-  const enriched = tags
-    .map((tag) => {
-      const matchingCategory = categoryBySlug.get(tag.slug);
-      if (!matchingCategory) {
-        return {
-          ...tag,
-          group_label: 'Muut tagit',
-          group_order: 9999,
-          tag_order: 9999,
-        };
-      }
-
-      const parentCategory = matchingCategory.parent_id
-        ? categoryById.get(matchingCategory.parent_id) || null
-        : null;
-
-      return {
-        ...tag,
-        group_label: parentCategory?.name || matchingCategory.name,
-        group_order: parentCategory?.sort_order ?? matchingCategory.sort_order ?? 9999,
-        tag_order: matchingCategory.sort_order ?? 9999,
-      };
-    })
-    .sort((a, b) => {
-      if ((a.group_order || 0) !== (b.group_order || 0)) {
-        return (a.group_order || 0) - (b.group_order || 0);
-      }
-      if ((a.group_label || '') !== (b.group_label || '')) {
-        return (a.group_label || '').localeCompare(b.group_label || '', 'fi');
-      }
-      if ((a.tag_order || 0) !== (b.tag_order || 0)) {
-        return (a.tag_order || 0) - (b.tag_order || 0);
-      }
-      return a.name.localeCompare(b.name, 'fi');
-    });
-
-  return NextResponse.json({ tags: enriched as TagRow[] });
+  return NextResponse.json({ tags: (data || []) as TagRow[] });
 }
 
 export async function POST(req: NextRequest) {
