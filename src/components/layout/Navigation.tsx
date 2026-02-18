@@ -55,13 +55,13 @@ export const Navigation = (): JSX.Element | null => {
 
         <div className="flex items-center gap-2">
           <form onSubmit={handleSearch} className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+            <Search size={16} className="app-search-icon" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Hae..."
-              className="pl-9 pr-3 py-1.5 max-h-10 rounded border-2 border-grey-800 bg-white placeholder-gray-600 text-gray-800 text-md focus:outline-none focus:border-gray-800 focus:bg-white w-36 transition-all focus:w-56"
+              className="app-search-input w-36 focus:w-56"
             />
           </form>
           <Link
