@@ -9,7 +9,6 @@ import { Heart, Plus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
 import { POSTS_PER_PAGE, THREADS_PER_PAGE } from '@/lib/pagination';
-import { AddTags, type TagOption } from '@/components/forum/AddTags';
 
 interface Topic {
   id: number;
@@ -89,7 +88,6 @@ function ForumContent() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [threadCount, setThreadCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
-  const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
   const [quote, setQuote] = useState<RandomQuote | null>(null);
   const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -149,36 +147,6 @@ function ForumContent() {
     const query = next.toString();
     router.push(query ? `/forum?${query}` : '/forum');
   }, [router, searchParams]);
-
-  useEffect(() => {
-    if (requestedTagIds.length === 0) {
-      Promise.resolve().then(() => setSelectedTags([]));
-      return;
-    }
-
-    const controller = new AbortController();
-    const fetchSelectedTags = async () => {
-      try {
-        const res = await fetch(`/api/tags?status=approved&featured=true&ids=${requestedTagIds.join(',')}&limit=100`, {
-          signal: controller.signal,
-          cache: 'no-store',
-        });
-        if (!res.ok) {
-          setSelectedTags([]);
-          return;
-        }
-        const data = (await res.json()) as { tags?: TagOption[] };
-        const byId = new Map((data.tags || []).map((tag) => [tag.id, tag]));
-        const ordered = requestedTagIds.map((id) => byId.get(id)).filter((tag): tag is TagOption => !!tag);
-        setSelectedTags(ordered);
-      } catch {
-        setSelectedTags([]);
-      }
-    };
-
-    fetchSelectedTags();
-    return () => controller.abort();
-  }, [requestedTagsParam, requestedTagIds, requestedTagMatch]);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -435,51 +403,12 @@ function ForumContent() {
             Uusi aihe
           </Button>
         </Link>
-        <div className="mt-4 space-y-2">
-          <AddTags
-            selected={selectedTags}
-            onChange={(next) => {
-              setSelectedTags(next);
-              pushFilterUrl(next.map((tag) => tag.id), requestedTagMatch);
-            }}
-          />
-          <div className="flex items-center gap-2">
-            <label htmlFor="match-mode" className="text-xs text-gray-500">
-              Osumatapa
-            </label>
-            <select
-              id="match-mode"
-              value={requestedTagMatch}
-              onChange={(e) => {
-                const nextMatch = e.target.value === 'all' ? 'all' : 'any';
-                pushFilterUrl(selectedTags.map((tag) => tag.id), nextMatch);
-              }}
-              className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
-              disabled={selectedTags.length < 2}
-            >
-              <option value="any">Mikä tahansa tagi</option>
-              <option value="all">Kaikki valitut tagit</option>
-            </select>
-            {selectedTags.length > 0 && (
-              <button
-                type="button"
-                className="text-xs text-yellow-700 hover:underline"
-                onClick={() => {
-                  setSelectedTags([]);
-                  pushFilterUrl([], 'any');
-                }}
-              >
-                Tyhjennä tagifiltteri
-              </button>
-            )}
-          </div>
-        </div>
       </div>
 
       {topics.length === 0 ? (
         <Card>
           <p className="text-center text-gray-500 py-8">
-            {selectedTags.length > 0
+            {requestedTagIds.length > 0
               ? 'Ei aiheita valituilla tageilla.'
               : 'Ei vielä aiheita. Ole ensimmäinen ja aloita keskustelu!'}
           </p>

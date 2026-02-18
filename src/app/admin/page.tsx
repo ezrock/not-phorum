@@ -66,10 +66,26 @@ type TagModerationAction = 'approve' | 'hide' | 'feature';
 
 type AdminTab = 'board' | 'users' | 'tags' | 'tag_groups' | 'trophies' | 'levels' | 'events';
 const ADMIN_TABS: AdminTab[] = ['board', 'events', 'trophies', 'users', 'tags', 'tag_groups', 'levels'];
+const ADMIN_TAB_HASH: Record<AdminTab, string> = {
+  board: 'board',
+  events: 'events',
+  trophies: 'trophies',
+  users: 'users',
+  tags: 'tags',
+  tag_groups: 'tag-groups',
+  levels: 'levels',
+};
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
 function isAdminTab(value: string): value is AdminTab {
   return ADMIN_TABS.includes(value as AdminTab);
+}
+
+function parseAdminHash(value: string): AdminTab | null {
+  const normalized = value.replace('#', '').toLowerCase();
+  if (normalized === 'tag-groups') return 'tag_groups';
+  if (isAdminTab(normalized)) return normalized;
+  return null;
 }
 
 export default function AdminPage() {
@@ -101,6 +117,7 @@ export default function AdminPage() {
   const [processingGroupId, setProcessingGroupId] = useState<number | null>(null);
   const [processingAliasId, setProcessingAliasId] = useState<number | null>(null);
   const [addingAliasTagId, setAddingAliasTagId] = useState<number | null>(null);
+  const [tagActionError, setTagActionError] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupSlug, setNewGroupSlug] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
@@ -202,9 +219,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     const syncTabFromHash = () => {
-      const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (isAdminTab(hash)) {
-        setActiveTab(hash);
+      const tabFromHash = parseAdminHash(window.location.hash);
+      if (tabFromHash) {
+        setActiveTab(tabFromHash);
       } else if (window.location.hash) {
         setActiveTab('board');
       }
@@ -216,7 +233,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    const nextHash = `#${activeTab}`;
+    const nextHash = `#${ADMIN_TAB_HASH[activeTab]}`;
     if (window.location.hash !== nextHash) {
       window.history.replaceState(null, '', nextHash);
     }
@@ -362,6 +379,7 @@ export default function AdminPage() {
   const handleAddAlias = async (tagId: number) => {
     const aliasValue = (aliasInputByTagId[tagId] || '').trim();
     if (!aliasValue) return;
+    setTagActionError('');
 
     setAddingAliasTagId(tagId);
     const { error } = await supabase.rpc('add_tag_alias', {
@@ -372,11 +390,14 @@ export default function AdminPage() {
     if (!error) {
       setAliasInputByTagId((prev) => ({ ...prev, [tagId]: '' }));
       await refreshTagAliases();
+    } else {
+      setTagActionError(error.message || 'Aliaksen lisäys epäonnistui');
     }
     setAddingAliasTagId(null);
   };
 
   const handleDeleteAlias = async (aliasId: number) => {
+    setTagActionError('');
     setProcessingAliasId(aliasId);
     const { error } = await supabase.rpc('delete_tag_alias', {
       input_alias_id: aliasId,
@@ -384,6 +405,8 @@ export default function AdminPage() {
 
     if (!error) {
       await refreshTagAliases();
+    } else {
+      setTagActionError(error.message || 'Aliaksen poisto epäonnistui');
     }
     setProcessingAliasId(null);
   };
@@ -522,14 +545,14 @@ export default function AdminPage() {
                         : 'Tasot',
           ] as [AdminTab, string]
         ))).map(([value, label]) => (
-          <button
+          <a
             key={value}
-            type="button"
+            href={`#${ADMIN_TAB_HASH[value]}`}
             onClick={() => setActiveTab(value)}
             className={`page-tab-button ${activeTab === value ? 'is-active' : ''}`}
           >
             {label}
-          </button>
+          </a>
         ))}
       </div>
 
@@ -762,6 +785,11 @@ export default function AdminPage() {
             <p className="text-xs text-gray-500 mb-3">
               Aliakset toimivat hakusynonyymeinä (esim. &quot;pleikka&quot; -&gt; PlayStation 5). Merge siirtää aliasit myös kohdetagille.
             </p>
+            {tagActionError && (
+              <p className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {tagActionError}
+              </p>
+            )}
             <div className="mb-3">
               <Input
                 value={aliasSearch}
