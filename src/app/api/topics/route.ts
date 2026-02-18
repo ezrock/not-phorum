@@ -45,16 +45,27 @@ export async function GET(req: NextRequest) {
   const pageSize = Math.min(parsePositiveInt(req.nextUrl.searchParams.get('page_size'), THREADS_PER_PAGE), 100);
   const tagIds = parseTagIds(req.nextUrl.searchParams.get('tag_ids'));
   const matchAll = parseMatchMode(req.nextUrl.searchParams.get('match'));
+  const { data: canonicalIdsRaw, error: canonicalError } = await supabase.rpc('resolve_canonical_tag_ids', {
+    input_tag_ids: tagIds,
+  });
+  if (canonicalError) {
+    return NextResponse.json({ error: canonicalError.message }, { status: 400 });
+  }
+  const canonicalTagIds = Array.isArray(canonicalIdsRaw)
+    ? canonicalIdsRaw
+        .map((value) => Number.parseInt(String(value), 10))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    : [];
 
   const [{ data: topicsData, error: topicsError }, { data: totalCountData, error: totalError }] = await Promise.all([
     supabase.rpc('get_topic_list_state_filtered', {
       input_page: page,
       input_page_size: pageSize,
-      input_tag_ids: tagIds,
+      input_tag_ids: canonicalTagIds,
       input_match_all: matchAll,
     }),
     supabase.rpc('get_topic_count_filtered', {
-      input_tag_ids: tagIds,
+      input_tag_ids: canonicalTagIds,
       input_match_all: matchAll,
     }),
   ]);
@@ -72,7 +83,7 @@ export async function GET(req: NextRequest) {
     page_size: pageSize,
     total_count: typeof totalCountData === 'number' ? totalCountData : 0,
     filter: {
-      tag_ids: tagIds,
+      tag_ids: canonicalTagIds,
       match: matchAll ? 'all' : 'any',
     },
   });

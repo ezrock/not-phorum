@@ -70,6 +70,8 @@ export async function POST(req: NextRequest) {
       .order('name', { ascending: true })
       .limit(limit);
 
+    qb = qb.eq('status', 'approved').eq('featured', true).is('redirect_to_tag_id', null);
+
     if (query) {
       qb = qb.or(`name.ilike.%${query}%,slug.ilike.%${query}%`);
     }
@@ -91,15 +93,29 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ errors: [{ message: 'Unauthorized' }] }, { status: 401 });
 
+    const { data: canonicalIdsRaw, error: canonicalError } = await supabase.rpc('resolve_canonical_tag_ids', {
+      input_tag_ids: tagIds,
+    });
+    if (canonicalError) return NextResponse.json({ errors: [{ message: canonicalError.message }] }, { status: 400 });
+
+    const canonicalIds = Array.isArray(canonicalIdsRaw)
+      ? canonicalIdsRaw
+          .map((value) => Number.parseInt(String(value), 10))
+          .filter((id) => Number.isFinite(id) && id > 0)
+      : [];
+    if (canonicalIds.length === 0) {
+      return NextResponse.json({ errors: [{ message: 'No canonical tags found' }] }, { status: 400 });
+    }
+
     const { error: upsertError } = await supabase
       .from('topic_tags')
       .upsert(
-        tagIds.map((tagId) => ({ topic_id: topicId, tag_id: tagId, created_by: user.id })),
+        canonicalIds.map((tagId) => ({ topic_id: topicId, tag_id: tagId, created_by: user.id })),
         { onConflict: 'topic_id,tag_id', ignoreDuplicates: true }
       );
 
     if (upsertError) return NextResponse.json({ errors: [{ message: upsertError.message }] }, { status: 400 });
-    return NextResponse.json({ data: { attachTagsToTopic: { topic_id: topicId, tag_ids: tagIds } } });
+    return NextResponse.json({ data: { attachTagsToTopic: { topic_id: topicId, tag_ids: canonicalIds } } });
   }
 
   if (op === 'topicsByTags') {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +34,10 @@ interface RawTopicRow extends Omit<Topic, 'replies_count'> {
 interface TopicsApiResponse {
   topics?: RawTopicRow[];
   total_count?: number;
+  filter?: {
+    tag_ids?: number[];
+    match?: 'any' | 'all';
+  };
 }
 
 interface RandomQuote {
@@ -129,7 +133,7 @@ function ForumContent() {
     return query ? `/forum?${query}` : '/forum';
   };
 
-  const pushFilterUrl = (nextTagIds: number[], nextMatch: 'any' | 'all') => {
+  const pushFilterUrl = useCallback((nextTagIds: number[], nextMatch: 'any' | 'all') => {
     const next = new URLSearchParams(searchParams.toString());
     next.delete('page');
     if (nextTagIds.length > 0) {
@@ -144,7 +148,7 @@ function ForumContent() {
     }
     const query = next.toString();
     router.push(query ? `/forum?${query}` : '/forum');
-  };
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (requestedTagIds.length === 0) {
@@ -196,6 +200,16 @@ function ForumContent() {
       }
       const payload = (await res.json()) as TopicsApiResponse;
       const rows = payload.topics || [];
+      const canonicalFilterTagIds = Array.isArray(payload.filter?.tag_ids)
+        ? payload.filter?.tag_ids.filter((id) => Number.isFinite(id) && id > 0)
+        : [];
+
+      if (
+        requestedTagIds.join(',') !== canonicalFilterTagIds.join(',')
+        || requestedTagMatch !== (payload.filter?.match === 'all' ? 'all' : 'any')
+      ) {
+        pushFilterUrl(canonicalFilterTagIds, payload.filter?.match === 'all' ? 'all' : 'any');
+      }
 
       const normalized = rows.map((topic) => {
         const repliesCount =
@@ -302,7 +316,7 @@ function ForumContent() {
     fetchTopics();
     fetchRandomQuote();
     fetchMessageCount();
-  }, [supabase, currentPage, currentUser, refreshTick, requestedTagIds, requestedTagMatch]);
+  }, [supabase, currentPage, currentUser, refreshTick, requestedTagIds, requestedTagMatch, pushFilterUrl]);
 
   useEffect(() => {
     if (!currentUser || !realtimeUpdatesEnabled) return;

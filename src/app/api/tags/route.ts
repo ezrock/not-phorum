@@ -7,6 +7,7 @@ interface TagRow {
   slug: string;
   status?: string;
   featured?: boolean;
+  redirect_to_tag_id?: number | null;
 }
 
 function parseLimit(value: string | null, fallback = 20): number {
@@ -80,6 +81,9 @@ export async function GET(req: NextRequest) {
     qb = qb.eq('featured', featured);
   }
 
+  // Autocomplete and list endpoints should expose only canonical tags by default.
+  qb = qb.is('redirect_to_tag_id', null);
+
   if (query.length > 0) {
     qb = qb.or(`name.ilike.%${query}%,slug.ilike.%${query}%`);
   }
@@ -124,18 +128,30 @@ export async function POST(req: NextRequest) {
       slug,
       status: 'unreviewed',
       featured: false,
+      redirect_to_tag_id: null,
     })
-    .select('id, name, slug, status, featured')
+    .select('id, name, slug, status, featured, redirect_to_tag_id')
     .single();
 
   if (error) {
     const { data: existingBySlug } = await supabase
       .from('tags')
-      .select('id, name, slug, status, featured')
+      .select('id, name, slug, status, featured, redirect_to_tag_id')
       .eq('slug', slug)
       .maybeSingle();
 
     if (existingBySlug) {
+      const redirectToId = (existingBySlug as TagRow).redirect_to_tag_id;
+      if (redirectToId) {
+        const { data: canonical } = await supabase
+          .from('tags')
+          .select('id, name, slug, status, featured, redirect_to_tag_id')
+          .eq('id', redirectToId)
+          .maybeSingle();
+        if (canonical) {
+          return NextResponse.json({ tag: canonical as TagRow });
+        }
+      }
       return NextResponse.json({ tag: existingBySlug as TagRow });
     }
 

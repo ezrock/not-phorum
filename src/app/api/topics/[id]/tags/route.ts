@@ -12,7 +12,10 @@ interface TopicTagInsert {
 }
 
 interface TopicTagRow {
-  tag: { id: number; name: string; slug: string } | { id: number; name: string; slug: string }[] | null;
+  tag:
+    | { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string }
+    | { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string }[]
+    | null;
 }
 
 function parseTopicId(raw: string): number | null {
@@ -50,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('topic_tags')
-    .select('tag:tags(id, name, slug)')
+    .select('tag:tags(id, name, slug, redirect_to_tag_id, status)')
     .eq('topic_id', topicId)
     .order('created_at', { ascending: true });
 
@@ -60,7 +63,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
   const tags = ((data || []) as TopicTagRow[])
     .map((row) => normalizeTagCell(row.tag))
-    .filter((tag): tag is { id: number; name: string; slug: string } => !!tag);
+    .filter((tag): tag is { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
+    .filter((tag) => tag.redirect_to_tag_id == null && tag.status !== 'hidden')
+    .map(({ id, name, slug }) => ({ id, name, slug }));
 
   return NextResponse.json({ topic_id: topicId, tags });
 }
@@ -86,7 +91,24 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rows: TopicTagInsert[] = tagIds.map((tagId) => ({
+  const { data: canonicalIdsRaw, error: canonicalError } = await supabase.rpc('resolve_canonical_tag_ids', {
+    input_tag_ids: tagIds,
+  });
+  if (canonicalError) {
+    return NextResponse.json({ error: canonicalError.message }, { status: 400 });
+  }
+
+  const canonicalIds = Array.isArray(canonicalIdsRaw)
+    ? canonicalIdsRaw
+        .map((value) => Number.parseInt(String(value), 10))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+
+  if (canonicalIds.length === 0) {
+    return NextResponse.json({ error: 'No canonical tags found' }, { status: 400 });
+  }
+
+  const rows: TopicTagInsert[] = canonicalIds.map((tagId) => ({
     topic_id: topicId,
     tag_id: tagId,
     created_by: user.id,
@@ -102,7 +124,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   const { data: tagsData, error: tagsError } = await supabase
     .from('topic_tags')
-    .select('tag:tags(id, name, slug)')
+    .select('tag:tags(id, name, slug, redirect_to_tag_id, status)')
     .eq('topic_id', topicId)
     .order('created_at', { ascending: true });
 
@@ -112,7 +134,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   const tags = ((tagsData || []) as TopicTagRow[])
     .map((row) => normalizeTagCell(row.tag))
-    .filter((tag): tag is { id: number; name: string; slug: string } => !!tag);
+    .filter((tag): tag is { id: number; name: string; slug: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
+    .filter((tag) => tag.redirect_to_tag_id == null && tag.status !== 'hidden')
+    .map(({ id, name, slug }) => ({ id, name, slug }));
 
   return NextResponse.json({ topic_id: topicId, tags });
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
@@ -12,15 +12,6 @@ import Link from 'next/link';
 import { ArrowLeft, Send, ImagePlus, X } from 'lucide-react';
 import { postThumb } from '@/lib/cloudinary';
 import { AddTags, type TagOption } from '@/components/forum/AddTags';
-
-interface Category {
-  id: number;
-  name: string;
-  icon: string;
-  era: string | null;
-  sort_order: number;
-  parent_id: number | null;
-}
 
 interface CloudinaryUploadResult {
   info?: {
@@ -37,8 +28,6 @@ export default function NewTopicPage() {
   const { supabase } = useAuth();
   const router = useRouter();
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryId, setCategoryId] = useState<number | ''>('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
@@ -46,31 +35,10 @@ export default function NewTopicPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase
-        .from('categories')
-        .select('id, name, icon, era, sort_order, parent_id')
-        .order('sort_order');
-
-      if (data) {
-        setCategories(data as Category[]);
-        const offTopic = data.find((c: Category) => c.name.toLowerCase() === 'off-topic');
-        if (offTopic) setCategoryId(offTopic.id);
-      }
-    };
-
-    fetchCategories();
-  }, [supabase]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!categoryId) {
-      setError('Valitse kategoria');
-      return;
-    }
     if (title.trim().length < 1) {
       setError('Kirjoita otsikko');
       return;
@@ -83,12 +51,16 @@ export default function NewTopicPage() {
       setError('Kirjoita viestin sisältö');
       return;
     }
+    if (selectedTags.length < 1) {
+      setError('Lisää vähintään yksi tagi');
+      return;
+    }
 
     setSubmitting(true);
 
     try {
       const { data: topicIdResult, error: createError } = await supabase.rpc('create_topic_with_post', {
-        input_category_id: categoryId,
+        input_category_id: null,
         input_title: title.trim(),
         input_content: content.trim(),
         input_image_url: imageUrl || null,
@@ -122,34 +94,6 @@ export default function NewTopicPage() {
         {error && <Alert variant="error">{error}</Alert>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium mb-1">
-              Kategoria
-            </label>
-            <select
-              id="category"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-yellow-400 focus:outline-none bg-white"
-              required
-            >
-              <option value="">Valitse kategoria...</option>
-              {categories
-                .filter((c) => !c.parent_id)
-                .map((parent) => (
-                  <optgroup key={parent.id} label={parent.name}>
-                    {categories
-                      .filter((c) => c.parent_id === parent.id)
-                      .map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.icon} {cat.name}{cat.era ? ` (${cat.era})` : ''}
-                        </option>
-                      ))}
-                  </optgroup>
-                ))}
-            </select>
-          </div>
-
           <div>
             <label htmlFor="title" className="block text-sm font-medium mb-1">
               Otsikko

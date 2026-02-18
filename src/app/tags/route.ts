@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
     qb = qb.eq('featured', featured);
   }
 
+  qb = qb.is('redirect_to_tag_id', null);
+
   if (query.length > 0) {
     qb = qb.or(`name.ilike.%${query}%,slug.ilike.%${query}%`);
   }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3, Check, X } from 'lucide-react';
+import { Shield, UserPlus, Trophy, ScrollText, Settings2, Users as UsersIcon, FolderTree, BarChart3, Check, X, Tags as TagsIcon, Star } from 'lucide-react';
 import { trophyLocalIconUrl } from '@/lib/trophies';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,25 @@ interface PendingUser {
   created_at: string;
 }
 
-type AdminTab = 'board' | 'users' | 'categories' | 'trophies' | 'levels' | 'events';
+interface UnreviewedTag {
+  id: number;
+  name: string;
+  slug: string;
+  status: 'unreviewed' | 'approved' | 'rejected' | 'hidden';
+  featured: boolean;
+  usage_count: number;
+  created_at: string;
+}
+
+interface CanonicalTagOption {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+type TagModerationAction = 'approve' | 'hide' | 'feature';
+
+type AdminTab = 'board' | 'users' | 'categories' | 'tags' | 'trophies' | 'levels' | 'events';
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
 export default function AdminPage() {
@@ -43,13 +61,17 @@ export default function AdminPage() {
   const [pendingUsersLoading, setPendingUsersLoading] = useState(true);
   const [trophyOverview, setTrophyOverview] = useState<TrophyOverview[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [unreviewedTags, setUnreviewedTags] = useState<UnreviewedTag[]>([]);
+  const [canonicalTags, setCanonicalTags] = useState<CanonicalTagOption[]>([]);
+  const [mergeTargetByTagId, setMergeTargetByTagId] = useState<Record<number, number | ''>>({});
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const [processingTagId, setProcessingTagId] = useState<number | null>(null);
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
   useEffect(() => {
     const fetchAdminData = async () => {
-      const [settingsRes, overviewRes, awardedRes] = await Promise.all([
+      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes] = await Promise.all([
         supabase
           .from('site_settings')
           .select('key, value')
@@ -62,6 +84,13 @@ export default function AdminPage() {
         supabase
           .from('profile_trophies')
           .select('*', { count: 'exact', head: true }),
+        supabase.rpc('get_unreviewed_tags_with_usage'),
+        supabase
+          .from('tags')
+          .select('id, name, slug')
+          .eq('status', 'approved')
+          .is('redirect_to_tag_id', null)
+          .order('name', { ascending: true }),
       ]);
       const pendingRes = await supabase
         .from('profiles')
@@ -81,6 +110,12 @@ export default function AdminPage() {
       }
       if (!pendingRes.error && pendingRes.data) {
         setPendingUsers(pendingRes.data as PendingUser[]);
+      }
+      if (!unreviewedTagsRes.error && unreviewedTagsRes.data) {
+        setUnreviewedTags((unreviewedTagsRes.data ?? []) as UnreviewedTag[]);
+      }
+      if (!canonicalTagsRes.error && canonicalTagsRes.data) {
+        setCanonicalTags((canonicalTagsRes.data ?? []) as CanonicalTagOption[]);
       }
       setTotalAwardedTrophies(awardedRes.count || 0);
 
@@ -147,6 +182,22 @@ export default function AdminPage() {
     setPendingUsers((data ?? []) as PendingUser[]);
   };
 
+  const refreshUnreviewedTags = async () => {
+    const { data } = await supabase.rpc('get_unreviewed_tags_with_usage');
+    setUnreviewedTags((data ?? []) as UnreviewedTag[]);
+  };
+
+  const refreshCanonicalTags = async () => {
+    const { data } = await supabase
+      .from('tags')
+      .select('id, name, slug')
+      .eq('status', 'approved')
+      .is('redirect_to_tag_id', null)
+      .order('name', { ascending: true });
+
+    setCanonicalTags((data ?? []) as CanonicalTagOption[]);
+  };
+
   const handleSetApprovalStatus = async (userId: string, status: 'approved' | 'rejected') => {
     setProcessingUserId(userId);
     const { error } = await supabase.rpc('set_profile_approval_status', {
@@ -158,6 +209,39 @@ export default function AdminPage() {
       await refreshPendingUsers();
     }
     setProcessingUserId(null);
+  };
+
+  const handleModerateTag = async (tagId: number, action: TagModerationAction) => {
+    setProcessingTagId(tagId);
+    const { error } = await supabase.rpc('moderate_tag', {
+      input_tag_id: tagId,
+      input_action: action,
+    });
+
+    if (!error) {
+      await refreshUnreviewedTags();
+      await refreshCanonicalTags();
+    }
+    setProcessingTagId(null);
+  };
+
+  const handleMergeTag = async (sourceTagId: number) => {
+    const targetTagId = mergeTargetByTagId[sourceTagId];
+    if (!targetTagId) return;
+
+    setProcessingTagId(sourceTagId);
+    const { error } = await supabase.rpc('merge_tags', {
+      source_tag_id: sourceTagId,
+      target_tag_id: targetTagId,
+    });
+
+    if (!error) {
+      await refreshUnreviewedTags();
+      await refreshCanonicalTags();
+      setMergeTargetByTagId((prev) => ({ ...prev, [sourceTagId]: '' }));
+    }
+
+    setProcessingTagId(null);
   };
 
   if (loading || settingsLoading || trophyLoading || pendingUsersLoading) {
@@ -198,6 +282,7 @@ export default function AdminPage() {
           ['trophies', 'Pokaalit'],
           ['users', 'Käyttäjät'],
           ['categories', 'Kategoriat'],
+          ['tags', 'Tagit'],
           ['levels', 'Tasot'],
         ] as [AdminTab, string][]).map(([value, label]) => (
           <button
@@ -346,6 +431,104 @@ export default function AdminPage() {
             Kategoriat
           </h2>
           <p className="text-sm text-gray-500">Kategoriahallinta tulossa tähän korttiin.</p>
+        </Card>
+      )}
+
+      {activeTab === 'tags' && (
+        <Card>
+          <h2 className="card-title flex items-center gap-2">
+            {showHeaderIcons && <TagsIcon size={20} className="text-yellow-600" />}
+            Tagit
+          </h2>
+          <div className="mb-3 space-y-2 text-sm text-gray-600">
+            <p>
+              Tagit kuvaavat keskustelun aihetta. Uudet keskustelut ovat tagipohjaisia, ja sama keskustelu voi sisältää useita tageja.
+              Kategoriat ovat taustalla legacy-kenttänä yhteensopivuutta varten.
+            </p>
+            <p>
+              Alla näkyvät käsittelemättömät (`unreviewed`) tagit käyttömäärän mukaan järjestettynä: eniten käytetyt ensin.
+            </p>
+          </div>
+          <div className="mb-4 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700 space-y-1">
+            <p><strong>Approve</strong>: hyväksyy tagin käyttöön (`approved`).</p>
+            <p><strong>Feature</strong>: hyväksyy tagin ja nostaa sen esiin autocompleteen (`approved + featured`).</p>
+            <p><strong>Hide</strong>: piilottaa tagin (`hidden`), eikä sitä näytetä uusissa valinnoissa.</p>
+            <p><strong>Merge</strong>: yhdistää tagin valittuun canonical-tagiiin; viittaukset siirtyvät kohteeseen ja vanha tagi muuttuu aliasiksi (`hidden + redirect`).</p>
+          </div>
+
+          {unreviewedTags.length === 0 ? (
+            <p className="text-sm text-gray-500">Ei käsittelemättömiä tageja.</p>
+          ) : (
+            <div className="space-y-2">
+              {unreviewedTags.map((tag) => (
+                <div key={tag.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">#{tag.name}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {tag.slug} • {tag.usage_count} käyttöä • {new Date(tag.created_at).toLocaleString('fi-FI')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={processingTagId === tag.id}
+                      onClick={() => handleModerateTag(tag.id, 'approve')}
+                      className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <Check size={14} />
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={processingTagId === tag.id}
+                      onClick={() => handleModerateTag(tag.id, 'feature')}
+                      className="inline-flex items-center gap-1 rounded bg-yellow-500 px-2 py-1 text-xs font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
+                    >
+                      <Star size={14} />
+                      Feature
+                    </button>
+                    <button
+                      type="button"
+                      disabled={processingTagId === tag.id}
+                      onClick={() => handleModerateTag(tag.id, 'hide')}
+                      className="inline-flex items-center gap-1 rounded bg-gray-700 px-2 py-1 text-xs font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      <X size={14} />
+                      Hide
+                    </button>
+                    <select
+                      value={mergeTargetByTagId[tag.id] ?? ''}
+                      onChange={(e) =>
+                        setMergeTargetByTagId((prev) => ({
+                          ...prev,
+                          [tag.id]: e.target.value ? Number(e.target.value) : '',
+                        }))
+                      }
+                      className="max-w-48 rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                      disabled={processingTagId === tag.id}
+                    >
+                      <option value="">Merge target...</option>
+                      {canonicalTags
+                        .filter((candidate) => candidate.id !== tag.id)
+                        .map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>
+                            #{candidate.name}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={processingTagId === tag.id || !mergeTargetByTagId[tag.id]}
+                      onClick={() => handleMergeTag(tag.id)}
+                      className="inline-flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Merge
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 
