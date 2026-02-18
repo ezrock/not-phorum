@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { EventsPanel } from '@/components/admin/EventsPanel';
+import { TokenInput, type TokenItem, type TokenOption } from '@/components/ui/TokenInput';
 
 interface TrophyOverview {
   id: number;
@@ -47,6 +48,16 @@ interface TagAliasRow {
   tag_id: number;
   tag_name: string;
   tag_slug: string;
+  alias: string;
+  normalized_alias: string;
+  created_at: string;
+}
+
+interface TagGroupAliasRow {
+  alias_id: number;
+  group_id: number;
+  group_name: string;
+  group_slug: string;
   alias: string;
   normalized_alias: string;
   created_at: string;
@@ -105,8 +116,10 @@ export default function AdminPage() {
   const [unreviewedTags, setUnreviewedTags] = useState<UnreviewedTag[]>([]);
   const [canonicalTags, setCanonicalTags] = useState<CanonicalTagOption[]>([]);
   const [tagAliasesByTagId, setTagAliasesByTagId] = useState<Record<number, TagAliasRow[]>>({});
+  const [tagGroupAliasesByGroupId, setTagGroupAliasesByGroupId] = useState<Record<number, TagGroupAliasRow[]>>({});
   const [tagGroups, setTagGroups] = useState<AdminTagGroup[]>([]);
   const [aliasInputByTagId, setAliasInputByTagId] = useState<Record<number, string>>({});
+  const [groupAliasInputByGroupId, setGroupAliasInputByGroupId] = useState<Record<number, string>>({});
   const [aliasSearch, setAliasSearch] = useState('');
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editingTagName, setEditingTagName] = useState('');
@@ -116,12 +129,16 @@ export default function AdminPage() {
   const [processingTagId, setProcessingTagId] = useState<number | null>(null);
   const [processingGroupId, setProcessingGroupId] = useState<number | null>(null);
   const [processingAliasId, setProcessingAliasId] = useState<number | null>(null);
+  const [processingGroupAliasId, setProcessingGroupAliasId] = useState<number | null>(null);
   const [addingAliasTagId, setAddingAliasTagId] = useState<number | null>(null);
+  const [addingAliasGroupId, setAddingAliasGroupId] = useState<number | null>(null);
   const [tagActionError, setTagActionError] = useState('');
+  const [tagGroupActionError, setTagGroupActionError] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupSlug, setNewGroupSlug] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [newGroupSearchable, setNewGroupSearchable] = useState(true);
+  const [groupTagQueryByGroupId, setGroupTagQueryByGroupId] = useState<Record<number, string>>({});
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
@@ -135,6 +152,16 @@ export default function AdminPage() {
     }, {});
   };
 
+  const groupAliasesByGroupId = (rows: TagGroupAliasRow[]) => {
+    return rows.reduce<Record<number, TagGroupAliasRow[]>>((acc, row) => {
+      if (!acc[row.group_id]) {
+        acc[row.group_id] = [];
+      }
+      acc[row.group_id].push(row);
+      return acc;
+    }, {});
+  };
+
   const normalizeMemberTagIds = (value: unknown): number[] => {
     if (!Array.isArray(value)) return [];
     return value
@@ -144,7 +171,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const fetchAdminData = async () => {
-      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes, aliasesRes, groupsRes] = await Promise.all([
+      const [settingsRes, overviewRes, awardedRes, unreviewedTagsRes, canonicalTagsRes, aliasesRes, groupsRes, groupAliasesRes] = await Promise.all([
         supabase
           .from('site_settings')
           .select('key, value')
@@ -166,6 +193,7 @@ export default function AdminPage() {
           .order('name', { ascending: true }),
         supabase.rpc('get_tag_aliases'),
         supabase.rpc('get_tag_groups_with_members'),
+        supabase.rpc('get_tag_group_aliases'),
       ]);
       const pendingRes = await supabase
         .from('profiles')
@@ -206,6 +234,9 @@ export default function AdminPage() {
           member_tag_ids: normalizeMemberTagIds(row.member_tag_ids),
         })) as AdminTagGroup[];
         setTagGroups(normalized);
+      }
+      if (!groupAliasesRes.error && groupAliasesRes.data) {
+        setTagGroupAliasesByGroupId(groupAliasesByGroupId((groupAliasesRes.data ?? []) as TagGroupAliasRow[]));
       }
       setTotalAwardedTrophies(awardedRes.count || 0);
 
@@ -329,6 +360,11 @@ export default function AdminPage() {
     setTagGroups(normalized);
   };
 
+  const refreshTagGroupAliases = async () => {
+    const { data } = await supabase.rpc('get_tag_group_aliases');
+    setTagGroupAliasesByGroupId(groupAliasesByGroupId((data ?? []) as TagGroupAliasRow[]));
+  };
+
   const handleSetApprovalStatus = async (userId: string, status: 'approved' | 'rejected') => {
     setProcessingUserId(userId);
     const { error } = await supabase.rpc('set_profile_approval_status', {
@@ -446,6 +482,7 @@ export default function AdminPage() {
   };
 
   const handleSaveTagGroup = async (group: AdminTagGroup) => {
+    setTagGroupActionError('');
     setProcessingGroupId(group.group_id);
     const { error } = await supabase.rpc('upsert_tag_group', {
       input_group_id: group.group_id,
@@ -458,12 +495,15 @@ export default function AdminPage() {
 
     if (!error) {
       await refreshTagGroups();
+    } else {
+      setTagGroupActionError(error.message || 'Tagiryhmän tallennus epäonnistui');
     }
     setProcessingGroupId(null);
   };
 
   const handleCreateTagGroup = async () => {
     if (!newGroupName.trim()) return;
+    setTagGroupActionError('');
     setProcessingGroupId(-1);
     const { error } = await supabase.rpc('upsert_tag_group', {
       input_group_id: null,
@@ -480,19 +520,79 @@ export default function AdminPage() {
       setNewGroupDescription('');
       setNewGroupSearchable(true);
       await refreshTagGroups();
+    } else {
+      setTagGroupActionError(error.message || 'Tagiryhmän luonti epäonnistui');
     }
     setProcessingGroupId(null);
   };
 
   const handleDeleteTagGroup = async (groupId: number) => {
+    setTagGroupActionError('');
     setProcessingGroupId(groupId);
     const { error } = await supabase.rpc('delete_tag_group', {
       input_group_id: groupId,
     });
     if (!error) {
       await refreshTagGroups();
+      await refreshTagGroupAliases();
+    } else {
+      setTagGroupActionError(error.message || 'Tagiryhmän poisto epäonnistui');
     }
     setProcessingGroupId(null);
+  };
+
+  const handleAddGroupAlias = async (groupId: number, explicitValue?: string) => {
+    const value = (explicitValue ?? groupAliasInputByGroupId[groupId] ?? '').trim();
+    if (!value) return;
+
+    setTagGroupActionError('');
+    setAddingAliasGroupId(groupId);
+    const { error } = await supabase.rpc('add_tag_group_alias', {
+      input_group_id: groupId,
+      input_alias: value,
+    });
+
+    if (!error) {
+      setGroupAliasInputByGroupId((prev) => ({ ...prev, [groupId]: '' }));
+      await refreshTagGroupAliases();
+    } else {
+      setTagGroupActionError(error.message || 'Tagiryhmän aliaksen lisäys epäonnistui');
+    }
+    setAddingAliasGroupId(null);
+  };
+
+  const handleDeleteGroupAlias = async (aliasId: number) => {
+    setTagGroupActionError('');
+    setProcessingGroupAliasId(aliasId);
+    const { error } = await supabase.rpc('delete_tag_group_alias', {
+      input_alias_id: aliasId,
+    });
+    if (!error) {
+      await refreshTagGroupAliases();
+    } else {
+      setTagGroupActionError(error.message || 'Tagiryhmän aliaksen poisto epäonnistui');
+    }
+    setProcessingGroupAliasId(null);
+  };
+
+  const canonicalTagToToken = (tag: CanonicalTagOption): TokenItem => ({
+    id: tag.id,
+    label: `#${tag.name}`,
+  });
+
+  const buildGroupTagOptions = (group: AdminTagGroup): TokenOption[] => {
+    const query = (groupTagQueryByGroupId[group.group_id] || '').trim().toLowerCase();
+    return canonicalTags
+      .filter((tag) => !group.member_tag_ids.includes(tag.id))
+      .filter((tag) => {
+        if (!query) return true;
+        return tag.name.toLowerCase().includes(query) || tag.slug.toLowerCase().includes(query);
+      })
+      .map((tag) => ({
+        id: tag.id,
+        label: `#${tag.name}`,
+        meta: `(${tag.slug})`,
+      }));
   };
 
   if (loading || settingsLoading || trophyLoading || pendingUsersLoading) {
@@ -754,7 +854,7 @@ export default function AdminPage() {
                           [tag.id]: e.target.value ? Number(e.target.value) : '',
                         }))
                       }
-                      className="max-w-48 rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                      className="max-w-48 rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-xs focus:border-yellow-400 focus:outline-none"
                       disabled={processingTagId === tag.id}
                     >
                       <option value="">Merge target...</option>
@@ -813,19 +913,25 @@ export default function AdminPage() {
                         <div className="min-w-0">
                           {isEditing ? (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  value={editingTagName}
-                                  onChange={(e) => setEditingTagName(e.target.value)}
-                                  className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm"
-                                  placeholder="Tagin nimi"
-                                />
-                                <input
-                                  value={editingTagSlug}
-                                  onChange={(e) => setEditingTagSlug(e.target.value)}
-                                  className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm font-mono"
-                                  placeholder="tag-slug"
-                                />
+                              <div className="flex flex-wrap items-end gap-2">
+                                <label className="block w-full max-w-xs text-xs text-gray-600">
+                                  Tagin nimi
+                                  <input
+                                    value={editingTagName}
+                                    onChange={(e) => setEditingTagName(e.target.value)}
+                                    className="mt-1 w-full rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-sm focus:border-yellow-400 focus:outline-none"
+                                    placeholder="Esim. PlayStation 5"
+                                  />
+                                </label>
+                                <label className="block w-full max-w-xs text-xs text-gray-600">
+                                  Slug
+                                  <input
+                                    value={editingTagSlug}
+                                    onChange={(e) => setEditingTagSlug(e.target.value)}
+                                    className="mt-1 w-full rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-sm font-mono focus:border-yellow-400 focus:outline-none"
+                                    placeholder="esim-playstation-5"
+                                  />
+                                </label>
                                 <button
                                   type="button"
                                   className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
@@ -889,7 +995,7 @@ export default function AdminPage() {
                               setAliasInputByTagId((prev) => ({ ...prev, [tag.id]: e.target.value }))
                             }
                             placeholder="Lisää alias..."
-                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                            className="w-full rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-sm focus:border-yellow-400 focus:outline-none"
                           />
                           <button
                             type="button"
@@ -919,6 +1025,14 @@ export default function AdminPage() {
           <p className="text-sm text-gray-600 mb-4">
             Ryhmät auttavat selaamaan tageja (esim. 8-bit, 16-bit), mutta ryhmiä ei voi valita keskustelun tageiksi.
           </p>
+          <p className="text-xs text-gray-500 mb-4">
+            Sama tagi voi kuulua useaan ryhmään. Ryhmän nimi ei voi olla sama kuin olemassa olevan tagin nimi.
+          </p>
+          {tagGroupActionError && (
+            <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {tagGroupActionError}
+            </p>
+          )}
 
           <div className="rounded border border-gray-200 bg-gray-50 p-3 mb-4 space-y-2">
             <h3 className="font-semibold text-sm text-gray-800">Luo uusi ryhmä</h3>
@@ -1017,29 +1131,68 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Ryhmän tagit</p>
-                    <select
-                      multiple
-                      size={8}
-                      className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm"
-                      value={group.member_tag_ids.map(String)}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions)
-                          .map((option) => Number.parseInt(option.value, 10))
-                          .filter((value) => Number.isFinite(value) && value > 0);
+                    <TokenInput
+                      label="Ryhmän tagit"
+                      placeholder="Hae ja lisää tageja..."
+                      tokens={canonicalTags
+                        .filter((tag) => group.member_tag_ids.includes(tag.id))
+                        .map(canonicalTagToToken)}
+                      query={groupTagQueryByGroupId[group.group_id] || ''}
+                      onQueryChange={(value) =>
+                        setGroupTagQueryByGroupId((prev) => ({ ...prev, [group.group_id]: value }))
+                      }
+                      options={buildGroupTagOptions(group)}
+                      onSelectOption={(option) => {
+                        const tagId = Number(option.id);
+                        if (!Number.isFinite(tagId) || tagId <= 0) return;
                         setTagGroups((prev) =>
                           prev.map((entry) =>
-                            entry.group_id === group.group_id ? { ...entry, member_tag_ids: selected } : entry
+                            entry.group_id === group.group_id && !entry.member_tag_ids.includes(tagId)
+                              ? { ...entry, member_tag_ids: [...entry.member_tag_ids, tagId] }
+                              : entry
+                          )
+                        );
+                        setGroupTagQueryByGroupId((prev) => ({ ...prev, [group.group_id]: '' }));
+                      }}
+                      onRemoveToken={(id) => {
+                        const tagId = Number(id);
+                        if (!Number.isFinite(tagId) || tagId <= 0) return;
+                        setTagGroups((prev) =>
+                          prev.map((entry) =>
+                            entry.group_id === group.group_id
+                              ? { ...entry, member_tag_ids: entry.member_tag_ids.filter((entryId) => entryId !== tagId) }
+                              : entry
                           )
                         );
                       }}
-                    >
-                      {canonicalTags.map((tag) => (
-                        <option key={tag.id} value={tag.id}>
-                          #{tag.name} ({tag.slug})
-                        </option>
-                      ))}
-                    </select>
+                      emptyMessage="Ei osumia"
+                      disabled={processingGroupId === group.group_id}
+                    />
+                  </div>
+                  <div>
+                    <TokenInput
+                      label="Ryhmän aliakset"
+                      placeholder="Lisää ryhmäalias..."
+                      tokens={(tagGroupAliasesByGroupId[group.group_id] || []).map((aliasRow) => ({
+                        id: aliasRow.alias_id,
+                        label: aliasRow.alias,
+                      }))}
+                      query={groupAliasInputByGroupId[group.group_id] || ''}
+                      onQueryChange={(value) =>
+                        setGroupAliasInputByGroupId((prev) => ({ ...prev, [group.group_id]: value }))
+                      }
+                      onRemoveToken={(id) => {
+                        const aliasId = Number(id);
+                        if (!Number.isFinite(aliasId) || aliasId <= 0) return;
+                        void handleDeleteGroupAlias(aliasId);
+                      }}
+                      onSubmitQuery={async (value) => {
+                        await handleAddGroupAlias(group.group_id, value);
+                      }}
+                      submitLabel="Lisää"
+                      emptyMessage="Kirjoita alias ja paina Enter"
+                      disabled={processingGroupAliasId !== null || addingAliasGroupId === group.group_id}
+                    />
                   </div>
                   <div className="flex items-center gap-2">
                     <button

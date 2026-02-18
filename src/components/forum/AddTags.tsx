@@ -18,6 +18,9 @@ interface AddTagsProps {
   onChange: (next: TagOption[]) => void;
   disabled?: boolean;
   allowCreate?: boolean;
+  label?: string;
+  placeholder?: string;
+  featuredOnly?: boolean | null;
 }
 
 interface TagsApiResponse {
@@ -33,7 +36,15 @@ function normalizeInputTagName(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
-export function AddTags({ selected, onChange, disabled = false, allowCreate = false }: AddTagsProps) {
+export function AddTags({
+  selected,
+  onChange,
+  disabled = false,
+  allowCreate = false,
+  label = 'Tagit',
+  placeholder = 'Lisää tageja...',
+  featuredOnly = true,
+}: AddTagsProps) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<TagOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,7 +72,15 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`/api/tags?status=approved&featured=true&limit=100&query=${encodeURIComponent(query)}`, {
+        const params = new URLSearchParams();
+        params.set('status', 'approved');
+        params.set('limit', '100');
+        params.set('query', query);
+        if (featuredOnly !== null) {
+          params.set('featured', String(featuredOnly));
+        }
+
+        const res = await fetch(`/api/tags?${params.toString()}`, {
           method: 'GET',
           signal: controller.signal,
           cache: 'no-store',
@@ -84,7 +103,7 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [query, selected, disabled]);
+  }, [query, selected, disabled, featuredOnly]);
 
   const addTag = (tag: TagOption) => {
     if (selected.some((item) => item.id === tag.id)) return;
@@ -135,28 +154,8 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
   return (
     <div ref={rootRef}>
       <label htmlFor="topic-tags" className="block text-sm font-medium mb-1">
-        Tagit
+        {label}
       </label>
-      <div className="flex flex-wrap gap-2 mb-2">
-        {selected.map((tag) => (
-          <span
-            key={tag.id}
-            className="inline-flex items-center gap-1 rounded-full border border-yellow-400 bg-yellow-50 px-3 py-1 text-sm text-yellow-900"
-          >
-            <span>{tag.icon || '🏷️'}</span>
-            <span>#{tag.name}</span>
-            <button
-              type="button"
-              onClick={() => removeTag(tag.id)}
-              className="rounded-full p-0.5 hover:bg-yellow-200"
-              aria-label={`Poista tagi ${tag.name}`}
-              disabled={disabled}
-            >
-              <X size={12} />
-            </button>
-          </span>
-        ))}
-      </div>
 
       <div className="relative">
         <input
@@ -167,7 +166,7 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Lisää tageja..."
+          placeholder={placeholder}
           className="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-yellow-400 focus:outline-none"
           disabled={disabled}
         />
@@ -223,6 +222,26 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
             )}
           </div>
         )}
+      </div>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {selected.map((tag) => (
+          <span
+            key={tag.id}
+            className="inline-flex items-center gap-1 rounded-full border border-yellow-400 bg-yellow-50 px-3 py-1 text-sm text-yellow-900"
+          >
+            <span>{tag.icon || '🏷️'}</span>
+            <span>#{tag.name}</span>
+            <button
+              type="button"
+              onClick={() => removeTag(tag.id)}
+              className="rounded-full p-0.5 hover:bg-yellow-200"
+              aria-label={`Poista tagi ${tag.name}`}
+              disabled={disabled}
+            >
+              <X size={12} />
+            </button>
+          </span>
+        ))}
       </div>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>

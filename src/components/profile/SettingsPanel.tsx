@@ -192,9 +192,9 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
             <div className="flex items-center gap-3">
               {showSettingActionIcons && <Music2 size={20} className="text-gray-600" />}
               <div>
-                <p className="font-medium">.mid (On/Off)</p>
+                <p className="font-medium">.mid</p>
                 <p className="text-sm text-gray-500">
-                  {midiEnabled ? 'Styge soi' : 'You died'}
+                  {midiEnabled ? 'Styge soi... epävireisesti' : 'You died.'}
                 </p>
               </div>
             </div>

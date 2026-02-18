@@ -402,3 +402,16 @@ a[href]:not([class]):hover {
   flex-shrink: 0;
   white-space: pre;
 }
+
+/* Global baseline for text-like form fields */
+:where(input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="url"], input[type="number"], input:not([type]), textarea, select) {
+  background-color: #ffffff;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #d1d5db;
+}
+
+:where(input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="url"], input[type="number"], input:not([type]), textarea, select):focus {
+  outline: none;
+  border-color: #facc15;
+}
