@@ -2,9 +2,52 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --icon-accent: #ca8a04;
+  /* Reference tokens: raw palette values only. */
+  --ref-color-white: #ffffff;
+  --ref-color-black-900: #171717;
+  --ref-color-yellow-400: #facc15;
+  --ref-color-yellow-500: #eab308;
+  --ref-color-amber-700: #a16207;
+  --ref-color-amber-800: #854d0e;
+  --ref-color-amber-600: #ca8a04;
+  --ref-color-gray-100: #f3f4f6;
+  --ref-color-neutral-950: #0a0a0a;
+  --ref-color-neutral-100: #ededed;
+
+  /* System tokens: semantic colors used by app surfaces and text. */
+  --sys-color-bg-canvas: var(--ref-color-white);
+  --sys-color-fg-default: var(--ref-color-black-900);
+  --sys-color-icon-accent: var(--ref-color-amber-600);
+  --sys-color-link-default: var(--ref-color-amber-700);
+  --sys-color-link-hover: var(--ref-color-amber-800);
+
+  --sys-surface-header: var(--ref-color-white);
+  --sys-surface-footer: var(--ref-color-white);
+  --sys-surface-content: var(--ref-color-gray-100);
+  --sys-surface-card: var(--ref-color-white);
+
+  /* Component tokens: scoped values for reusable UI components. */
+  --comp-button-primary-bg: var(--ref-color-yellow-400);
+  --comp-button-primary-bg-hover: var(--ref-color-yellow-500);
+  --comp-button-primary-fg: var(--ref-color-black-900);
+
+  /* Legacy aliases kept for compatibility with existing component code. */
+  --color-white: var(--ref-color-white);
+  --color-yellow: var(--ref-color-yellow-400);
+  --color-yellow-hover: var(--ref-color-yellow-500);
+  --color-black: var(--ref-color-black-900);
+  --background: var(--sys-color-bg-canvas);
+  --foreground: var(--sys-color-fg-default);
+  --icon-accent: var(--sys-color-icon-accent);
+  --link-accent: var(--sys-color-link-default);
+  --link-accent-hover: var(--sys-color-link-hover);
+  --surface-header: var(--sys-surface-header);
+  --surface-footer: var(--sys-surface-footer);
+  --surface-content: var(--sys-surface-content);
+  --surface-card: var(--sys-surface-card);
+  --button-primary-bg: var(--comp-button-primary-bg);
+  --button-primary-bg-hover: var(--comp-button-primary-bg-hover);
+  --button-primary-text: var(--comp-button-primary-fg);
 }
 
 @theme inline {
@@ -16,8 +59,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --sys-color-bg-canvas: var(--ref-color-neutral-950);
+    --sys-color-fg-default: var(--ref-color-neutral-100);
   }
 }
 
@@ -30,6 +73,55 @@ body {
 /* Global default for Lucide icons; utility classes can still override this. */
 :where(.lucide) {
   color: var(--icon-accent);
+}
+
+/* Shared link tokens and utility class for consistent app-wide link styling. */
+a.app-link {
+  color: var(--link-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a.app-link:hover {
+  color: var(--link-accent-hover);
+}
+
+/* Default styling for plain anchors that don't carry explicit classes. */
+a[href]:not([class]) {
+  color: var(--link-accent);
+}
+
+a[href]:not([class]):hover {
+  color: var(--link-accent-hover);
+}
+
+/* Keep markdown/prose links aligned with app link colors by default. */
+.prose {
+  --tw-prose-links: var(--link-accent);
+}
+
+.prose a {
+  color: var(--link-accent);
+}
+
+.prose a:hover {
+  color: var(--link-accent-hover);
+}
+
+.app-header {
+  background: var(--surface-header);
+}
+
+.app-footer {
+  background: var(--surface-footer);
+}
+
+.app-content {
+  background: var(--surface-content);
+}
+
+.app-card {
+  background: var(--surface-card);
 }
 
 @keyframes notification-marquee {

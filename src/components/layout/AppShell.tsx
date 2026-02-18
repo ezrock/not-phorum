@@ -74,11 +74,11 @@ export function AppShell({ children }: AppShellProps) {
   if (loading || shouldRedirectLoggedIn || shouldRedirectLoggedOut) return null;
 
   if (!currentUser) {
-    return <main className="min-h-screen bg-gray-100 pb-8">{children}</main>;
+    return <main className="min-h-screen app-content pb-8">{children}</main>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen app-content flex flex-col">
       {showNotification && (
         <div className="h-5 bg-black overflow-hidden border-b border-gray-900">
           <div className="notification-marquee whitespace-nowrap text-[12px] leading-5 text-green-400 px-2" style={{ fontFamily: 'monospace' }}>

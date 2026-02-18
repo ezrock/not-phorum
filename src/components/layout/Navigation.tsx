@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -25,14 +26,11 @@ export const Navigation = (): JSX.Element | null => {
   };
 
   return (
-    <nav className="bg-white-400 p-4 border-b-4 border-gray-800">
+    <nav className="app-header p-4 border-b-4 border-gray-800">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/forum">
-            <h1 className="text-xl font-bold text-gray-800 tracking-wider cursor-pointer hover:opacity-80"
-                style={{ fontFamily: 'monospace' }}>
-              FREAK ON!
-            </h1>
+          <Link href="/forum" className="hover:opacity-80" aria-label="Freak On home">
+            <Image src="/logo32.gif" alt="Freak On logo" width={207} height={24} priority />
           </Link>
 
           <div className="flex gap-4">
