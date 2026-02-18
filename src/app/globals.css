@@ -234,6 +234,13 @@ a[href]:not([class]):hover {
   background: #e5e7eb;
 }
 
+.card-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
 @keyframes notification-marquee {
   0% {
     transform: translateX(0);

@@ -165,7 +165,7 @@ export default function AdminPage() {
       {activeTab === 'board' && (
         <Card>
           <div className="flex items-center gap-3 mb-4">
-            <h2 className="text-2xl font-bold">Boardin asetukset</h2>
+            <h2 className="card-title mb-0">Boardin asetukset</h2>
           </div>
 
           <div className="flex items-center justify-between">
@@ -247,23 +247,23 @@ export default function AdminPage() {
 
       {activeTab === 'users' && (
         <Card>
-          <h2 className="text-2xl font-bold mb-3">Käyttäjät</h2>
+          <h2 className="card-title">Käyttäjät</h2>
           <p className="text-sm text-gray-500">Käyttäjähallinta tulossa tähän korttiin.</p>
         </Card>
       )}
 
       {activeTab === 'categories' && (
         <Card>
-          <h2 className="text-2xl font-bold mb-3">Kategoriat</h2>
+          <h2 className="card-title">Kategoriat</h2>
           <p className="text-sm text-gray-500">Kategoriahallinta tulossa tähän korttiin.</p>
         </Card>
       )}
 
       {activeTab === 'trophies' && (
         <Card>
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-4">
             <Trophy size={24} className="text-yellow-600" />
-            <h2 className="text-2xl font-bold">Pokaalit (Legacy baseline)</h2>
+            <h2 className="card-title mb-0">Pokaalit (Legacy baseline)</h2>
           </div>
 
           <p className="text-sm text-gray-600 mb-4">
@@ -304,7 +304,7 @@ export default function AdminPage() {
 
       {activeTab === 'levels' && (
         <Card>
-          <h2 className="text-2xl font-bold mb-3">Tasot</h2>
+          <h2 className="card-title">Tasot</h2>
           <p className="text-sm text-gray-500">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
         </Card>
       )}

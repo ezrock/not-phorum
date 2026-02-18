@@ -10,7 +10,7 @@ interface TrophiesCardProps {
 export function TrophiesCard({ trophies }: TrophiesCardProps) {
   return (
     <Card className="mb-6">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+      <h2 className="card-title flex items-center gap-2">
         <TrophyIcon size={20} className="text-yellow-600" />
         Kunniamerkit
       </h2>

@@ -205,7 +205,7 @@ export function EditProfileForm() {
   return (
     <>
       <Card className="mb-6">
-        <h2 className="text-xl font-bold mb-4">Muokkaa profiilia</h2>
+        <h2 className="card-title">Muokkaa profiilia</h2>
 
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -371,7 +371,7 @@ export function EditProfileForm() {
       </Card>
 
       <Card className="mt-6 mb-6">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <h2 className="card-title flex items-center gap-2">
           <Lock size={20} />
           Vaihda salasana
         </h2>

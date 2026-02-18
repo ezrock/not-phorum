@@ -127,7 +127,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
   if (loading) {
     return (
       <Card className={className}>
-        <h2 className="text-xl font-bold mb-4">Top 5</h2>
+        <h2 className="card-title">Top 5</h2>
         <p className="text-sm text-gray-500">Ladataan...</p>
       </Card>
     );
@@ -135,7 +135,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
 
   return (
     <Card className={className}>
-      <h2 className="text-xl font-bold mb-5">Top 5</h2>
+      <h2 className="card-title mb-5">Top 5</h2>
 
       <div className="space-y-5">
         <section>

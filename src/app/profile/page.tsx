@@ -41,6 +41,26 @@ export default function ProfilePage() {
 
   return (
     <div className="page-container">
+      <div className="mb-6 flex items-center gap-4">
+        {typedProfile.profile_image_url ? (
+          <img
+            src={profileMedium(typedProfile.profile_image_url)}
+            alt={typedProfile.username || 'Profiili'}
+            className="w-16 h-16 rounded-none object-cover"
+          />
+        ) : (
+          <span className="w-16 h-16 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
+            <User size={34} />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold truncate" style={{ fontFamily: 'monospace' }}>{typedProfile.username}</h1>
+          <p className="text-sm text-gray-500">
+            Liittymispäivä {typedProfile.created_at ? formatFinnishDate(typedProfile.created_at) : ''}
+          </p>
+        </div>
+      </div>
+
       <div className="page-tabs mb-6">
         {(['profile', 'edit', 'settings'] as const).map((tab) => (
           <button
@@ -57,23 +77,7 @@ export default function ProfilePage() {
       {activeTab === 'profile' && (
         <>
           <Card className="mb-6">
-            <div className="flex items-center gap-4 mb-4">
-              {typedProfile.profile_image_url ? (
-                <img src={profileMedium(typedProfile.profile_image_url)} alt={typedProfile.username || 'Profiili'} className="w-16 h-16 rounded-none object-cover" />
-              ) : (
-                <span className="w-16 h-16 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center">
-                  <User size={34} />
-                </span>
-              )}
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold" style={{ fontFamily: 'monospace' }}>{typedProfile.username}</h1>
-                <p className="text-sm text-gray-500">
-                  Liittymispäivä {typedProfile.created_at ? formatFinnishDate(typedProfile.created_at) : ''}
-                </p>
-              </div>
-            </div>
-
-            <hr className="border-gray-200 mb-4" />
+            <h2 className="card-title">Tilastot</h2>
 
             <ProfileStats
               postCount={postCount}
