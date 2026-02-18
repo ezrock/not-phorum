@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { MessageSquare, LogIn, Eye, BarChart3 } from 'lucide-react';
-import type { TopicStat } from '@/hooks/useProfileStats';
+import type { TopicStat, TopTagStat } from '@/hooks/useProfileStats';
 
 interface ProfileStatsProps {
   postCount: number;
@@ -9,6 +9,7 @@ interface ProfileStatsProps {
   loginNetworkCount?: number;
   mostPopularTopic: TopicStat | null;
   mostActiveTopic: TopicStat | null;
+  topTags: TopTagStat[];
 }
 
 export function ProfileStats({
@@ -18,6 +19,7 @@ export function ProfileStats({
   loginNetworkCount = 0,
   mostPopularTopic,
   mostActiveTopic,
+  topTags,
 }: ProfileStatsProps) {
   return (
     <div className="space-y-3">
@@ -66,6 +68,23 @@ export function ProfileStats({
           <span className="font-bold text-sm text-right flex-1 truncate">{mostActiveTopic.title}</span>
           <span className="text-xs text-gray-400 flex-shrink-0">{mostActiveTopic.reply_count} vastausta</span>
         </Link>
+      )}
+      {topTags.length > 0 && (
+        <div className="pt-1">
+          <p className="text-xs text-gray-500 mb-2">Käytetyimmät tagit</p>
+          <div className="flex flex-wrap gap-2">
+            {topTags.map((tag) => (
+              <Link
+                key={tag.tag_id}
+                href={`/forum?tags=${tag.tag_id}`}
+                className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs text-yellow-900 hover:bg-yellow-100"
+              >
+                <span>#{tag.tag_name}</span>
+                <span className="text-yellow-700">({tag.usage_count})</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

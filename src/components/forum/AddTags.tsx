@@ -7,6 +7,9 @@ export interface TagOption {
   id: number;
   name: string;
   slug: string;
+  group_label?: string;
+  group_order?: number;
+  tag_order?: number;
 }
 
 interface AddTagsProps {
@@ -57,7 +60,7 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`/api/tags?status=approved&featured=true&query=${encodeURIComponent(query)}`, {
+        const res = await fetch(`/api/tags?status=approved&featured=true&limit=100&query=${encodeURIComponent(query)}`, {
           method: 'GET',
           signal: controller.signal,
           cache: 'no-store',
@@ -97,6 +100,12 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
   const hasExactVisibleOption = options.some((tag) => tag.name.toLowerCase() === normalizedQuery.toLowerCase());
   const hasExactSelectedOption = selected.some((tag) => tag.name.toLowerCase() === normalizedQuery.toLowerCase());
   const canCreate = allowCreate && normalizedQuery.length > 0 && !hasExactVisibleOption && !hasExactSelectedOption;
+  const groupedOptions = options.reduce<Record<string, TagOption[]>>((acc, tag) => {
+    const key = tag.group_label || 'Muut tagit';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(tag);
+    return acc;
+  }, {});
 
   const handleCreate = async () => {
     if (!canCreate || disabled || creating) return;
@@ -167,16 +176,23 @@ export function AddTags({ selected, onChange, disabled = false, allowCreate = fa
               <div className="px-3 py-2 text-sm text-gray-500">Ei osumia</div>
             )}
             {!loading &&
-              options.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50"
-                  onClick={() => addTag(tag)}
-                  disabled={disabled}
-                >
-                  #{tag.name}
-                </button>
+              Object.entries(groupedOptions).map(([groupLabel, groupTags]) => (
+                <div key={groupLabel}>
+                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 bg-gray-50 border-y border-gray-100">
+                    {groupLabel}
+                  </div>
+                  {groupTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50"
+                      onClick={() => addTag(tag)}
+                      disabled={disabled}
+                    >
+                      #{tag.name}
+                    </button>
+                  ))}
+                </div>
               ))}
             {!loading && canCreate && (
               <button

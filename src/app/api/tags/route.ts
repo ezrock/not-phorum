@@ -8,6 +8,17 @@ interface TagRow {
   status?: string;
   featured?: boolean;
   redirect_to_tag_id?: number | null;
+  group_label?: string;
+  group_order?: number;
+  tag_order?: number;
+}
+
+interface CategoryRow {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+  sort_order: number | null;
 }
 
 function parseLimit(value: string | null, fallback = 20): number {
@@ -93,7 +104,53 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ tags: (data || []) as TagRow[] });
+  const tags = (data || []) as TagRow[];
+
+  const { data: categoriesData } = await supabase
+    .from('categories')
+    .select('id, name, slug, parent_id, sort_order');
+
+  const categories = (categoriesData || []) as CategoryRow[];
+  const categoryBySlug = new Map(categories.map((category) => [category.slug, category]));
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
+
+  const enriched = tags
+    .map((tag) => {
+      const matchingCategory = categoryBySlug.get(tag.slug);
+      if (!matchingCategory) {
+        return {
+          ...tag,
+          group_label: 'Muut tagit',
+          group_order: 9999,
+          tag_order: 9999,
+        };
+      }
+
+      const parentCategory = matchingCategory.parent_id
+        ? categoryById.get(matchingCategory.parent_id) || null
+        : null;
+
+      return {
+        ...tag,
+        group_label: parentCategory?.name || matchingCategory.name,
+        group_order: parentCategory?.sort_order ?? matchingCategory.sort_order ?? 9999,
+        tag_order: matchingCategory.sort_order ?? 9999,
+      };
+    })
+    .sort((a, b) => {
+      if ((a.group_order || 0) !== (b.group_order || 0)) {
+        return (a.group_order || 0) - (b.group_order || 0);
+      }
+      if ((a.group_label || '') !== (b.group_label || '')) {
+        return (a.group_label || '').localeCompare(b.group_label || '', 'fi');
+      }
+      if ((a.tag_order || 0) !== (b.tag_order || 0)) {
+        return (a.tag_order || 0) - (b.tag_order || 0);
+      }
+      return a.name.localeCompare(b.name, 'fi');
+    });
+
+  return NextResponse.json({ tags: enriched as TagRow[] });
 }
 
 export async function POST(req: NextRequest) {

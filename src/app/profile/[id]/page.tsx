@@ -50,7 +50,7 @@ export default function PublicProfilePage() {
   const [adminCount, setAdminCount] = useState(0);
   const [togglingAdmin, setTogglingAdmin] = useState(false);
 
-  const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic } = useProfileStats(userId);
+  const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic, topTags } = useProfileStats(userId);
 
   // Redirect to own profile page if viewing self
   useEffect(() => {
@@ -201,6 +201,7 @@ export default function PublicProfilePage() {
           loginNetworkCount={profile.login_network_count || 0}
           mostPopularTopic={mostPopularTopic}
           mostActiveTopic={mostActiveTopic}
+          topTags={topTags}
         />
       </Card>
 
