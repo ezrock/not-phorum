@@ -30,8 +30,8 @@ export const Navigation = (): JSX.Element | null => {
 
   return (
     <nav className="app-header p-4 border-b-4 border-gray-800">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-8">
+      <div className="max-w-6xl mx-auto flex items-center gap-4">
+        <div className="flex items-center gap-8 flex-shrink-0">
           <Link href="/forum" className="hover:opacity-80" aria-label="Freak On home">
             <Image src="/logo32.gif" alt="Freak On logo" width={207} height={24} priority />
           </Link>
@@ -54,18 +54,18 @@ export const Navigation = (): JSX.Element | null => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <form onSubmit={handleSearch}>
+        <div className="flex items-center gap-2 flex-1 min-w-0 ml-4">
+          <form onSubmit={handleSearch} className="flex-1 min-w-0">
             <SearchInput
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Hae..."
-              inputClassName="w-36 focus:w-56 transition-all"
+              inputClassName="w-full"
             />
           </form>
           <Link
             href="/profile"
-            className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300"
+            className="flex items-center gap-2 px-4 py-2 max-h-10 bg-transparent text-gray-800 rounded hover:bg-yellow-300 flex-shrink-0"
           >
             {showNavLinkIcons && (
               profile.profile_image_url ? (
@@ -80,7 +80,7 @@ export const Navigation = (): JSX.Element | null => {
           </Link>
           <button
             onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 text-md text-gray-600 rounded hover:bg-red-700 hover:text-white transition"
+            className="flex items-center gap-2 px-4 py-2 text-md text-gray-600 rounded hover:bg-red-700 hover:text-white transition flex-shrink-0"
           >
             Ulos
           </button>
