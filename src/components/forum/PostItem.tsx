@@ -6,6 +6,7 @@ import { Edit2, ImagePlus, X, Trash2, Save, User, Heart, Link2, Check } from 'lu
 import { Button } from '@/components/ui/button';
 import { CldUploadWidget } from 'next-cloudinary';
 import { extractSecureUrl, profileThumb, postImage, postThumb } from '@/lib/cloudinary';
+import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 import { formatPostDateTime } from '@/lib/formatDate';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -193,6 +194,7 @@ export function PostItem({
 }: PostItemProps) {
   const [editContent, setEditContent] = useState(post.content);
   const [editImageUrl, setEditImageUrl] = useState(post.image_url || '');
+  const uploadPreset = getCloudinaryUploadPresetOrThrow();
 
   const handleStartEdit = () => {
     setEditContent(post.content);
@@ -252,8 +254,8 @@ export function PostItem({
             )}
             <div className="flex items-center gap-2">
               <CldUploadWidget
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                options={{ maxFiles: 1, resourceType: 'image', folder: 'freakon/posts' }}
+                uploadPreset={uploadPreset}
+                options={getPostUploadWidgetOptions()}
                 onSuccess={(result: unknown) => {
                   const secureUrl = extractSecureUrl(result);
                   if (secureUrl) setEditImageUrl(secureUrl);

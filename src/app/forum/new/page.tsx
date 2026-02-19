@@ -11,11 +11,13 @@ import { CldUploadWidget } from 'next-cloudinary';
 import Link from 'next/link';
 import { ArrowLeft, Send, ImagePlus, X } from 'lucide-react';
 import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
+import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 import { AddTags, type TagOption } from '@/components/forum/AddTags';
 
 export default function NewTopicPage() {
   const { supabase } = useAuth();
   const router = useRouter();
+  const uploadPreset = getCloudinaryUploadPresetOrThrow();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -139,12 +141,8 @@ export default function NewTopicPage() {
 
           <div className="composer-actions">
             <CldUploadWidget
-              uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-              options={{
-                maxFiles: 1,
-                resourceType: 'image',
-                folder: 'freakon/posts',
-              }}
+              uploadPreset={uploadPreset}
+              options={getPostUploadWidgetOptions()}
               onSuccess={(result: unknown) => {
                 const secureUrl = extractSecureUrl(result);
                 if (secureUrl) {

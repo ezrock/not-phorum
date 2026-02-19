@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MessageSquare, ImagePlus, X } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
+import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 
 interface ReplyFormProps {
   onSubmit: (content: string, imageUrl: string) => Promise<void>;
@@ -14,6 +15,7 @@ interface ReplyFormProps {
 export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const uploadPreset = getCloudinaryUploadPresetOrThrow();
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -54,12 +56,8 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
       )}
       <div className="composer-actions">
         <CldUploadWidget
-          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-          options={{
-            maxFiles: 1,
-            resourceType: 'image',
-            folder: 'freakon/posts',
-          }}
+          uploadPreset={uploadPreset}
+          options={getPostUploadWidgetOptions()}
           onSuccess={(result: unknown) => {
             const secureUrl = extractSecureUrl(result);
             if (secureUrl) {

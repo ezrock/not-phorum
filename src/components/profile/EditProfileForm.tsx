@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { Save, Camera, X, Link as LinkIcon, User, Lock, Pencil } from 'lucide-react';
 import { extractSecureUrl, profileThumb } from '@/lib/cloudinary';
+import { getCloudinaryUploadPresetOrThrow, getProfileUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
 function isSafeHttpUrl(rawUrl: string): boolean {
@@ -24,6 +25,7 @@ function isSafeHttpUrl(rawUrl: string): boolean {
 export function EditProfileForm() {
   const { currentUser, profile, supabase, refreshProfile } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
+  const uploadPreset = getCloudinaryUploadPresetOrThrow();
   const typedProfile = profile as {
     username?: string;
     display_name?: string;
@@ -294,14 +296,8 @@ export function EditProfileForm() {
                 </span>
               )}
               <CldUploadWidget
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                options={{
-                  maxFiles: 1,
-                  resourceType: 'image',
-                  folder: 'freakon/profiles',
-                  cropping: true,
-                  croppingAspectRatio: 1,
-                }}
+                uploadPreset={uploadPreset}
+                options={getProfileUploadWidgetOptions()}
                 onSuccess={(result: unknown) => {
                   const secureUrl = extractSecureUrl(result);
                   if (secureUrl) setProfileImageUrl(secureUrl);
