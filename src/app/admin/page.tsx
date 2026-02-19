@@ -82,6 +82,8 @@ export default function AdminPage() {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editingTagName, setEditingTagName] = useState('');
   const [editingTagSlug, setEditingTagSlug] = useState('');
+  const [editingTagGroupIds, setEditingTagGroupIds] = useState<number[]>([]);
+  const [deleteReplacementTagId, setDeleteReplacementTagId] = useState<number | ''>('');
   const [mergeTargetByTagId, setMergeTargetByTagId] = useState<Record<number, number | ''>>({});
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [processingTagId, setProcessingTagId] = useState<number | null>(null);
@@ -405,23 +407,23 @@ export default function AdminPage() {
     setProcessingAliasId(null);
   };
 
-  const handleDeleteTag = async (tag: CanonicalTagOption) => {
-    const isInUse =
-      tag.usage_count > 0
-      || tag.alias_count > 0
-      || tag.group_membership_count > 0
-      || tag.redirect_reference_count > 0;
-    if (isInUse) return;
-
+  const handleDeleteTag = async (tag: CanonicalTagOption, replacementTagId: number | '') => {
+    const replacementLabel =
+      replacementTagId === ''
+        ? 'off-topic'
+        : (canonicalTags.find((candidate) => candidate.id === replacementTagId)?.name || String(replacementTagId));
     const confirmed = window.confirm(
-      `Poistetaanko tagi #${tag.name}? Tätä ei voi perua.`
+      `Poistetaanko tagi #${tag.name}?\n\n` +
+      `Tagin käytöt siirretään tagille: ${replacementLabel}.\n` +
+      `Toimintoa ei voi perua.`
     );
     if (!confirmed) return;
 
     setTagActionError('');
     setProcessingTagId(tag.id);
-    const { error } = await supabase.rpc('delete_tag_if_unused', {
+    const { error } = await supabase.rpc('delete_tag_with_reassignment', {
       input_tag_id: tag.id,
+      input_replacement_tag_id: replacementTagId === '' ? null : replacementTagId,
     });
 
     if (!error) {
@@ -442,32 +444,61 @@ export default function AdminPage() {
     setEditingTagId(tag.id);
     setEditingTagName(tag.name);
     setEditingTagSlug(tag.slug);
+    setEditingTagGroupIds(
+      tagGroups
+        .filter((group) => group.member_tag_ids.includes(tag.id))
+        .map((group) => group.group_id)
+    );
+    setDeleteReplacementTagId('');
   };
 
   const cancelRenameTag = () => {
     setEditingTagId(null);
     setEditingTagName('');
     setEditingTagSlug('');
+    setEditingTagGroupIds([]);
+    setDeleteReplacementTagId('');
   };
 
-  const handleRenameTag = async (tagId: number) => {
+  const handleSaveTagCard = async (tagId: number) => {
     const nextName = editingTagName.trim();
     if (!nextName) return;
+    setTagActionError('');
 
     setProcessingTagId(tagId);
-    const { error } = await supabase.rpc('update_tag_details', {
+    const { error: renameError } = await supabase.rpc('update_tag_details', {
       input_tag_id: tagId,
       input_name: nextName,
       input_slug: editingTagSlug.trim() || null,
       input_add_old_aliases: true,
     });
 
-    if (!error) {
+    if (renameError) {
+      setTagActionError(renameError.message || 'Tagin tallennus epäonnistui');
+      setProcessingTagId(null);
+      return;
+    }
+
+    const { error: groupsError } = await supabase.rpc('set_tag_group_memberships_for_tag', {
+      input_tag_id: tagId,
+      input_group_ids: editingTagGroupIds,
+    });
+
+    if (groupsError) {
+      setTagActionError(groupsError.message || 'Tagiryhmien tallennus epäonnistui');
+      setProcessingTagId(null);
+      return;
+    }
+
+    if (!renameError && !groupsError) {
       await refreshCanonicalTags();
       await refreshTagAliases();
+      await refreshTagGroups();
       setEditingTagId(null);
       setEditingTagName('');
       setEditingTagSlug('');
+      setEditingTagGroupIds([]);
+      setDeleteReplacementTagId('');
     }
     setProcessingTagId(null);
   };
@@ -751,6 +782,7 @@ export default function AdminPage() {
           showHeaderIcons={showHeaderIcons}
           unreviewedTags={unreviewedTags}
           canonicalTags={canonicalTags}
+          tagGroups={tagGroups}
           mergeTargetByTagId={mergeTargetByTagId}
           processingTagId={processingTagId}
           tagActionError={tagActionError}
@@ -758,6 +790,8 @@ export default function AdminPage() {
           editingTagId={editingTagId}
           editingTagName={editingTagName}
           editingTagSlug={editingTagSlug}
+          editingTagGroupIds={editingTagGroupIds}
+          deleteReplacementTagId={deleteReplacementTagId}
           aliasInputByTagId={aliasInputByTagId}
           tagAliasesByTagId={tagAliasesByTagId}
           addingAliasTagId={addingAliasTagId}
@@ -772,7 +806,9 @@ export default function AdminPage() {
           onCancelRenameTag={cancelRenameTag}
           onEditingTagNameChange={setEditingTagName}
           onEditingTagSlugChange={setEditingTagSlug}
-          onRenameTag={handleRenameTag}
+          onEditingTagGroupIdsChange={setEditingTagGroupIds}
+          onDeleteReplacementTagIdChange={setDeleteReplacementTagId}
+          onSaveTagCard={handleSaveTagCard}
           onAliasInputChange={(tagId, value) =>
             setAliasInputByTagId((prev) => ({ ...prev, [tagId]: value }))
           }
