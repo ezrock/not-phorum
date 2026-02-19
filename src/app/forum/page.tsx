@@ -123,8 +123,9 @@ function ForumContent() {
     [requestedTagsParam]
   );
 
-  const formatRepliesLabel = (count: number) => {
-    return `${count} ${count === 1 ? 'vastaus' : 'vastausta'}`;
+  const formatMessagesLabel = (repliesCount: number) => {
+    const totalMessages = Math.max(1, repliesCount + 1);
+    return `${totalMessages} ${totalMessages === 1 ? 'viesti' : 'viestiä'}`;
   };
 
   const pushFilterUrl = useCallback((nextTagIds: number[], nextMatch: 'any' | 'all') => {
@@ -418,6 +419,7 @@ function ForumContent() {
   const displayedTopicCount = Math.min(visibleCount, topics.length);
   const visibleTopics = topics.slice(0, displayedTopicCount);
   const canShowMore = displayedTopicCount < threadCount;
+  const unreadThreadCount = topics.filter((topic) => topic.has_new).length;
 
   const handleShowMore = async () => {
     const nextVisibleTarget = visibleCount + forumBatchSize;
@@ -465,7 +467,13 @@ function ForumContent() {
             )}
           </div>
           <p className="text-xs text-gray-500 whitespace-nowrap text-right">
-            {threadCount} lankaa, {messageCount} viestiä.
+            {threadCount} lankaa, {messageCount} viestiä
+            {unreadThreadCount > 0 && (
+              <>
+                , <span className="text-highlight-glimmer">{unreadThreadCount} lukematonta</span>
+              </>
+            )}
+            .
           </p>
         </div>
         
@@ -498,42 +506,40 @@ function ForumContent() {
             <Link
               key={topic.id}
               href={topicHref}
-              className="block hover:bg-yellow-50/40 transition"
+              className="forum-thread-link block transition hover:bg-yellow-50/40"
             >
-              <div className="py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-8 text-center">
-                    <div className="text-2xl">{topic.category_icon}</div>
+              <div className="forum-thread-row py-2.5 flex items-start gap-3 md:items-center md:gap-4 text-base">
+                <div className="forum-thread-icon-wrap w-8 shrink-0 text-center">
+                  <div className="forum-thread-icon text-2xl leading-none">{topic.category_icon}</div>
+                </div>
+
+                <div className="forum-thread-main min-w-0 flex-1">
+                  <div className="forum-thread-title-line flex items-center gap-2">
+                    <h3 className="forum-thread-title min-w-0 truncate text-gray-800 font-medium">{topic.title}</h3>
+                    {topic.has_new && (
+                      <span className="forum-thread-badge forum-thread-badge-mobile md:hidden">Uusi</span>
+                    )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text font-bold text-gray-800 truncate">
-                        {topic.title}
-                      </h3>
-                      {topic.has_new && (
-                        <span className="inline-flex items-center rounded bg-yellow-100 px-2 py-0.5 text-[11px] font-semibold text-yellow-800">
-                          Uusi
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
-                      <span className="text-yellow-800 font-medium text-sm">
-                        {topic.category_name}
-                      </span>
-                      <span className="truncate font-mono">
-                        {topic.author_username}
-                      </span>
-                    </div>
+                  <div className="forum-thread-mobile-meta">
+                    <span className="forum-thread-mobile-category">{topic.category_name}</span>
+                    <span aria-hidden="true">•</span>
+                    <span className="forum-thread-mobile-author">{topic.author_username}</span>
+                    <span aria-hidden="true">•</span>
+                    <span>{formatMessagesLabel(topic.replies_count)}</span>
+                    <span aria-hidden="true">•</span>
+                    <span>{formatFinnishRelative(topic.last_post_created_at || topic.created_at)}</span>
                   </div>
+                </div>
 
-                  <div className="text-right text-gray-500 flex-shrink-0">
-                  <p>{formatRepliesLabel(topic.replies_count)}</p>
-                    <p className="text-sm text-gray-500">
-                      {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
-                    </p>
-                  </div>
+                <div className="forum-thread-meta">
+                  <span className="forum-thread-meta-item forum-thread-meta-category">{topic.category_name}</span>
+                  <span className="forum-thread-meta-item forum-thread-meta-author">{topic.author_username}</span>
+                  <span className="forum-thread-meta-item tabular-nums">{formatMessagesLabel(topic.replies_count)}</span>
+                  <span className="forum-thread-meta-item forum-thread-meta-time tabular-nums">
+                    {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
+                  </span>
+                  {topic.has_new && <span className="forum-thread-badge justify-self-end">Uusi</span>}
                 </div>
               </div>
             </Link>
