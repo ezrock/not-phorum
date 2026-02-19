@@ -40,6 +40,26 @@ export const rules = {
     ): ValidationRule<Value, Values> =>
     (value, values) =>
       predicate(value, values) ? undefined : message,
+
+  passwordStrong:
+    <Values extends Record<string, unknown>>(message: string): ValidationRule<unknown, Values> =>
+    (value) => {
+      const v = asString(value);
+      return /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v) ? undefined : message;
+    },
+
+  httpUrlOptional:
+    <Values extends Record<string, unknown>>(message: string): ValidationRule<unknown, Values> =>
+    (value) => {
+      const v = asString(value).trim();
+      if (!v) return undefined;
+      try {
+        const parsed = new URL(v);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? undefined : message;
+      } catch {
+        return message;
+      }
+    },
 };
 
 export function validate<Values extends Record<string, unknown>>(

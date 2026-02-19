@@ -13,16 +13,6 @@ import { getCloudinaryUploadPresetOrThrow, getProfileUploadWidgetOptions } from 
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { getFirstValidationError, rules, validate } from '@/lib/validation';
 
-function isSafeHttpUrl(rawUrl: string): boolean {
-  if (!rawUrl.trim()) return true;
-  try {
-    const parsed = new URL(rawUrl);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
 export function EditProfileForm() {
   const { currentUser, profile, supabase, refreshProfile } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
@@ -95,10 +85,7 @@ export function EditProfileForm() {
           ),
         ],
         linkUrl: [
-          rules.custom(
-            (value: unknown) => isSafeHttpUrl(typeof value === 'string' ? value : ''),
-            'Linkin pitää alkaa http:// tai https://'
-          ),
+          rules.httpUrlOptional('Linkin pitää alkaa http:// tai https://'),
         ],
       }
     );
@@ -188,13 +175,7 @@ export function EditProfileForm() {
       {
         newPassword: [
           rules.minLength(8, 'Salasanan tulee olla vähintään 8 merkkiä'),
-          rules.custom(
-            (value: unknown) => {
-              const v = typeof value === 'string' ? value : '';
-              return /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v);
-            },
-            'Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita'
-          ),
+          rules.passwordStrong('Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita'),
         ],
         confirmPassword: [
           rules.equalsField('newPassword', 'Salasanat eivät täsmää'),

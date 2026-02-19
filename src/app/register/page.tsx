@@ -54,13 +54,7 @@ export default function RegisterPage() {
         ],
         password: [
           rules.minLength(8, 'Salasanan tulee olla vähintään 8 merkkiä'),
-          rules.custom(
-            (value: unknown) => {
-              const v = typeof value === 'string' ? value : '';
-              return /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v);
-            },
-            'Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita'
-          ),
+          rules.passwordStrong('Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita'),
         ],
         confirmPassword: [
           rules.equalsField('password', 'Salasanat eivät täsmää'),
