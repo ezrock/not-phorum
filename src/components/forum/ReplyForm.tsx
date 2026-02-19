@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, ImagePlus, X } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -35,8 +34,7 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
   };
 
   return (
-    <Card className="mt-6">
-      <h3 className="text-xl font-bold mb-4">Vastaa aiheeseen</h3>
+    <div>
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -97,6 +95,6 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
           {submitting ? 'Lähetetään...' : 'Lähetä vastaus'}
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }

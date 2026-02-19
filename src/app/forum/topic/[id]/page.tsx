@@ -626,11 +626,15 @@ function TopicContent() {
             </p>
           </div>
         )}
+        {currentUser && (
+          <div className="mt-6 border-t border-gray-200 pt-6 md:ml-36">
+            <h2 className="mb-3 text-base font-medium text-gray-900">Vastaa viestiin</h2>
+            <ReplyForm onSubmit={handleReply} submitting={submitting} />
+          </div>
+        )}
       </Card>
 
-      {currentUser ? (
-        <ReplyForm onSubmit={handleReply} submitting={submitting} />
-      ) : (
+      {!currentUser && (
         <Card className="mt-6 text-center">
           <p className="text-gray-600 mb-4">
             Kirjaudu sisään vastataksesi tähän aiheeseen
