@@ -574,7 +574,13 @@ function ForumContent() {
 
                 <div className="forum-thread-main min-w-0 flex-1">
                   <div className="forum-thread-title-line flex items-center gap-2">
-                    <h3 className="forum-thread-title min-w-0 truncate text-gray-800 font-medium">{topic.title}</h3>
+                    <h3
+                      className={`forum-thread-title min-w-0 truncate text-gray-800 ${
+                        topic.unread_count > 0 ? 'is-unread' : 'is-read'
+                      }`}
+                    >
+                      {topic.title}
+                    </h3>
                   </div>
 
                   <div className="forum-thread-mobile-meta">

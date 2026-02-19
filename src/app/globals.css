@@ -324,7 +324,14 @@ a[href]:not([class]):hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #1f2937;
+}
+
+.forum-thread-title.is-unread {
   font-weight: var(--font-weight-medium);
+}
+
+.forum-thread-title.is-read {
+  font-weight: var(--font-weight-normal);
 }
 
 .forum-thread-mobile-meta {
