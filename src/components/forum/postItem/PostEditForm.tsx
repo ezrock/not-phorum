@@ -1,0 +1,86 @@
+'use client';
+
+import { type ReactNode } from 'react';
+import { ImagePlus, Save, X } from 'lucide-react';
+import { CldUploadWidget } from 'next-cloudinary';
+import { Button } from '@/components/ui/button';
+import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
+import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
+
+interface PostEditFormProps {
+  editTopContent?: ReactNode;
+  editContent: string;
+  onEditContentChange: (value: string) => void;
+  editImageUrl: string;
+  onEditImageUrlChange: (value: string) => void;
+  onCancelEdit: () => void;
+  onSave: () => void;
+  editSaving: boolean;
+  saveLabel: string;
+}
+
+export function PostEditForm({
+  editTopContent,
+  editContent,
+  onEditContentChange,
+  editImageUrl,
+  onEditImageUrlChange,
+  onCancelEdit,
+  onSave,
+  editSaving,
+  saveLabel,
+}: PostEditFormProps) {
+  const uploadPreset = getCloudinaryUploadPresetOrThrow();
+
+  return (
+    <div className="flex-1">
+      {editTopContent ? <div className="mb-3">{editTopContent}</div> : null}
+      <textarea
+        value={editContent}
+        onChange={(e) => onEditContentChange(e.target.value)}
+        className="w-full border-2 border-gray-300 rounded-lg p-3 mb-3 min-h-[120px] focus:border-yellow-400 focus:outline-none"
+      />
+      {editImageUrl && (
+        <div className="relative inline-block mb-3">
+          <img src={postThumb(editImageUrl)} alt="Liite" className="max-h-40 rounded-lg" />
+          <button
+            type="button"
+            onClick={() => onEditImageUrlChange('')}
+            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <CldUploadWidget
+          uploadPreset={uploadPreset}
+          options={getPostUploadWidgetOptions()}
+          onSuccess={(result: unknown) => {
+            const secureUrl = extractSecureUrl(result);
+            if (secureUrl) onEditImageUrlChange(secureUrl);
+          }}
+        >
+          {({ open }) => (
+            <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+              <ImagePlus size={16} />
+              {editImageUrl ? 'Vaihda kuva' : 'Lisää kuva'}
+            </Button>
+          )}
+        </CldUploadWidget>
+        <Button variant="outline" onClick={onCancelEdit}>
+          Peruuta
+        </Button>
+        <Button
+          variant="success"
+          className="flex items-center gap-2"
+          onClick={onSave}
+          disabled={editSaving || !editContent.trim()}
+        >
+          <Save size={16} />
+          {editSaving ? 'Tallennetaan...' : saveLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
