@@ -1,78 +1,16 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { Heart, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
-import { Heart, Plus } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
-import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
-import { useShowMorePaging } from '@/hooks/useShowMorePaging';
+import { formatFinnishDateTime } from '@/lib/formatDate';
 import { eventOccursOnDate } from '@/lib/siteEvents';
-
-interface Topic {
-  id: number;
-  title: string;
-  views: number;
-  views_unique: number;
-  created_at: string;
-  category_name: string;
-  category_icon: string;
-  author_username: string;
-  replies_count: number;
-  last_post_id: number | null;
-  last_post_created_at: string | null;
-  jump_post_id: number | null;
-  unread_count: number;
-  has_new: boolean;
-}
-
-interface RawTopicRow {
-  id: number;
-  title: string;
-  views: number;
-  views_unique: number;
-  created_at: string;
-  category_name: string;
-  category_icon: string;
-  author_username: string;
-  last_post_id: number | null;
-  last_post_created_at: string | null;
-  jump_post_id: number | null;
-  has_new: boolean;
-  replies_count?: number | null;
-  messages_count?: number | null;
-  unread_count?: number | null;
-}
-
-interface TopicsApiResponse {
-  topics?: RawTopicRow[];
-  total_count?: number;
-  filter?: {
-    tag_ids?: number[];
-    match?: 'any' | 'all';
-  };
-}
-
-interface RandomQuote {
-  post_id: number;
-  content: string;
-  created_at: string;
-  topic_id: number;
-  author_username: string | null;
-  likes_count: number;
-  liked_by_me: boolean;
-}
-
-interface RawRandomQuoteRow {
-  id: number;
-  content: string;
-  created_at: string;
-  topic_id: number;
-  author: { username: string } | { username: string }[] | null;
-}
+import { useForumTopics } from '@/hooks/useForumTopics';
+import { useForumQuote } from '@/hooks/useForumQuote';
+import { ForumThreadList } from '@/components/forum/ForumThreadList';
 
 interface SiteEventRow {
   id: number;
@@ -82,30 +20,6 @@ interface SiteEventRow {
   date_range_enabled: boolean;
   range_start_date: string | null;
   range_end_date: string | null;
-}
-
-function extractAuthorUsername(author: RawRandomQuoteRow['author']): string | null {
-  if (!author) return null;
-  if (Array.isArray(author)) {
-    return author[0]?.username || null;
-  }
-  return author.username || null;
-}
-
-function getUtcHourStartIso(now: Date): string {
-  const hourStart = new Date(now);
-  hourStart.setUTCMinutes(0, 0, 0);
-  return hourStart.toISOString();
-}
-
-function getHourSeed(now: Date): number {
-  return Math.floor(now.getTime() / 3_600_000);
-}
-
-function deterministicOffset(seed: number, modulo: number): number {
-  if (modulo <= 0) return 0;
-  const mixed = (Math.imul(seed >>> 0, 1664525) + 1013904223) >>> 0;
-  return mixed % modulo;
 }
 
 function formatEventDate(dateValue: string): string {
@@ -120,277 +34,36 @@ function formatEventDate(dateValue: string): string {
 
 function ForumContent() {
   const { supabase, currentUser, profile } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [threadCount, setThreadCount] = useState(0);
-  const [messageCount, setMessageCount] = useState(0);
-  const [quote, setQuote] = useState<RandomQuote | null>(null);
-  const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<SiteEventRow | null>(null);
-  const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [loadedPageCount, setLoadedPageCount] = useState(0);
-  const [refreshTick, setRefreshTick] = useState(0);
-  const realtimeUpdatesEnabled = (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
+  const realtimeUpdatesEnabled =
+    (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
 
-  const forumBatchSize = UI_PAGING_SETTINGS.forumShowMoreStep;
-  const forumInitialVisible = UI_PAGING_SETTINGS.forumInitialVisibleThreads;
-  const forumUnreadBoostMax = UI_PAGING_SETTINGS.forumUnreadBoostMaxThreads;
   const {
+    topics,
+    threadCount,
+    messageCount,
+    loading,
+    loadingMore,
+    requestedTagIds,
+    unreadOnly,
     visibleCount,
-    setVisibleCount,
-    resetVisibleCount,
-  } = useShowMorePaging({
-    initialVisible: forumInitialVisible,
-    step: forumBatchSize,
+    handleShowMore,
+    pushUnreadOnlyUrl,
+    refreshTick,
+  } = useForumTopics({
+    supabase,
+    currentUser,
+    realtimeUpdatesEnabled,
   });
-  const requestedTagsParam = searchParams.get('tags') || '';
-  const requestedTagMatch = searchParams.get('match') === 'all' ? 'all' : 'any';
-  const unreadOnly = searchParams.get('unread') === '1';
-  const requestedTagIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          requestedTagsParam
-            .split(',')
-            .map((part) => Number.parseInt(part.trim(), 10))
-            .filter((id) => Number.isFinite(id) && id > 0)
-        )
-      ),
-    [requestedTagsParam]
-  );
 
-  const formatUnreadLabel = (unreadCount: number) => `${Math.max(0, unreadCount)} uutta`;
-  const formatMessagesLabel = (repliesCount: number) => {
-    const totalMessages = Math.max(1, repliesCount + 1);
-    return `${totalMessages} ${totalMessages === 1 ? 'viesti' : 'viestiä'}`;
-  };
+  const { quote, quoteLikeSaving, handleToggleQuoteLike } = useForumQuote({
+    supabase,
+    currentUser,
+    refreshKey: refreshTick,
+  });
 
-  const pushFilterUrl = useCallback((nextTagIds: number[], nextMatch: 'any' | 'all') => {
-    const next = new URLSearchParams(searchParams.toString());
-    next.delete('page');
-    if (nextTagIds.length > 0) {
-      next.set('tags', nextTagIds.join(','));
-    } else {
-      next.delete('tags');
-    }
-    if (nextMatch === 'all' && nextTagIds.length > 1) {
-      next.set('match', 'all');
-    } else {
-      next.delete('match');
-    }
-    const query = next.toString();
-    router.push(query ? `/forum?${query}` : '/forum');
-  }, [router, searchParams]);
-
-  const pushUnreadOnlyUrl = useCallback((nextUnreadOnly: boolean) => {
-    const next = new URLSearchParams(searchParams.toString());
-    next.delete('page');
-    if (nextUnreadOnly) {
-      next.set('unread', '1');
-    } else {
-      next.delete('unread');
-    }
-    const query = next.toString();
-    router.push(query ? `/forum?${query}` : '/forum');
-  }, [router, searchParams]);
-
-  const normalizeTopics = useCallback((rows: RawTopicRow[]) => {
-    return rows.map((topic) => {
-      const repliesCount =
-        typeof topic.replies_count === 'number'
-          ? topic.replies_count
-          : Math.max((topic.messages_count || 0) - 1, 0);
-
-      return {
-        ...topic,
-        replies_count: repliesCount,
-        unread_count: typeof topic.unread_count === 'number'
-          ? Math.max(0, topic.unread_count)
-          : (topic.has_new ? 1 : 0),
-      } as Topic;
-    });
-  }, []);
-
-  const fetchTopicsPage = useCallback(async (page: number) => {
-    const params = new URLSearchParams();
-    params.set('page', String(page));
-    params.set('page_size', String(forumBatchSize));
-    if (requestedTagIds.length > 0) {
-      params.set('tag_ids', requestedTagIds.join(','));
-      params.set('match', requestedTagMatch);
-    }
-
-    const res = await fetch(`/api/topics?${params.toString()}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return (await res.json()) as TopicsApiResponse;
-  }, [forumBatchSize, requestedTagIds, requestedTagMatch]);
-
-  const loadMoreTopics = useCallback(async (targetVisibleCount: number) => {
-    const nextTarget = Math.max(0, targetVisibleCount);
-    const requiredPages = Math.max(1, Math.ceil(nextTarget / forumBatchSize));
-    if (requiredPages <= loadedPageCount) {
-      setVisibleCount(Math.min(nextTarget, threadCount));
-      return;
-    }
-
-    setLoadingMore(true);
-    const collected = [...topics];
-    let totalCount = threadCount;
-    let fetchedPages = loadedPageCount;
-
-    for (let page = loadedPageCount + 1; page <= requiredPages; page += 1) {
-      const payload = await fetchTopicsPage(page);
-      if (!payload) break;
-      const pageRows = normalizeTopics(payload.topics || []);
-      if (pageRows.length === 0) break;
-      collected.push(...pageRows);
-      totalCount = payload.total_count || totalCount;
-      fetchedPages = page;
-      if (collected.length >= totalCount) break;
-    }
-
-    setTopics(collected);
-    setThreadCount(totalCount);
-    setLoadedPageCount(fetchedPages);
-    setVisibleCount(Math.min(nextTarget, totalCount, collected.length));
-    setLoadingMore(false);
-  }, [fetchTopicsPage, forumBatchSize, loadedPageCount, normalizeTopics, setVisibleCount, threadCount, topics]);
+  const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<SiteEventRow | null>(null);
 
   useEffect(() => {
-    const fetchTopics = async () => {
-      setLoading(true);
-      setLoadingMore(false);
-      const preloadPages = Math.max(1, Math.ceil(forumUnreadBoostMax / forumBatchSize));
-      const collected: Topic[] = [];
-      let totalCount = 0;
-      let resolvedFilterTagIds: number[] | null = null;
-      let resolvedMatch: 'any' | 'all' = requestedTagMatch;
-
-      for (let page = 1; page <= preloadPages; page += 1) {
-        const payload = await fetchTopicsPage(page);
-        if (!payload) {
-          setTopics([]);
-          setThreadCount(0);
-          setLoadedPageCount(0);
-          resetVisibleCount(forumInitialVisible);
-          setLoading(false);
-          return;
-        }
-
-        const rows = payload.topics || [];
-        const normalizedRows = normalizeTopics(rows);
-        collected.push(...normalizedRows);
-        totalCount = payload.total_count || totalCount;
-        resolvedFilterTagIds = Array.isArray(payload.filter?.tag_ids)
-          ? payload.filter?.tag_ids.filter((id) => Number.isFinite(id) && id > 0)
-          : [];
-        resolvedMatch = payload.filter?.match === 'all' ? 'all' : 'any';
-
-        if (rows.length < forumBatchSize || collected.length >= totalCount || page >= preloadPages) {
-          setLoadedPageCount(page);
-          break;
-        }
-      }
-
-      if (
-        resolvedFilterTagIds
-        && (
-          requestedTagIds.join(',') !== resolvedFilterTagIds.join(',')
-          || requestedTagMatch !== resolvedMatch
-        )
-      ) {
-        pushFilterUrl(resolvedFilterTagIds, resolvedMatch);
-      }
-
-      const unreadCount = collected.filter((topic) => topic.has_new).length;
-      const initialVisible = unreadCount > forumInitialVisible
-        ? Math.min(Math.max(unreadCount, forumInitialVisible), forumUnreadBoostMax)
-        : forumInitialVisible;
-
-      setTopics(collected);
-      setThreadCount(totalCount);
-      resetVisibleCount(Math.min(initialVisible, Math.max(totalCount, 0)));
-      setLoading(false);
-    };
-
-    const fetchRandomQuote = async () => {
-      const now = new Date();
-      const utcHourStartIso = getUtcHourStartIso(now);
-      const hourSeed = getHourSeed(now);
-
-      const { count } = await supabase
-        .from('posts')
-        .select('id', { count: 'exact', head: true })
-        .is('deleted_at', null)
-        .lt('created_at', utcHourStartIso)
-        .gte('content', '');
-
-      let eligibleCount = count || 0;
-      let useHourLimitedSet = true;
-
-      if (eligibleCount === 0) {
-        // Fallback for brand new boards where all posts may be from the current hour.
-        const fallbackCountRes = await supabase
-          .from('posts')
-          .select('id', { count: 'exact', head: true })
-          .is('deleted_at', null)
-          .gte('content', '');
-        eligibleCount = fallbackCountRes.count || 0;
-        useHourLimitedSet = false;
-      }
-
-      if (eligibleCount === 0) return;
-
-      const quoteOffset = deterministicOffset(hourSeed, eligibleCount);
-      let quoteQuery = supabase
-        .from('posts')
-        .select('id, content, created_at, topic_id, author:profiles!author_id(username)')
-        .is('deleted_at', null)
-        .order('id', { ascending: true })
-        .range(quoteOffset, quoteOffset);
-
-      if (useHourLimitedSet) {
-        quoteQuery = quoteQuery.lt('created_at', utcHourStartIso);
-      }
-
-      const { data } = await quoteQuery;
-
-      if (data && data.length > 0) {
-        const post = data[0] as RawRandomQuoteRow;
-        const [likesCountRes, myLikeRes] = await Promise.all([
-          supabase
-            .from('quote_likes')
-            .select('profile_id', { count: 'exact', head: true })
-            .eq('post_id', post.id),
-          currentUser
-            ? supabase
-                .from('quote_likes')
-                .select('post_id')
-                .eq('post_id', post.id)
-                .eq('profile_id', currentUser.id)
-                .limit(1)
-            : Promise.resolve({ data: [], error: null }),
-        ]);
-
-        // Trim to first ~150 chars at a word boundary
-        let snippet = post.content;
-        if (snippet.length > 150) {
-          snippet = snippet.substring(0, 150).replace(/\s+\S*$/, '') + '...';
-        }
-        setQuote({
-          post_id: post.id,
-          content: snippet,
-          created_at: post.created_at,
-          topic_id: post.topic_id,
-          author_username: extractAuthorUsername(post.author),
-          likes_count: likesCountRes.count || 0,
-          liked_by_me: !!myLikeRes.data && myLikeRes.data.length > 0,
-        });
-      }
-    };
-
     const fetchTodaySingleDayEvent = async () => {
       const { data, error } = await supabase
         .from('site_events')
@@ -410,99 +83,13 @@ function ForumContent() {
       setTodaySingleDayEvent(matches[0] ?? null);
     };
 
-    const fetchMessageCount = async () => {
-      const { count } = await supabase
-        .from('posts')
-        .select('id', { count: 'exact', head: true })
-        .is('deleted_at', null);
+    void fetchTodaySingleDayEvent();
+  }, [supabase, refreshTick]);
 
-      setMessageCount(count || 0);
-    };
-
-    fetchTopics();
-    fetchTodaySingleDayEvent();
-    fetchRandomQuote();
-    fetchMessageCount();
-  }, [
-    supabase,
-    currentUser,
-    refreshTick,
-    requestedTagIds,
-    requestedTagMatch,
-    pushFilterUrl,
-    forumBatchSize,
-    forumInitialVisible,
-    forumUnreadBoostMax,
-    normalizeTopics,
-    fetchTopicsPage,
-    resetVisibleCount,
-  ]);
-
-  useEffect(() => {
-    if (!currentUser || !realtimeUpdatesEnabled) return;
-
-    const channel = supabase
-      .channel(`forum-live-${currentUser.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'topics' }, () => {
-        setRefreshTick((prev) => prev + 1);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        setRefreshTick((prev) => prev + 1);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase, currentUser, realtimeUpdatesEnabled]);
-
-  const handleToggleQuoteLike = async () => {
-    if (!quote || quoteLikeSaving) return;
-    setQuoteLikeSaving(true);
-
-    const previous = quote;
-    setQuote({
-      ...quote,
-      liked_by_me: !quote.liked_by_me,
-      likes_count: Math.max(quote.likes_count + (quote.liked_by_me ? -1 : 1), 0),
-    });
-
-    const { data, error } = await supabase.rpc('toggle_quote_like', {
-      target_post_id: quote.post_id,
-    });
-
-    if (error) {
-      setQuote(previous);
-    } else {
-      const result = data as { liked?: boolean; likes_count?: number } | null;
-      if (result) {
-        setQuote((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            liked_by_me: typeof result.liked === 'boolean' ? result.liked : prev.liked_by_me,
-            likes_count: typeof result.likes_count === 'number' ? result.likes_count : prev.likes_count,
-          };
-        });
-      }
-    }
-
-    setQuoteLikeSaving(false);
-  };
-
-  const filteredTopics = unreadOnly
-    ? topics.filter((topic) => topic.has_new)
-    : topics;
-  const displayedTopicCount = Math.min(visibleCount, filteredTopics.length);
-  const visibleTopics = filteredTopics.slice(0, displayedTopicCount);
-  const hasUnloadedPages = topics.length < threadCount;
-  const canShowMore = displayedTopicCount < filteredTopics.length || hasUnloadedPages;
-  const unreadThreadCount = topics.filter((topic) => topic.unread_count > 0).length;
-
-  const handleShowMore = async () => {
-    const nextVisibleTarget = visibleCount + forumBatchSize;
-    await loadMoreTopics(nextVisibleTarget);
-  };
+  const unreadThreadCount = useMemo(
+    () => topics.filter((topic) => topic.unread_count > 0).length,
+    [topics]
+  );
 
   if (loading) {
     return (
@@ -523,7 +110,7 @@ function ForumContent() {
               <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed">
                 🎂 Tänään on {todaySingleDayEvent.name} ({formatEventDate(todaySingleDayEvent.event_date)} -)
               </div>
-            ) : quote && (
+            ) : quote ? (
               <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed flex items-center gap-2">
                 <button
                   type="button"
@@ -546,38 +133,28 @@ function ForumContent() {
                   </Link>
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
+
           <p className="text-xs text-gray-500 whitespace-nowrap text-right">
             {threadCount} lankaa, {messageCount} viestiä
             {unreadThreadCount > 0 && (
               <>
                 ,{' '}
-                {unreadOnly ? (
-                  <button
-                    type="button"
-                    onClick={() => pushUnreadOnlyUrl(false)}
-                    className="text-highlight-glimmer hover:underline"
-                    title="Näytä kaikki langat"
-                  >
-                    {unreadThreadCount} lukematonta
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => pushUnreadOnlyUrl(true)}
-                    className="text-highlight-glimmer hover:underline"
-                    title="Näytä vain lukemattomat langat"
-                  >
-                    {unreadThreadCount} lukematonta
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => pushUnreadOnlyUrl(!unreadOnly)}
+                  className="text-highlight-glimmer hover:underline"
+                  title={unreadOnly ? 'Näytä kaikki langat' : 'Näytä vain lukemattomat langat'}
+                >
+                  {unreadThreadCount} lukematonta
+                </button>
               </>
             )}
             .
           </p>
         </div>
-        
+
         <Link href="/forum/new" className="block w-full mt-4">
           <Button
             variant="primary"
@@ -589,107 +166,30 @@ function ForumContent() {
         </Link>
       </div>
 
-      {topics.length === 0 ? (
-        <Card>
-          <p className="text-center text-gray-500 py-8">
-            {requestedTagIds.length > 0
-              ? 'Ei aiheita valituilla tageilla.'
-              : 'Ei vielä aiheita. Ole ensimmäinen ja aloita keskustelu!'}
-          </p>
-        </Card>
-      ) : unreadOnly && filteredTopics.length === 0 ? (
-        <Card>
-          <p className="text-center text-gray-500 py-8">
-            Ei lukemattomia lankoja nykyisellä suodatuksella.
-          </p>
-        </Card>
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="divide-y divide-gray-200">
-          {visibleTopics.map((topic) => {
-            const jumpPostId = topic.jump_post_id ?? topic.last_post_id;
-            const topicHref = `/forum/topic/${topic.id}${jumpPostId ? `#post-${jumpPostId}` : ''}`;
-
-            return (
-            <Link
-              key={topic.id}
-              href={topicHref}
-              className="forum-thread-link block transition hover:bg-yellow-50/40"
-            >
-              <div className="forum-thread-row py-2.5 flex items-start gap-3 md:items-center md:gap-4 text-base">
-                <div className="forum-thread-icon-wrap w-8 shrink-0 text-center">
-                  <div className="forum-thread-icon text-2xl leading-none">{topic.category_icon}</div>
-                </div>
-
-                <div className="forum-thread-main min-w-0 flex-1">
-                  <div className="forum-thread-title-line flex items-center gap-2">
-                    <h3
-                      className={`forum-thread-title min-w-0 truncate text-gray-800 ${
-                        topic.unread_count > 0 ? 'is-unread' : 'is-read'
-                      }`}
-                    >
-                      {topic.title}
-                    </h3>
-                  </div>
-
-                  <div className="forum-thread-mobile-meta">
-                    <span className="forum-thread-mobile-category">{topic.category_name}</span>
-                    <span aria-hidden="true">•</span>
-                    <span className="forum-thread-mobile-author">{topic.author_username}</span>
-                    <span aria-hidden="true">•</span>
-                    <span>
-                      {topic.unread_count > 0
-                        ? formatUnreadLabel(topic.unread_count)
-                        : formatMessagesLabel(topic.replies_count)}
-                    </span>
-                    <span aria-hidden="true">•</span>
-                    <span>{formatFinnishRelative(topic.last_post_created_at || topic.created_at)}</span>
-                  </div>
-                </div>
-
-                <div className="forum-thread-meta">
-                  <span className="forum-thread-meta-item forum-thread-meta-category">{topic.category_name}</span>
-                  <span className="forum-thread-meta-item forum-thread-meta-author">{topic.author_username}</span>
-                  <span className="forum-thread-meta-item tabular-nums">
-                    {topic.unread_count > 0
-                      ? <span className="forum-thread-badge">{formatUnreadLabel(topic.unread_count)}</span>
-                      : formatMessagesLabel(topic.replies_count)}
-                  </span>
-                  <span className="forum-thread-meta-item forum-thread-meta-time tabular-nums">
-                    {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          );
-          })}
-          </div>
-        </Card>
-      )}
-
-      {canShowMore && (
-        <div className="mt-4 flex flex-col items-center gap-2 text-sm">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleShowMore}
-            disabled={loadingMore}
-            className="min-w-44"
-          >
-            {loadingMore ? 'Ladataan...' : 'Näytä lisää'}
-          </Button>
-          <p className="text-xs text-gray-500">
-            Näytetään {displayedTopicCount} / {threadCount} lankaa
-          </p>
-        </div>
-      )}
+      <ForumThreadList
+        topics={topics}
+        threadCount={threadCount}
+        visibleCount={visibleCount}
+        loadingMore={loadingMore}
+        unreadOnly={unreadOnly}
+        requestedTagIds={requestedTagIds}
+        onShowMore={handleShowMore}
+      />
     </div>
   );
 }
 
 export default function ForumPage() {
   return (
-    <Suspense fallback={<div className="max-w-6xl mx-auto mt-8 px-4"><Card><p className="text-center text-gray-500 py-8">Ladataan...</p></Card></div>}>
+    <Suspense
+      fallback={
+        <div className="max-w-6xl mx-auto mt-8 px-4">
+          <Card>
+            <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          </Card>
+        </div>
+      }
+    >
       <ForumContent />
     </Suspense>
   );
