@@ -4,18 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, ImagePlus, X } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
-import { postThumb } from '@/lib/cloudinary';
-
-interface CloudinaryUploadResult {
-  info?: {
-    secure_url?: string;
-  };
-}
-
-function extractSecureUrl(result: unknown): string | null {
-  const typed = result as CloudinaryUploadResult;
-  return typed?.info?.secure_url ?? null;
-}
+import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
 
 interface ReplyFormProps {
   onSubmit: (content: string, imageUrl: string) => Promise<void>;

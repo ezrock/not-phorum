@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Edit2, ImagePlus, X, Trash2, Save, User, Heart, Link2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CldUploadWidget } from 'next-cloudinary';
-import { profileThumb, postImage, postThumb } from '@/lib/cloudinary';
+import { extractSecureUrl, profileThumb, postImage, postThumb } from '@/lib/cloudinary';
 import { formatPostDateTime } from '@/lib/formatDate';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -30,10 +30,6 @@ export interface Post {
     signature: string | null;
     show_signature: boolean;
   } | null;
-}
-
-interface CloudinaryUploadResult {
-  info?: { secure_url?: string };
 }
 
 interface PostItemProps {
@@ -150,11 +146,6 @@ function autoLinkPlainUrls(markdown: string): string {
 function preserveSingleLineBreaks(markdown: string): string {
   const normalized = markdown.replace(/\r\n/g, '\n');
   return normalized.replace(/(?<!\n)\n(?!\n)/g, '  \n');
-}
-
-function extractSecureUrl(result: unknown): string | null {
-  const typed = result as CloudinaryUploadResult;
-  return typed?.info?.secure_url ?? null;
 }
 
 function hasBeenEdited(post: Post) {

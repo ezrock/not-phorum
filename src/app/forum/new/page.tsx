@@ -10,19 +10,8 @@ import { useRouter } from 'next/navigation';
 import { CldUploadWidget } from 'next-cloudinary';
 import Link from 'next/link';
 import { ArrowLeft, Send, ImagePlus, X } from 'lucide-react';
-import { postThumb } from '@/lib/cloudinary';
+import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
 import { AddTags, type TagOption } from '@/components/forum/AddTags';
-
-interface CloudinaryUploadResult {
-  info?: {
-    secure_url?: string;
-  };
-}
-
-function extractSecureUrl(result: unknown): string | null {
-  const typed = result as CloudinaryUploadResult;
-  return typed?.info?.secure_url ?? null;
-}
 
 export default function NewTopicPage() {
   const { supabase } = useAuth();

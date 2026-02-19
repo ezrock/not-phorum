@@ -8,17 +8,8 @@ import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { CldUploadWidget } from 'next-cloudinary';
 import { Save, Camera, X, Link as LinkIcon, User, Lock, Pencil } from 'lucide-react';
-import { profileThumb } from '@/lib/cloudinary';
+import { extractSecureUrl, profileThumb } from '@/lib/cloudinary';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
-
-interface CloudinaryUploadResult {
-  info?: { secure_url?: string };
-}
-
-function extractSecureUrl(result: unknown): string | null {
-  const typed = result as CloudinaryUploadResult;
-  return typed?.info?.secure_url ?? null;
-}
 
 function isSafeHttpUrl(rawUrl: string): boolean {
   if (!rawUrl.trim()) return true;

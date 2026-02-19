@@ -29,3 +29,14 @@ export function postImage(url: string): string {
 export function postThumb(url: string): string {
   return cloudinaryUrl(url, 'w_300,h_200,c_fill,f_auto,q_auto');
 }
+
+export interface CloudinaryUploadResult {
+  info?: {
+    secure_url?: string;
+  };
+}
+
+export function extractSecureUrl(result: unknown): string | null {
+  const typed = result as CloudinaryUploadResult;
+  return typed?.info?.secure_url ?? null;
+}
