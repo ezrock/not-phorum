@@ -50,6 +50,8 @@ export interface AdminTagGroup {
   group_slug: string;
   description: string | null;
   searchable: boolean;
+  group_kind: 'search' | 'arrangement' | 'both';
+  arrangement_order: number;
   member_count: number;
   member_tag_ids: number[];
 }

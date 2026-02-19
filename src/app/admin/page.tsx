@@ -79,6 +79,8 @@ export default function AdminPage() {
   const [aliasInputByTagId, setAliasInputByTagId] = useState<Record<number, string>>({});
   const [groupAliasInputByGroupId, setGroupAliasInputByGroupId] = useState<Record<number, string>>({});
   const [aliasSearch, setAliasSearch] = useState('');
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagSlug, setNewTagSlug] = useState('');
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editingTagName, setEditingTagName] = useState('');
   const [editingTagSlug, setEditingTagSlug] = useState('');
@@ -87,6 +89,7 @@ export default function AdminPage() {
   const [mergeTargetByTagId, setMergeTargetByTagId] = useState<Record<number, number | ''>>({});
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [processingTagId, setProcessingTagId] = useState<number | null>(null);
+  const [creatingTag, setCreatingTag] = useState(false);
   const [processingGroupId, setProcessingGroupId] = useState<number | null>(null);
   const [processingAliasId, setProcessingAliasId] = useState<number | null>(null);
   const [processingGroupAliasId, setProcessingGroupAliasId] = useState<number | null>(null);
@@ -98,6 +101,7 @@ export default function AdminPage() {
   const [newGroupSlug, setNewGroupSlug] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [newGroupSearchable, setNewGroupSearchable] = useState(true);
+  const [newGroupKind, setNewGroupKind] = useState<'search' | 'arrangement' | 'both'>('both');
   const [groupTagQueryByGroupId, setGroupTagQueryByGroupId] = useState<Record<number, string>>({});
   const [totalAwardedTrophies, setTotalAwardedTrophies] = useState(0);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
@@ -196,6 +200,8 @@ export default function AdminPage() {
           group_slug: String(row.group_slug ?? ''),
           description: row.description ? String(row.description) : null,
           searchable: row.searchable === true,
+          group_kind: (String(row.group_kind ?? 'both') as 'search' | 'arrangement' | 'both'),
+          arrangement_order: Number(row.arrangement_order ?? 0),
           member_count: Number(row.member_count ?? 0),
           member_tag_ids: normalizeMemberTagIds(row.member_tag_ids),
         })) as AdminTagGroup[];
@@ -314,6 +320,8 @@ export default function AdminPage() {
       group_slug: String(row.group_slug ?? ''),
       description: row.description ? String(row.description) : null,
       searchable: row.searchable === true,
+      group_kind: (String(row.group_kind ?? 'both') as 'search' | 'arrangement' | 'both'),
+      arrangement_order: Number(row.arrangement_order ?? 0),
       member_count: Number(row.member_count ?? 0),
       member_tag_ids: normalizeMemberTagIds(row.member_tag_ids),
     })) as AdminTagGroup[];
@@ -370,6 +378,27 @@ export default function AdminPage() {
     }
 
     setProcessingTagId(null);
+  };
+
+  const handleCreateTag = async () => {
+    const normalizedName = newTagName.trim();
+    if (!normalizedName) return;
+
+    setTagActionError('');
+    setCreatingTag(true);
+    const { error } = await supabase.rpc('create_admin_tag', {
+      input_name: normalizedName,
+      input_slug: newTagSlug.trim() || null,
+    });
+
+    if (!error) {
+      setNewTagName('');
+      setNewTagSlug('');
+      await refreshCanonicalTags();
+    } else {
+      setTagActionError(error.message || 'Tagin luonti epäonnistui');
+    }
+    setCreatingTag(false);
   };
 
   const handleAddAlias = async (tagId: number, explicitValue?: string) => {
@@ -513,6 +542,8 @@ export default function AdminPage() {
       input_description: (group.description || '').trim(),
       input_searchable: group.searchable,
       input_member_tag_ids: group.member_tag_ids,
+      input_group_kind: group.group_kind,
+      input_arrangement_order: group.arrangement_order,
     });
 
     if (!error) {
@@ -534,6 +565,8 @@ export default function AdminPage() {
       input_description: newGroupDescription.trim() || null,
       input_searchable: newGroupSearchable,
       input_member_tag_ids: [],
+      input_group_kind: newGroupKind,
+      input_arrangement_order: null,
     });
 
     if (!error) {
@@ -541,6 +574,7 @@ export default function AdminPage() {
       setNewGroupSlug('');
       setNewGroupDescription('');
       setNewGroupSearchable(true);
+      setNewGroupKind('both');
       await refreshTagGroups();
     } else {
       setTagGroupActionError(error.message || 'Tagiryhmän luonti epäonnistui');
@@ -560,6 +594,61 @@ export default function AdminPage() {
     } else {
       setTagGroupActionError(error.message || 'Tagiryhmän poisto epäonnistui');
     }
+    setProcessingGroupId(null);
+  };
+
+  const handleMoveArrangementGroup = async (groupId: number, direction: 'up' | 'down') => {
+    const arrangementGroups = [...tagGroups]
+      .filter((group) => group.group_kind === 'arrangement' || group.group_kind === 'both')
+      .sort((a, b) => a.arrangement_order - b.arrangement_order || a.group_name.localeCompare(b.group_name, 'fi'));
+
+    const currentIndex = arrangementGroups.findIndex((group) => group.group_id === groupId);
+    if (currentIndex < 0) return;
+
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= arrangementGroups.length) return;
+
+    const currentGroup = arrangementGroups[currentIndex];
+    const otherGroup = arrangementGroups[swapIndex];
+
+    setTagGroupActionError('');
+    setProcessingGroupId(groupId);
+
+    const { error: currentError } = await supabase.rpc('upsert_tag_group', {
+      input_group_id: currentGroup.group_id,
+      input_name: currentGroup.group_name.trim(),
+      input_slug: currentGroup.group_slug.trim(),
+      input_description: (currentGroup.description || '').trim(),
+      input_searchable: currentGroup.searchable,
+      input_member_tag_ids: currentGroup.member_tag_ids,
+      input_group_kind: currentGroup.group_kind,
+      input_arrangement_order: otherGroup.arrangement_order,
+    });
+
+    if (currentError) {
+      setTagGroupActionError(currentError.message || 'Ryhmän järjestyksen muutos epäonnistui');
+      setProcessingGroupId(null);
+      return;
+    }
+
+    const { error: otherError } = await supabase.rpc('upsert_tag_group', {
+      input_group_id: otherGroup.group_id,
+      input_name: otherGroup.group_name.trim(),
+      input_slug: otherGroup.group_slug.trim(),
+      input_description: (otherGroup.description || '').trim(),
+      input_searchable: otherGroup.searchable,
+      input_member_tag_ids: otherGroup.member_tag_ids,
+      input_group_kind: otherGroup.group_kind,
+      input_arrangement_order: currentGroup.arrangement_order,
+    });
+
+    if (otherError) {
+      setTagGroupActionError(otherError.message || 'Ryhmän järjestyksen muutos epäonnistui');
+      setProcessingGroupId(null);
+      return;
+    }
+
+    await refreshTagGroups();
     setProcessingGroupId(null);
   };
 
@@ -783,6 +872,9 @@ export default function AdminPage() {
           unreviewedTags={unreviewedTags}
           canonicalTags={canonicalTags}
           tagGroups={tagGroups}
+          newTagName={newTagName}
+          newTagSlug={newTagSlug}
+          creatingTag={creatingTag}
           mergeTargetByTagId={mergeTargetByTagId}
           processingTagId={processingTagId}
           tagActionError={tagActionError}
@@ -815,6 +907,9 @@ export default function AdminPage() {
           onAddAlias={handleAddAlias}
           onDeleteAlias={handleDeleteAlias}
           onDeleteTag={handleDeleteTag}
+          onNewTagNameChange={setNewTagName}
+          onNewTagSlugChange={setNewTagSlug}
+          onCreateTag={handleCreateTag}
         />
       )}
 
@@ -826,6 +921,7 @@ export default function AdminPage() {
           newGroupSlug={newGroupSlug}
           newGroupDescription={newGroupDescription}
           newGroupSearchable={newGroupSearchable}
+          newGroupKind={newGroupKind}
           processingGroupId={processingGroupId}
           tagGroups={tagGroups}
           groupTagQueryByGroupId={groupTagQueryByGroupId}
@@ -839,6 +935,7 @@ export default function AdminPage() {
           onNewGroupSlugChange={setNewGroupSlug}
           onNewGroupDescriptionChange={setNewGroupDescription}
           onNewGroupSearchableChange={setNewGroupSearchable}
+          onNewGroupKindChange={setNewGroupKind}
           onCreateTagGroup={handleCreateTagGroup}
           onTagGroupsChange={setTagGroups}
           onGroupTagQueryChange={(groupId, value) =>
@@ -846,6 +943,7 @@ export default function AdminPage() {
           }
           onSaveTagGroup={handleSaveTagGroup}
           onDeleteTagGroup={handleDeleteTagGroup}
+          onMoveArrangementGroup={handleMoveArrangementGroup}
           onGroupAliasInputChange={(groupId, value) =>
             setGroupAliasInputByGroupId((prev) => ({ ...prev, [groupId]: value }))
           }

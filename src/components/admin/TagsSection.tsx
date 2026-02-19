@@ -1,6 +1,8 @@
 import { Check, Star, Tags as TagsIcon, X } from 'lucide-react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
 import { AdminActionError } from '@/components/admin/AdminActionError';
 import { AliasManager } from '@/components/admin/AliasManager';
 import type { AdminTagGroup, CanonicalTagOption, TagAliasRow, TagModerationAction, UnreviewedTag } from '@/components/admin/types';
@@ -10,6 +12,9 @@ interface TagsSectionProps {
   unreviewedTags: UnreviewedTag[];
   canonicalTags: CanonicalTagOption[];
   tagGroups: AdminTagGroup[];
+  newTagName: string;
+  newTagSlug: string;
+  creatingTag: boolean;
   mergeTargetByTagId: Record<number, number | ''>;
   processingTagId: number | null;
   tagActionError: string;
@@ -26,6 +31,9 @@ interface TagsSectionProps {
   onModerateTag: (tagId: number, action: TagModerationAction) => void;
   onMergeTargetChange: (tagId: number, target: number | '') => void;
   onMergeTag: (sourceTagId: number) => void;
+  onNewTagNameChange: (value: string) => void;
+  onNewTagSlugChange: (value: string) => void;
+  onCreateTag: () => void;
   onAliasSearchChange: (value: string) => void;
   onBeginRenameTag: (tag: CanonicalTagOption) => void;
   onCancelRenameTag: () => void;
@@ -45,6 +53,9 @@ export function TagsSection({
   unreviewedTags,
   canonicalTags,
   tagGroups,
+  newTagName,
+  newTagSlug,
+  creatingTag,
   mergeTargetByTagId,
   processingTagId,
   tagActionError,
@@ -61,6 +72,9 @@ export function TagsSection({
   onModerateTag,
   onMergeTargetChange,
   onMergeTag,
+  onNewTagNameChange,
+  onNewTagSlugChange,
+  onCreateTag,
   onAliasSearchChange,
   onBeginRenameTag,
   onCancelRenameTag,
@@ -74,6 +88,8 @@ export function TagsSection({
   onDeleteAlias,
   onDeleteTag,
 }: TagsSectionProps) {
+  const [pendingDeleteTagId, setPendingDeleteTagId] = useState<number | null>(null);
+
   const toggleGroupMembership = (groupId: number) => {
     if (editingTagGroupIds.includes(groupId)) {
       onEditingTagGroupIdsChange(editingTagGroupIds.filter((id) => id !== groupId));
@@ -167,6 +183,28 @@ export function TagsSection({
           Aliakset toimivat hakusynonyymeinä (esim. &quot;pleikka&quot; -&gt; PlayStation 5). Merge siirtää aliakset myös kohdetagille.
         </p>
         <AdminActionError message={tagActionError} className="mb-3" />
+        <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3">
+          <p className="mb-2 text-xs font-semibold text-gray-700">Lisää uusi tagi</p>
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <Input
+              value={newTagName}
+              onChange={(e) => onNewTagNameChange(e.target.value)}
+              placeholder="Tagin nimi"
+            />
+            <Input
+              value={newTagSlug}
+              onChange={(e) => onNewTagSlugChange(e.target.value)}
+              placeholder="Slug (valinnainen)"
+            />
+            <Button
+              type="button"
+              onClick={onCreateTag}
+              disabled={creatingTag || !newTagName.trim()}
+            >
+              {creatingTag ? 'Luodaan...' : 'Lisää tagi'}
+            </Button>
+          </div>
+        </div>
         <div className="mb-3">
           <Input
             value={aliasSearch}
@@ -185,6 +223,8 @@ export function TagsSection({
               const aliases = tagAliasesByTagId[tag.id] || [];
               const groupsForTag = tagGroups.filter((group) => group.member_tag_ids.includes(tag.id));
               const isEditing = editingTagId === tag.id;
+              const isInUse = tag.usage_count > 0;
+              const showDeleteControls = pendingDeleteTagId === tag.id;
               return (
                 <div key={tag.id} className="rounded border border-gray-200 bg-white px-3 py-3">
                   <div className="flex items-start justify-between gap-3">
@@ -264,24 +304,6 @@ export function TagsSection({
                         </div>
                       </div>
 
-                      <div>
-                        <p className="mb-1 text-xs font-semibold text-gray-600">Poista tagi ja korvaa käytöt</p>
-                        <select
-                          value={deleteReplacementTagId}
-                          onChange={(e) => onDeleteReplacementTagIdChange(e.target.value ? Number(e.target.value) : '')}
-                          className="max-w-72 rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-sm focus:border-yellow-400 focus:outline-none"
-                        >
-                          <option value="">Käytä off-topic tagia</option>
-                          {canonicalTags
-                            .filter((candidate) => candidate.id !== tag.id)
-                            .map((candidate) => (
-                              <option key={candidate.id} value={candidate.id}>
-                                #{candidate.name}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
@@ -301,13 +323,91 @@ export function TagsSection({
                         </button>
                         <button
                           type="button"
-                          className="admin-compact-btn inline-flex items-center gap-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                          className={`${isInUse ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'} admin-compact-btn inline-flex items-center gap-1 text-white disabled:opacity-50`}
                           disabled={processingTagId === tag.id}
-                          onClick={() => onDeleteTag(tag, deleteReplacementTagId)}
+                          onClick={() => {
+                            setPendingDeleteTagId(tag.id);
+                            if (!isInUse) {
+                              onDeleteReplacementTagIdChange('');
+                            }
+                          }}
                         >
-                          Poista tagi
+                          {isInUse ? 'Yhdistä' : 'Poista'}
                         </button>
                       </div>
+                      {showDeleteControls && (
+                        <div className="rounded border border-orange-200 bg-orange-50 p-2">
+                          {isInUse ? (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold text-orange-800">
+                                Valitse kohdetagi. Tämä tagi yhdistetään siihen ja poistetaan.
+                              </p>
+                              <select
+                                value={deleteReplacementTagId}
+                                onChange={(e) => onDeleteReplacementTagIdChange(e.target.value ? Number(e.target.value) : '')}
+                                className="max-w-72 rounded-lg border-2 border-gray-300 bg-white px-2 py-1 text-sm focus:border-yellow-400 focus:outline-none"
+                              >
+                                <option value="">Käytä off-topic tagia</option>
+                                {canonicalTags
+                                  .filter((candidate) => candidate.id !== tag.id)
+                                  .map((candidate) => (
+                                    <option key={candidate.id} value={candidate.id}>
+                                      #{candidate.name}
+                                    </option>
+                                  ))}
+                              </select>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="admin-compact-btn inline-flex items-center gap-1 bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+                                  disabled={processingTagId === tag.id}
+                                  onClick={() => {
+                                    onDeleteTag(tag, deleteReplacementTagId);
+                                    setPendingDeleteTagId(null);
+                                  }}
+                                >
+                                  Yhdistä
+                                </button>
+                                <button
+                                  type="button"
+                                  className="admin-compact-btn inline-flex items-center gap-1 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                  disabled={processingTagId === tag.id}
+                                  onClick={() => setPendingDeleteTagId(null)}
+                                >
+                                  Peruuta
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold text-red-700">
+                                Tagi ei ole käytössä viesteissä. Voit poistaa sen pysyvästi.
+                              </p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="admin-compact-btn inline-flex items-center gap-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                                  disabled={processingTagId === tag.id}
+                                  onClick={() => {
+                                    onDeleteTag(tag, '');
+                                    setPendingDeleteTagId(null);
+                                  }}
+                                >
+                                  Poista tagi
+                                </button>
+                                <button
+                                  type="button"
+                                  className="admin-compact-btn inline-flex items-center gap-1 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                  disabled={processingTagId === tag.id}
+                                  onClick={() => setPendingDeleteTagId(null)}
+                                >
+                                  Peruuta
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <p className="text-xs text-gray-500">Vanha nimi/slug lisätään automaattisesti aliakseksi.</p>
                     </div>
                   )}

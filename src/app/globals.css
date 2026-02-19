@@ -299,14 +299,14 @@ a[href]:not([class]):hover {
 
 .forum-thread-main {
   min-width: 0;
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 1 1 0;
 }
 
 .forum-thread-title-line {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .forum-thread-title {
@@ -399,8 +399,7 @@ a[href]:not([class]):hover {
   }
 
   .forum-thread-meta {
-    margin-left: auto;
-    min-width: 0;
+    flex: 0 0 auto;
     display: grid;
     grid-template-columns: max-content 10rem 6.5rem 8.5rem max-content;
     gap: 1rem;
