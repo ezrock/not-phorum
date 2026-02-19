@@ -14,6 +14,7 @@ interface TopicRow {
   replies_count: number;
   last_post_id: number | null;
   last_post_created_at: string | null;
+  unread_count: number;
   has_new: boolean;
 }
 

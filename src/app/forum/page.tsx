@@ -23,12 +23,14 @@ interface Topic {
   replies_count: number;
   last_post_id: number | null;
   last_post_created_at: string | null;
+  unread_count: number;
   has_new: boolean;
 }
 
 interface RawTopicRow extends Omit<Topic, 'replies_count'> {
   replies_count?: number | null;
   messages_count?: number | null;
+  unread_count?: number | null;
 }
 
 interface TopicsApiResponse {
@@ -124,10 +126,7 @@ function ForumContent() {
     [requestedTagsParam]
   );
 
-  const formatMessagesLabel = (repliesCount: number) => {
-    const totalMessages = Math.max(1, repliesCount + 1);
-    return `${totalMessages} ${totalMessages === 1 ? 'viesti' : 'viestiä'}`;
-  };
+  const formatUnreadLabel = (unreadCount: number) => `${Math.max(0, unreadCount)} uutta`;
 
   const pushFilterUrl = useCallback((nextTagIds: number[], nextMatch: 'any' | 'all') => {
     const next = new URLSearchParams(searchParams.toString());
@@ -168,6 +167,9 @@ function ForumContent() {
       return {
         ...topic,
         replies_count: repliesCount,
+        unread_count: typeof topic.unread_count === 'number'
+          ? Math.max(0, topic.unread_count)
+          : (topic.has_new ? 1 : 0),
       } as Topic;
     });
   }, []);
@@ -436,7 +438,7 @@ function ForumContent() {
   const visibleTopics = filteredTopics.slice(0, displayedTopicCount);
   const hasUnloadedPages = topics.length < threadCount;
   const canShowMore = displayedTopicCount < filteredTopics.length || hasUnloadedPages;
-  const unreadThreadCount = topics.filter((topic) => topic.has_new).length;
+  const unreadThreadCount = topics.filter((topic) => topic.unread_count > 0).length;
 
   const handleShowMore = async () => {
     const nextVisibleTarget = visibleCount + forumBatchSize;
@@ -557,9 +559,6 @@ function ForumContent() {
 
                 <div className="forum-thread-main min-w-0 flex-1">
                   <div className="forum-thread-title-line flex items-center gap-2">
-                    {topic.has_new && (
-                      <span className="forum-thread-badge">Uusi</span>
-                    )}
                     <h3 className="forum-thread-title min-w-0 truncate text-gray-800 font-medium">{topic.title}</h3>
                   </div>
 
@@ -567,8 +566,12 @@ function ForumContent() {
                     <span className="forum-thread-mobile-category">{topic.category_name}</span>
                     <span aria-hidden="true">•</span>
                     <span className="forum-thread-mobile-author">{topic.author_username}</span>
-                    <span aria-hidden="true">•</span>
-                    <span>{formatMessagesLabel(topic.replies_count)}</span>
+                    {topic.unread_count > 0 && (
+                      <>
+                        <span aria-hidden="true">•</span>
+                        <span>{formatUnreadLabel(topic.unread_count)}</span>
+                      </>
+                    )}
                     <span aria-hidden="true">•</span>
                     <span>{formatFinnishRelative(topic.last_post_created_at || topic.created_at)}</span>
                   </div>
@@ -577,7 +580,11 @@ function ForumContent() {
                 <div className="forum-thread-meta">
                   <span className="forum-thread-meta-item forum-thread-meta-category">{topic.category_name}</span>
                   <span className="forum-thread-meta-item forum-thread-meta-author">{topic.author_username}</span>
-                  <span className="forum-thread-meta-item tabular-nums">{formatMessagesLabel(topic.replies_count)}</span>
+                  <span className="forum-thread-meta-item tabular-nums">
+                    {topic.unread_count > 0 && (
+                      <span className="forum-thread-badge">{formatUnreadLabel(topic.unread_count)}</span>
+                    )}
+                  </span>
                   <span className="forum-thread-meta-item forum-thread-meta-time tabular-nums">
                     {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
                   </span>
