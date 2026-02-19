@@ -557,10 +557,10 @@ function ForumContent() {
 
                 <div className="forum-thread-main min-w-0 flex-1">
                   <div className="forum-thread-title-line flex items-center gap-2">
-                    <h3 className="forum-thread-title min-w-0 truncate text-gray-800 font-medium">{topic.title}</h3>
                     {topic.has_new && (
-                      <span className="forum-thread-badge forum-thread-badge-mobile md:hidden">Uusi</span>
+                      <span className="forum-thread-badge">Uusi</span>
                     )}
+                    <h3 className="forum-thread-title min-w-0 truncate text-gray-800 font-medium">{topic.title}</h3>
                   </div>
 
                   <div className="forum-thread-mobile-meta">
@@ -581,7 +581,6 @@ function ForumContent() {
                   <span className="forum-thread-meta-item forum-thread-meta-time tabular-nums">
                     {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
                   </span>
-                  {topic.has_new && <span className="forum-thread-badge justify-self-end">Uusi</span>}
                 </div>
               </div>
             </Link>
