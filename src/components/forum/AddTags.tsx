@@ -21,6 +21,7 @@ interface AddTagsProps {
   label?: string;
   placeholder?: string;
   featuredOnly?: boolean | null;
+  maxSelected?: number;
 }
 
 interface TagsApiResponse {
@@ -44,6 +45,7 @@ export function AddTags({
   label = 'Tagit',
   placeholder = 'Lisää tageja...',
   featuredOnly = true,
+  maxSelected,
 }: AddTagsProps) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<TagOption[]>([]);
@@ -107,7 +109,14 @@ export function AddTags({
 
   const addTag = (tag: TagOption) => {
     if (selected.some((item) => item.id === tag.id)) return;
-    onChange([...selected, tag]);
+    if (maxSelected === 1) {
+      onChange([tag]);
+    } else if (typeof maxSelected === 'number' && maxSelected > 1) {
+      const next = [...selected, tag];
+      onChange(next.slice(-maxSelected));
+    } else {
+      onChange([...selected, tag]);
+    }
     setQuery('');
     setOpen(false);
   };

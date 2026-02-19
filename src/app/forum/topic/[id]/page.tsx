@@ -11,18 +11,22 @@ import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { PostItem } from '@/components/forum/PostItem';
 import type { Post } from '@/components/forum/PostItem';
 import { ReplyForm } from '@/components/forum/ReplyForm';
+import { AddTags, type TagOption } from '@/components/forum/AddTags';
 import { usePostLikes } from '@/hooks/usePostLikes';
 
 interface Topic {
   id: number;
   title: string;
+  author_id: string;
   views: number;
   views_total: number | null;
   views_unique: number | null;
 }
 
 interface TopicPrimaryTag {
+  id: number;
   name: string;
+  slug: string;
   icon: string;
 }
 
@@ -53,6 +57,7 @@ interface RawPostRow {
 interface RawTopicRow {
   id: number;
   title: string;
+  author_id: string;
   views: number;
   views_total: number | null;
   views_unique: number | null;
@@ -60,9 +65,16 @@ interface RawTopicRow {
 
 interface RawTopicTagRow {
   tag:
-    | { name?: string | null; icon?: string | null; status?: string | null; redirect_to_tag_id?: number | null }
-    | { name?: string | null; icon?: string | null; status?: string | null; redirect_to_tag_id?: number | null }[]
+    | { id?: number | null; name?: string | null; slug?: string | null; icon?: string | null; status?: string | null; redirect_to_tag_id?: number | null }
+    | { id?: number | null; name?: string | null; slug?: string | null; icon?: string | null; status?: string | null; redirect_to_tag_id?: number | null }[]
     | null;
+}
+
+interface SetTopicPrimaryTagRow {
+  tag_id: number;
+  tag_name: string;
+  tag_slug: string;
+  tag_icon: string;
 }
 
 interface AroundPostRow {
@@ -136,6 +148,10 @@ function TopicContent() {
   const [submitting, setSubmitting] = useState(false);
   const [windowStartIndex, setWindowStartIndex] = useState(0);
   const [windowEndIndex, setWindowEndIndex] = useState(0);
+  const [editingTopicTag, setEditingTopicTag] = useState(false);
+  const [topicTagDraft, setTopicTagDraft] = useState<TagOption[]>([]);
+  const [topicTagSaving, setTopicTagSaving] = useState(false);
+  const [topicTagError, setTopicTagError] = useState('');
 
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editSaving, setEditSaving] = useState(false);
@@ -147,6 +163,8 @@ function TopicContent() {
   const copyTimeoutRef = useRef<number | null>(null);
 
   const { postLikes, likeSaving, toggleLike, addNewPostLike } = usePostLikes(posts);
+  const callerIsAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
+  const canEditTopicTag = !!currentUser && !!topic && (topic.author_id === currentUser.id || callerIsAdmin);
 
   const loadMorePosts = useCallback(async (targetEndIndex?: number) => {
     const desiredEnd = Math.min(
@@ -236,7 +254,7 @@ function TopicContent() {
       const [topicRes, postsRes, countRes, firstPostRes, topicTagsRes] = await Promise.all([
         supabase
           .from('topics')
-          .select('id, title, views, views_total, views_unique')
+          .select('id, title, author_id, views, views_total, views_unique')
           .eq('id', topicId)
           .single(),
         supabase
@@ -260,7 +278,7 @@ function TopicContent() {
           .limit(1),
         supabase
           .from('topic_tags')
-          .select('tag:tags(name, icon, status, redirect_to_tag_id)')
+          .select('tag:tags(id, name, slug, icon, status, redirect_to_tag_id)')
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true }),
       ]);
@@ -286,9 +304,11 @@ function TopicContent() {
           .map((row) => normalizeJoin(row.tag))
           .find((tag) => !!tag && tag.redirect_to_tag_id == null && tag.status !== 'hidden');
 
-        if (normalizedPrimaryTag) {
+        if (normalizedPrimaryTag && normalizedPrimaryTag.id) {
           setTopicPrimaryTag({
+            id: normalizedPrimaryTag.id,
             name: normalizedPrimaryTag.name || 'Tagit',
+            slug: normalizedPrimaryTag.slug || '',
             icon: normalizedPrimaryTag.icon?.trim() || '🏷️',
           });
         } else {
@@ -397,6 +417,39 @@ function TopicContent() {
       }
     };
   }, []);
+
+  const handleTopicTagSave = async () => {
+    if (!canEditTopicTag || topicTagSaving) return;
+    setTopicTagSaving(true);
+    setTopicTagError('');
+
+    const selectedTagId = topicTagDraft[0]?.id ?? null;
+    const { data, error } = await supabase.rpc('set_topic_primary_tag', {
+      input_topic_id: topicId,
+      input_tag_id: selectedTagId,
+    });
+
+    if (error) {
+      setTopicTagError(error.message || 'Tagin tallennus epäonnistui');
+      setTopicTagSaving(false);
+      return;
+    }
+
+    const row = Array.isArray(data) && data.length > 0 ? (data[0] as SetTopicPrimaryTagRow) : null;
+    if (row) {
+      setTopicPrimaryTag({
+        id: row.tag_id,
+        name: row.tag_name,
+        slug: row.tag_slug,
+        icon: row.tag_icon || '🏷️',
+      });
+    } else {
+      setRefreshTick((prev) => prev + 1);
+    }
+
+    setEditingTopicTag(false);
+    setTopicTagSaving(false);
+  };
 
   const handleReply = async (content: string, imageUrl: string) => {
     if (!content.trim() || !currentUser) return;
@@ -562,6 +615,78 @@ function TopicContent() {
                 <span>{topic.views_unique ?? topic.views} katselua</span>
                 <span>{totalPosts} viestiä</span>
               </div>
+              {canEditTopicTag && (
+                <div className="mt-3 max-w-xl">
+                  {!editingTopicTag ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="admin-compact-btn"
+      onClick={() => {
+                        setTopicTagError('');
+                        if (topicPrimaryTag) {
+                          setTopicTagDraft([{
+                            id: topicPrimaryTag.id,
+                            name: topicPrimaryTag.name,
+                            slug: topicPrimaryTag.slug,
+                            icon: topicPrimaryTag.icon,
+                          }]);
+                        } else {
+                          setTopicTagDraft([]);
+                        }
+                        setEditingTopicTag(true);
+                      }}
+                    >
+                      Muokkaa tagia
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <AddTags
+                        selected={topicTagDraft}
+                        onChange={setTopicTagDraft}
+                        disabled={topicTagSaving}
+                        maxSelected={1}
+                        allowCreate={false}
+                        featuredOnly={null}
+                        label="Tagi"
+                        placeholder="Valitse tagi (tyhjä = off-topic)"
+                      />
+                      {topicTagError && <p className="text-sm text-red-600">{topicTagError}</p>}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={handleTopicTagSave}
+                          disabled={topicTagSaving}
+                        >
+                          {topicTagSaving ? 'Tallennetaan...' : 'Tallenna tagi'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingTopicTag(false);
+                            setTopicTagError('');
+                            if (topicPrimaryTag) {
+                              setTopicTagDraft([{
+                                id: topicPrimaryTag.id,
+                                name: topicPrimaryTag.name,
+                                slug: topicPrimaryTag.slug,
+                                icon: topicPrimaryTag.icon,
+                              }]);
+                            } else {
+                              setTopicTagDraft([]);
+                            }
+                          }}
+                          disabled={topicTagSaving}
+                        >
+                          Peruuta
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <Link href="/forum">
@@ -628,7 +753,7 @@ function TopicContent() {
         )}
         {currentUser && (
           <div className="mt-6 border-t border-gray-200 pt-6 md:ml-36">
-            <h2 className="mb-3 text-base font-medium text-gray-900">Vastaa viestiin</h2>
+            <h2 className="mb-3 text-base font-medium text-gray-900">Vastaa lankaan</h2>
             <ReplyForm onSubmit={handleReply} submitting={submitting} />
           </div>
         )}

@@ -51,11 +51,6 @@ export default function NewTopicPage() {
       setError('Kirjoita viestin sisältö');
       return;
     }
-    if (selectedTags.length < 1) {
-      setError('Lisää vähintään yksi tagi');
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -130,7 +125,16 @@ export default function NewTopicPage() {
             </p>
           </div>
 
-          <AddTags selected={selectedTags} onChange={setSelectedTags} disabled={submitting} allowCreate />
+          <AddTags
+            selected={selectedTags}
+            onChange={setSelectedTags}
+            disabled={submitting}
+            allowCreate
+            maxSelected={1}
+            featuredOnly={null}
+            label="Tagi"
+            placeholder="Valitse tagi (jos tyhjä, käytetään off-topic)"
+          />
 
           {imageUrl && (
             <div className="relative inline-block">
@@ -145,7 +149,7 @@ export default function NewTopicPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="composer-actions">
             <CldUploadWidget
               uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
               options={{
@@ -171,7 +175,7 @@ export default function NewTopicPage() {
               type="submit"
               variant="primary"
               disabled={submitting}
-              className="flex items-center gap-2"
+              className="composer-actions-submit flex items-center gap-2"
             >
               <Send size={16} />
               {submitting ? 'Luodaan...' : 'Luo lanka'}

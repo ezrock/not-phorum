@@ -590,3 +590,15 @@ a[href]:not([class]):hover {
   outline: none;
   border-color: #facc15;
 }
+
+/* Shared composer action row: media action left, submit action right. */
+.composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.composer-actions-submit {
+  margin-left: auto;
+}
