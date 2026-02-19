@@ -397,6 +397,11 @@ function TopicContent() {
         return;
       }
 
+      const targetElement = document.getElementById(`post-${postIdFromHash}`);
+      if (targetElement) {
+        targetElement.scrollIntoView({ block: 'center', behavior: 'auto' });
+      }
+
       setHighlightedPostId(postIdFromHash);
       clearHighlightTimer();
       highlightTimeoutRef.current = window.setTimeout(() => {
