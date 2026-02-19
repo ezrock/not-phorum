@@ -5,6 +5,15 @@ import type { Post } from '@/components/forum/PostItem';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeJoin } from '@/lib/supabase/normalizeJoin';
+import {
+  parseAroundPostRow,
+  parsePostRow,
+  parseTopicRow,
+  type AroundPostRow,
+  type RawPostRow,
+  type RawTopicRow,
+} from '@/lib/forum/parsers';
 
 interface TopicViewResponse {
   views_total?: number;
@@ -14,27 +23,6 @@ interface TopicViewResponse {
 function parseTopicViewResponse(value: unknown): TopicViewResponse | null {
   if (!value || typeof value !== 'object') return null;
   return value as TopicViewResponse;
-}
-
-type SupabaseJoinField<T> = T | T[] | null;
-
-interface RawPostRow {
-  id: number;
-  content: string;
-  created_at: string;
-  updated_at: string | null;
-  deleted_at: string | null;
-  image_url: string | null;
-  author: SupabaseJoinField<Post['author']>;
-}
-
-interface RawTopicRow {
-  id: number;
-  title: string;
-  author_id: string;
-  views: number;
-  views_total: number | null;
-  views_unique: number | null;
 }
 
 interface RawTopicTagRow {
@@ -56,57 +44,6 @@ interface RawTopicTagRow {
         redirect_to_tag_id?: number | null;
       }[]
     | null;
-}
-
-interface AroundPostRow {
-  id: number;
-  content: string;
-  created_at: string;
-  updated_at: string | null;
-  deleted_at: string | null;
-  image_url: string | null;
-  author_id: string | null;
-  author_username: string | null;
-  author_profile_image_url: string | null;
-  author_created_at: string | null;
-  author_signature: string | null;
-  author_show_signature: boolean | null;
-  post_row_number: number;
-  total_rows: number;
-}
-
-function normalizeJoin<T>(value: SupabaseJoinField<T>): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value;
-}
-
-function parsePost(row: RawPostRow): Post {
-  return { ...row, author: normalizeJoin(row.author) ?? null };
-}
-
-function parseTopic(row: RawTopicRow): Topic {
-  return { ...row };
-}
-
-function parseAroundPost(row: AroundPostRow): Post {
-  return {
-    id: row.id,
-    content: row.content,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    deleted_at: row.deleted_at,
-    image_url: row.image_url,
-    author: row.author_id
-      ? {
-          id: row.author_id,
-          username: row.author_username || 'tuntematon',
-          profile_image_url: row.author_profile_image_url,
-          created_at: row.author_created_at || row.created_at,
-          signature: row.author_signature,
-          show_signature: row.author_show_signature === true,
-        }
-      : null,
-  };
 }
 
 interface UseTopicPostsWindowOptions {
@@ -156,7 +93,7 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
         .range(windowEndIndex, desiredEnd - 1);
 
       if (!error && data && data.length > 0) {
-        const parsed = (data as RawPostRow[]).map(parsePost);
+        const parsed = (data as RawPostRow[]).map(parsePostRow);
         setPosts((prev) => [...prev, ...parsed]);
         setWindowEndIndex((prev) => prev + parsed.length);
       }
@@ -183,7 +120,7 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
       .range(nextStart, nextEnd);
 
     if (!error && data && data.length > 0) {
-      const parsed = (data as RawPostRow[]).map(parsePost);
+      const parsed = (data as RawPostRow[]).map(parsePostRow);
       setPosts((prev) => [...parsed, ...prev]);
       setWindowStartIndex(nextStart);
     }
@@ -208,7 +145,7 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
       }
 
       const rows = data as AroundPostRow[];
-      const parsed = rows.map(parseAroundPost);
+      const parsed = rows.map(parseAroundPostRow);
       const firstRowNumber = rows[0]?.post_row_number ?? 1;
       const lastRowNumber = rows[rows.length - 1]?.post_row_number ?? firstRowNumber;
       const nextTotalPosts = rows[0]?.total_rows ?? totalPosts;
@@ -257,10 +194,10 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
       ]);
 
       if (!topicRes.error && topicRes.data) {
-        setTopic(parseTopic(topicRes.data as RawTopicRow));
+        setTopic(parseTopicRow(topicRes.data as RawTopicRow));
       }
       if (!postsRes.error && postsRes.data) {
-        const parsedPosts = (postsRes.data as RawPostRow[]).map(parsePost);
+        const parsedPosts = (postsRes.data as RawPostRow[]).map(parsePostRow);
         setPosts(parsedPosts);
         setWindowStartIndex(0);
         setWindowEndIndex(parsedPosts.length);

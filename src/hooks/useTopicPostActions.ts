@@ -1,23 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import type { Post } from '@/components/forum/PostItem';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 import type { TagOption } from '@/components/forum/AddTags';
 import { usePostLikes } from '@/hooks/usePostLikes';
 import { createClient } from '@/lib/supabase/client';
-
-type SupabaseJoinField<T> = T | T[] | null;
-
-interface RawPostRow {
-  id: number;
-  content: string;
-  created_at: string;
-  updated_at: string | null;
-  deleted_at: string | null;
-  image_url: string | null;
-  author: SupabaseJoinField<Post['author']>;
-}
+import { parsePostRow, type RawPostRow } from '@/lib/forum/parsers';
+import type { Post } from '@/components/forum/PostItem';
 
 interface EditTopicFirstPostRow {
   topic_id: number;
@@ -29,15 +18,6 @@ interface EditTopicFirstPostRow {
   tag_name: string;
   tag_slug: string;
   tag_icon: string;
-}
-
-function normalizeJoin<T>(value: SupabaseJoinField<T>): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value;
-}
-
-function parsePost(row: RawPostRow): Post {
-  return { ...row, author: normalizeJoin(row.author) ?? null };
 }
 
 interface UseTopicPostActionsOptions {
@@ -121,7 +101,7 @@ export function useTopicPostActions({
 
     if (!error && data) {
       const nextTotalPosts = totalPosts + 1;
-      const insertedPost = parsePost(data as RawPostRow);
+      const insertedPost = parsePostRow(data as RawPostRow);
       const hasLatestLoaded = windowEndIndex >= totalPosts;
 
       setTotalPosts(nextTotalPosts);
@@ -210,7 +190,7 @@ export function useTopicPostActions({
       .single();
 
     if (!error && data) {
-      setPosts((prev) => prev.map((p) => (p.id === postId ? parsePost(data as RawPostRow) : p)));
+      setPosts((prev) => prev.map((p) => (p.id === postId ? parsePostRow(data as RawPostRow) : p)));
       setEditingPostId(null);
     }
     setEditSaving(false);
@@ -231,7 +211,7 @@ export function useTopicPostActions({
       .single();
 
     if (!error && data) {
-      setPosts((prev) => prev.map((p) => (p.id === postId ? parsePost(data as RawPostRow) : p)));
+      setPosts((prev) => prev.map((p) => (p.id === postId ? parsePostRow(data as RawPostRow) : p)));
     }
     setDeleteConfirmId(null);
   };

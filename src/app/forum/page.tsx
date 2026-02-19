@@ -2,9 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Heart, Plus } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatFinnishDateTime } from '@/lib/formatDate';
 import { eventOccursOnDate } from '@/lib/siteEvents';
@@ -155,15 +154,6 @@ function ForumContent() {
           </p>
         </div>
 
-        <Link href="/forum/new" className="block w-full mt-4">
-          <Button
-            variant="primary"
-            className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
-          >
-            <Plus size={20} />
-            Uusi aihe
-          </Button>
-        </Link>
       </div>
 
       <ForumThreadList

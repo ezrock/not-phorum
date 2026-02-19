@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { formatFinnishRelative } from '@/lib/formatDate';
 import type { Topic } from '@/hooks/useForumTopics';
 
@@ -41,6 +42,15 @@ export function ForumThreadList({
   if (topics.length === 0) {
     return (
       <Card>
+        <Link href="/forum/new" className="block mb-4">
+          <Button
+            variant="primary"
+            className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
+          >
+            <Plus size={20} />
+            Uusi aihe
+          </Button>
+        </Link>
         <p className="text-center text-gray-500 py-8">
           {requestedTagIds.length > 0
             ? 'Ei aiheita valituilla tageilla.'
@@ -53,6 +63,15 @@ export function ForumThreadList({
   if (unreadOnly && filteredTopics.length === 0) {
     return (
       <Card>
+        <Link href="/forum/new" className="block mb-4">
+          <Button
+            variant="primary"
+            className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
+          >
+            <Plus size={20} />
+            Uusi aihe
+          </Button>
+        </Link>
         <p className="text-center text-gray-500 py-8">Ei lukemattomia lankoja nykyisellä suodatuksella.</p>
       </Card>
     );
@@ -61,6 +80,17 @@ export function ForumThreadList({
   return (
     <>
       <Card className="overflow-hidden">
+        <div className="pb-8 border-b border-gray-200">
+          <Link href="/forum/new" className="block">
+            <Button
+              variant="primary"
+              className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
+            >
+              <Plus size={20} />
+              Uusi aihe
+            </Button>
+          </Link>
+        </div>
         <div className="divide-y divide-gray-200">
           {visibleTopics.map((topic) => {
             const jumpPostId = topic.jump_post_id ?? topic.last_post_id;
