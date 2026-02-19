@@ -115,7 +115,7 @@ export function TagsSection({
           {unreviewedTags.map((tag) => (
             <div key={tag.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
               <div className="min-w-0">
-                <p className="font-medium truncate">#{tag.name}</p>
+                <p className="font-medium truncate">{tag.name}</p>
                 <p className="text-xs text-gray-500 truncate">
                   {tag.slug} • {tag.usage_count} käyttöä • {new Date(tag.created_at).toLocaleString('fi-FI')}
                 </p>
@@ -159,7 +159,7 @@ export function TagsSection({
                     .filter((candidate) => candidate.id !== tag.id)
                     .map((candidate) => (
                       <option key={candidate.id} value={candidate.id}>
-                        #{candidate.name}
+                        {candidate.name}
                       </option>
                     ))}
                 </select>
@@ -229,7 +229,7 @@ export function TagsSection({
                 <div key={tag.id} className="rounded border border-gray-200 bg-white px-3 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
-                      <p className="font-medium truncate">#{tag.name}</p>
+                      <p className="font-medium truncate">{tag.name}</p>
                       <p className="text-xs text-gray-500 truncate">
                         Slug: {tag.slug} • Käytössä: {tag.usage_count} ketjussa • aliakset:{' '}
                         {aliases.length > 0 ? aliases.map((a) => a.alias).join(', ') : 'ei'} • Ryhmissä:{' '}
@@ -352,7 +352,7 @@ export function TagsSection({
                                   .filter((candidate) => candidate.id !== tag.id)
                                   .map((candidate) => (
                                     <option key={candidate.id} value={candidate.id}>
-                                      #{candidate.name}
+                                      {candidate.name}
                                     </option>
                                   ))}
                               </select>

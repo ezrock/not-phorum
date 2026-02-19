@@ -263,7 +263,7 @@ export function useAdminTagManagement(supabase: ReturnType<typeof createClient>)
         ? 'off-topic'
         : (canonicalTags.find((candidate) => candidate.id === replacementTagId)?.name || String(replacementTagId));
     const confirmed = window.confirm(
-      `Poistetaanko tagi #${tag.name}?\n\n` +
+      `Poistetaanko tagi ${tag.name}?\n\n` +
       `Tagin käytöt siirretään tagille: ${replacementLabel}.\n` +
       `Toimintoa ei voi perua.`
     );
@@ -479,7 +479,7 @@ export function useAdminTagManagement(supabase: ReturnType<typeof createClient>)
     if (!tag) return null;
     return {
       id: tag.id,
-      label: `#${tag.name}`,
+      label: `${tag.name}`,
     };
   };
 
@@ -493,7 +493,7 @@ export function useAdminTagManagement(supabase: ReturnType<typeof createClient>)
       })
       .map((tag) => ({
         id: tag.id,
-        label: `#${tag.name}`,
+        label: `${tag.name}`,
         meta: `(${tag.slug})`,
       }));
   };

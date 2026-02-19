@@ -161,7 +161,7 @@ export function AddTags({
                           disabled={disabled}
                         >
                           <span className="mr-1">{tag.icon || '🏷️'}</span>
-                          <span>#{tag.name}</span>
+                          <span>{tag.name}</span>
                         </button>
                       ))}
                     </div>
@@ -175,7 +175,7 @@ export function AddTags({
                       disabled={disabled}
                     >
                       <span className="mr-1">{tag.icon || '🏷️'}</span>
-                      <span>#{tag.name}</span>
+                      <span>{tag.name}</span>
                     </button>
                   )))}
           </div>
@@ -188,7 +188,7 @@ export function AddTags({
             className="inline-flex items-center gap-1 rounded-full border border-yellow-400 bg-yellow-50 px-3 py-1 text-sm text-yellow-900"
           >
             <span>{tag.icon || '🏷️'}</span>
-            <span>#{tag.name}</span>
+            <span>{tag.name}</span>
             <button
               type="button"
               onClick={() => removeTag(tag.id)}

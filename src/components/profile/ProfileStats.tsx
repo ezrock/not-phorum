@@ -79,7 +79,7 @@ export function ProfileStats({
                 href={`/forum?tags=${tag.tag_id}`}
                 className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs text-yellow-900 hover:bg-yellow-100"
               >
-                <span>#{tag.tag_name}</span>
+                <span>{tag.tag_name}</span>
                 <span className="text-yellow-700">({tag.usage_count})</span>
               </Link>
             ))}
