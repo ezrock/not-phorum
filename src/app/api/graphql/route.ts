@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { THREADS_PER_PAGE } from '@/lib/pagination';
+import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { createClient } from '@/lib/supabase/server';
 
 type GraphQLVariables = Record<string, unknown>;
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
   if (op === 'topicsByTags') {
     const page = intVar(variables.page, 1);
-    const pageSize = Math.min(intVar(variables.pageSize, THREADS_PER_PAGE), 100);
+    const pageSize = Math.min(intVar(variables.pageSize, UI_PAGING_SETTINGS.forumShowMoreStep), 100);
     const tagIds = tagIdsVar(variables.tagIds);
     const matchAll = matchAllVar(variables.matchAll);
 

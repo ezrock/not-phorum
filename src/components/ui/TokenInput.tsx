@@ -131,7 +131,7 @@ export function TokenInput({
           {canSubmitQuery && (
             <button
               type="button"
-              className="inline-flex items-center rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="admin-compact-btn inline-flex items-center bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
               onClick={handleSubmitQuery}
               disabled={disabled}
             >

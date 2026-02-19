@@ -235,7 +235,7 @@ export function TagGroupsSection({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                   disabled={processingGroupId === group.group_id || !group.group_name.trim()}
                   onClick={() => onSaveTagGroup(group)}
                 >
@@ -243,7 +243,7 @@ export function TagGroupsSection({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                   disabled={processingGroupId === group.group_id}
                   onClick={() => onDeleteTagGroup(group.group_id)}
                 >

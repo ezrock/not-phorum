@@ -258,6 +258,15 @@ a[href]:not([class]):hover {
   margin-bottom: 1rem;
 }
 
+.admin-compact-btn {
+  min-height: 2rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 600;
+  border-radius: 0.375rem;
+}
+
 .section-block,
 .subsection {
   margin-top: 2rem;

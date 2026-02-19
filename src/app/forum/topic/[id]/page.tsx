@@ -1,17 +1,16 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { POSTS_PER_PAGE } from '@/lib/pagination';
+import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { PostItem } from '@/components/forum/PostItem';
 import type { Post } from '@/components/forum/PostItem';
 import { ReplyForm } from '@/components/forum/ReplyForm';
-import { TopicPagination } from '@/components/forum/TopicPagination';
 import { usePostLikes } from '@/hooks/usePostLikes';
 
 interface Topic {
@@ -66,6 +65,23 @@ interface RawTopicTagRow {
     | null;
 }
 
+interface AroundPostRow {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string | null;
+  deleted_at: string | null;
+  image_url: string | null;
+  author_id: string | null;
+  author_username: string | null;
+  author_profile_image_url: string | null;
+  author_created_at: string | null;
+  author_signature: string | null;
+  author_show_signature: boolean | null;
+  post_row_number: number;
+  total_rows: number;
+}
+
 function normalizeJoin<T>(value: SupabaseJoinField<T>): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value;
@@ -79,15 +95,35 @@ function parseTopic(row: RawTopicRow): Topic {
   return { ...row };
 }
 
+function parseAroundPost(row: AroundPostRow): Post {
+  return {
+    id: row.id,
+    content: row.content,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    deleted_at: row.deleted_at,
+    image_url: row.image_url,
+    author: row.author_id
+      ? {
+          id: row.author_id,
+          username: row.author_username || 'tuntematon',
+          profile_image_url: row.author_profile_image_url,
+          created_at: row.author_created_at || row.created_at,
+          signature: row.author_signature,
+          show_signature: row.author_show_signature === true,
+        }
+      : null,
+  };
+}
+
 function TopicContent() {
   const params = useParams();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { currentUser, supabase, profile } = useAuth();
   const topicId = parseInt(params.id as string);
-  const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
-  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const pageOffset = (currentPage - 1) * POSTS_PER_PAGE;
+  const initialVisibleMessages = UI_PAGING_SETTINGS.threadInitialVisibleMessages;
+  const showMoreStep = UI_PAGING_SETTINGS.threadShowMoreStep;
+  const anchorBeforeBuffer = UI_PAGING_SETTINGS.threadAnchorBeforeBuffer;
+  const anchorAfterBuffer = UI_PAGING_SETTINGS.threadAnchorAfterBuffer;
   const realtimeUpdatesEnabled = (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
 
   const [topic, setTopic] = useState<Topic | null>(null);
@@ -96,7 +132,10 @@ function TopicContent() {
   const [totalPosts, setTotalPosts] = useState(0);
   const [firstPostId, setFirstPostId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [windowStartIndex, setWindowStartIndex] = useState(0);
+  const [windowEndIndex, setWindowEndIndex] = useState(0);
 
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editSaving, setEditSaving] = useState(false);
@@ -109,8 +148,91 @@ function TopicContent() {
 
   const { postLikes, likeSaving, toggleLike, addNewPostLike } = usePostLikes(posts);
 
+  const loadMorePosts = useCallback(async (targetEndIndex?: number) => {
+    const desiredEnd = Math.min(
+      totalPosts,
+      Math.max(windowEndIndex + showMoreStep, targetEndIndex ?? windowEndIndex + showMoreStep)
+    );
+    if (desiredEnd <= windowEndIndex) return;
+
+    setLoadingMore(true);
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        id, content, created_at, updated_at, deleted_at, image_url,
+        author:profiles!author_id(id, username, profile_image_url, created_at, signature, show_signature)
+      `)
+      .eq('topic_id', topicId)
+      .order('created_at', { ascending: true })
+      .range(windowEndIndex, desiredEnd - 1);
+
+    if (!error && data && data.length > 0) {
+      const parsed = (data as RawPostRow[]).map(parsePost);
+      setPosts((prev) => [...prev, ...parsed]);
+      setWindowEndIndex((prev) => prev + parsed.length);
+    }
+    setLoadingMore(false);
+  }, [showMoreStep, supabase, topicId, totalPosts, windowEndIndex]);
+
+  const loadOlderPosts = useCallback(async () => {
+    if (windowStartIndex <= 0) return;
+    const nextStart = Math.max(0, windowStartIndex - showMoreStep);
+    const nextEnd = windowStartIndex - 1;
+    if (nextEnd < nextStart) return;
+
+    setLoadingMore(true);
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        id, content, created_at, updated_at, deleted_at, image_url,
+        author:profiles!author_id(id, username, profile_image_url, created_at, signature, show_signature)
+      `)
+      .eq('topic_id', topicId)
+      .order('created_at', { ascending: true })
+      .range(nextStart, nextEnd);
+
+    if (!error && data && data.length > 0) {
+      const parsed = (data as RawPostRow[]).map(parsePost);
+      setPosts((prev) => [...parsed, ...prev]);
+      setWindowStartIndex(nextStart);
+    }
+    setLoadingMore(false);
+  }, [showMoreStep, supabase, topicId, windowStartIndex]);
+
+  const loadAroundPost = useCallback(async (targetPostId: number) => {
+    if (!Number.isFinite(targetPostId) || targetPostId <= 0) return false;
+
+    setLoadingMore(true);
+    const { data, error } = await supabase.rpc('get_topic_posts_around', {
+      input_topic_id: topicId,
+      input_post_id: targetPostId,
+      input_before: anchorBeforeBuffer,
+      input_after: anchorAfterBuffer,
+    });
+
+    if (error || !data || data.length === 0) {
+      setLoadingMore(false);
+      return false;
+    }
+
+    const rows = data as AroundPostRow[];
+    const parsed = rows.map(parseAroundPost);
+    const firstRowNumber = rows[0]?.post_row_number ?? 1;
+    const lastRowNumber = rows[rows.length - 1]?.post_row_number ?? firstRowNumber;
+    const nextTotalPosts = rows[0]?.total_rows ?? totalPosts;
+
+    setPosts(parsed);
+    setWindowStartIndex(Math.max(0, firstRowNumber - 1));
+    setWindowEndIndex(lastRowNumber);
+    setTotalPosts(nextTotalPosts);
+    setLoadingMore(false);
+    return true;
+  }, [anchorAfterBuffer, anchorBeforeBuffer, supabase, topicId, totalPosts]);
+
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      const initialLoadCount = initialVisibleMessages;
       const [topicRes, postsRes, countRes, firstPostRes, topicTagsRes] = await Promise.all([
         supabase
           .from('topics')
@@ -125,7 +247,7 @@ function TopicContent() {
           `)
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true })
-          .range(pageOffset, pageOffset + POSTS_PER_PAGE - 1),
+          .range(0, Math.max(initialLoadCount - 1, 0)),
         supabase
           .from('posts')
           .select('id', { count: 'exact', head: true })
@@ -147,10 +269,14 @@ function TopicContent() {
         setTopic(parseTopic(topicRes.data as RawTopicRow));
       }
       if (!postsRes.error && postsRes.data) {
-        setPosts((postsRes.data as RawPostRow[]).map(parsePost));
+        const parsedPosts = (postsRes.data as RawPostRow[]).map(parsePost);
+        setPosts(parsedPosts);
+        setWindowStartIndex(0);
+        setWindowEndIndex(parsedPosts.length);
       }
       if (!countRes.error) {
-        setTotalPosts(countRes.count || 0);
+        const count = countRes.count || 0;
+        setTotalPosts(count);
       }
       if (!firstPostRes.error && firstPostRes.data && firstPostRes.data.length > 0) {
         setFirstPostId(firstPostRes.data[0].id as number);
@@ -173,7 +299,7 @@ function TopicContent() {
     };
 
     fetchData();
-  }, [supabase, topicId, pageOffset, refreshTick]);
+  }, [supabase, topicId, refreshTick, initialVisibleMessages]);
 
   useEffect(() => {
     if (!currentUser || !realtimeUpdatesEnabled || !Number.isFinite(topicId)) return;
@@ -183,26 +309,7 @@ function TopicContent() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'posts', filter: `topic_id=eq.${topicId}` },
-        async (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const insertedPostId =
-              payload.new && typeof payload.new === 'object' && 'id' in payload.new
-                ? Number((payload.new as { id?: number }).id)
-                : null;
-            const { count } = await supabase
-              .from('posts')
-              .select('id', { count: 'exact', head: true })
-              .eq('topic_id', topicId);
-            const nextTotalPosts = count || 0;
-            const latestPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
-
-            if (latestPage !== currentPage) {
-              const target = latestPage <= 1 ? `/forum/topic/${topicId}` : `/forum/topic/${topicId}?page=${latestPage}`;
-              router.replace(insertedPostId ? `${target}#post-${insertedPostId}` : target);
-              return;
-            }
-          }
-
+        () => {
           setRefreshTick((prev) => prev + 1);
         }
       )
@@ -211,7 +318,7 @@ function TopicContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, topicId, currentPage, currentUser, realtimeUpdatesEnabled, router]);
+  }, [supabase, topicId, currentUser, realtimeUpdatesEnabled]);
 
   useEffect(() => {
     if (!Number.isFinite(topicId)) return;
@@ -256,7 +363,12 @@ function TopicContent() {
       if (!match) return;
 
       const postIdFromHash = Number(match[1]);
-      if (!Number.isFinite(postIdFromHash) || !posts.some((post) => post.id === postIdFromHash)) {
+      if (!Number.isFinite(postIdFromHash)) {
+        return;
+      }
+
+      if (!posts.some((post) => post.id === postIdFromHash)) {
+        void loadAroundPost(postIdFromHash);
         return;
       }
 
@@ -275,7 +387,7 @@ function TopicContent() {
       window.removeEventListener('hashchange', applyHashHighlight);
       clearHighlightTimer();
     };
-  }, [posts]);
+  }, [posts, loadAroundPost]);
 
   useEffect(() => {
     return () => {
@@ -305,20 +417,20 @@ function TopicContent() {
       .single();
 
     if (!error && data) {
-      const insertedPost = parsePost(data as RawPostRow);
       const nextTotalPosts = totalPosts + 1;
-      const nextPage = Math.max(1, Math.ceil(nextTotalPosts / POSTS_PER_PAGE));
+      const insertedPost = parsePost(data as RawPostRow);
+      const hasLatestLoaded = windowEndIndex >= totalPosts;
 
-      if (nextPage === currentPage) {
+      setTotalPosts(nextTotalPosts);
+      addNewPostLike(insertedPost.id);
+      if (hasLatestLoaded) {
         setPosts((prev) => [...prev, insertedPost]);
-        setTotalPosts(nextTotalPosts);
-        addNewPostLike(insertedPost.id);
-        window.location.hash = `post-${insertedPost.id}`;
-        setSubmitting(false);
-        return;
+        setWindowEndIndex((prev) => prev + 1);
+      } else {
+        await loadAroundPost(insertedPost.id);
       }
-
-      router.push(`/forum/topic/${topicId}${nextPage > 1 ? `?page=${nextPage}` : ''}#post-${insertedPost.id}`);
+      window.location.hash = `post-${insertedPost.id}`;
+      setSubmitting(false);
       return;
     }
     setSubmitting(false);
@@ -405,7 +517,14 @@ function TopicContent() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
+  const displayedPostCount = posts.length;
+  const visiblePosts = posts;
+  const canLoadOlder = windowStartIndex > 0;
+  const canShowMore = windowEndIndex < totalPosts;
+
+  const handleShowMore = async () => {
+    await loadMorePosts();
+  };
 
   if (loading) {
     return (
@@ -454,7 +573,20 @@ function TopicContent() {
         </div>
 
         <div className="mt-6 border-t border-gray-200">
-          {posts.map((post) => (
+          {canLoadOlder && (
+            <div className="pt-4 pb-2 flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={loadOlderPosts}
+                disabled={loadingMore}
+                className="min-w-44"
+              >
+                {loadingMore ? 'Ladataan...' : 'Näytä vanhempia viestejä'}
+              </Button>
+            </div>
+          )}
+          {visiblePosts.map((post) => (
             <PostItem
               key={post.id}
               post={post}
@@ -478,8 +610,22 @@ function TopicContent() {
             />
           ))}
         </div>
-
-        <TopicPagination currentPage={currentPage} totalPages={totalPages} topicId={topicId} />
+        {canShowMore && (
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleShowMore}
+              disabled={loadingMore}
+              className="min-w-44"
+            >
+              {loadingMore ? 'Ladataan...' : 'Näytä lisää viestejä'}
+            </Button>
+            <p className="text-xs text-gray-500">
+              Näytetään {displayedPostCount} / {totalPosts} viestiä
+            </p>
+          </div>
+        )}
       </Card>
 
       {currentUser ? (

@@ -102,7 +102,7 @@ export function TagsSection({
                   type="button"
                   disabled={processingTagId === tag.id}
                   onClick={() => onModerateTag(tag.id, 'approve')}
-                  className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                 >
                   <Check size={14} />
                   Approve
@@ -111,7 +111,7 @@ export function TagsSection({
                   type="button"
                   disabled={processingTagId === tag.id}
                   onClick={() => onModerateTag(tag.id, 'feature')}
-                  className="inline-flex items-center gap-1 rounded bg-yellow-500 px-2 py-1 text-xs font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
                 >
                   <Star size={14} />
                   Feature
@@ -120,7 +120,7 @@ export function TagsSection({
                   type="button"
                   disabled={processingTagId === tag.id}
                   onClick={() => onModerateTag(tag.id, 'hide')}
-                  className="inline-flex items-center gap-1 rounded bg-gray-700 px-2 py-1 text-xs font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50"
                 >
                   <X size={14} />
                   Hide
@@ -144,7 +144,7 @@ export function TagsSection({
                   type="button"
                   disabled={processingTagId === tag.id || !mergeTargetByTagId[tag.id]}
                   onClick={() => onMergeTag(tag.id)}
-                  className="inline-flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   Merge
                 </button>
@@ -204,7 +204,7 @@ export function TagsSection({
                             </label>
                             <button
                               type="button"
-                              className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                              className="admin-compact-btn inline-flex items-center gap-1 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                               disabled={processingTagId === tag.id || !editingTagName.trim()}
                               onClick={() => onRenameTag(tag.id)}
                             >
@@ -212,7 +212,7 @@ export function TagsSection({
                             </button>
                             <button
                               type="button"
-                              className="inline-flex items-center gap-1 rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300"
+                              className="admin-compact-btn inline-flex items-center gap-1 bg-gray-200 text-gray-700 hover:bg-gray-300"
                               onClick={onCancelRenameTag}
                               disabled={processingTagId === tag.id}
                             >
@@ -256,7 +256,7 @@ export function TagsSection({
                     <div className="mt-2">
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                        className="admin-compact-btn inline-flex items-center gap-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                         disabled={
                           processingTagId === tag.id
                           || tag.usage_count > 0

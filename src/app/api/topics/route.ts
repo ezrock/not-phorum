@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { THREADS_PER_PAGE } from '@/lib/pagination';
+import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { createClient } from '@/lib/supabase/server';
 
 interface TopicRow {
@@ -42,7 +42,7 @@ function parseMatchMode(value: string | null): boolean {
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const page = parsePositiveInt(req.nextUrl.searchParams.get('page'), 1);
-  const pageSize = Math.min(parsePositiveInt(req.nextUrl.searchParams.get('page_size'), THREADS_PER_PAGE), 100);
+  const pageSize = Math.min(parsePositiveInt(req.nextUrl.searchParams.get('page_size'), UI_PAGING_SETTINGS.forumShowMoreStep), 100);
   const tagIds = parseTagIds(req.nextUrl.searchParams.get('tag_ids'));
   const matchAll = parseMatchMode(req.nextUrl.searchParams.get('match'));
   const { data: canonicalIdsRaw, error: canonicalError } = await supabase.rpc('resolve_canonical_tag_ids', {

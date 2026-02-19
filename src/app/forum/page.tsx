@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { Heart, Plus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
-import { POSTS_PER_PAGE, THREADS_PER_PAGE } from '@/lib/pagination';
+import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
+import { useShowMorePaging } from '@/hooks/useShowMorePaging';
 
 interface Topic {
   id: number;
@@ -91,11 +92,22 @@ function ForumContent() {
   const [quote, setQuote] = useState<RandomQuote | null>(null);
   const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadedPageCount, setLoadedPageCount] = useState(0);
   const [refreshTick, setRefreshTick] = useState(0);
   const realtimeUpdatesEnabled = (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
 
-  const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
-  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const forumBatchSize = UI_PAGING_SETTINGS.forumShowMoreStep;
+  const forumInitialVisible = UI_PAGING_SETTINGS.forumInitialVisibleThreads;
+  const forumUnreadBoostMax = UI_PAGING_SETTINGS.forumUnreadBoostMaxThreads;
+  const {
+    visibleCount,
+    setVisibleCount,
+    resetVisibleCount,
+  } = useShowMorePaging({
+    initialVisible: forumInitialVisible,
+    step: forumBatchSize,
+  });
   const requestedTagsParam = searchParams.get('tags') || '';
   const requestedTagMatch = searchParams.get('match') === 'all' ? 'all' : 'any';
   const requestedTagIds = useMemo(
@@ -115,22 +127,6 @@ function ForumContent() {
     return `${count} ${count === 1 ? 'vastaus' : 'vastausta'}`;
   };
 
-  const getLastPostPage = (topic: Topic) => {
-    const totalPosts = Math.max(topic.replies_count + 1, topic.last_post_id ? 1 : 0);
-    return Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
-  };
-
-  const buildPageHref = (page: number) => {
-    const next = new URLSearchParams(searchParams.toString());
-    if (page <= 1) {
-      next.delete('page');
-    } else {
-      next.set('page', String(page));
-    }
-    const query = next.toString();
-    return query ? `/forum?${query}` : '/forum';
-  };
-
   const pushFilterUrl = useCallback((nextTagIds: number[], nextMatch: 'any' | 'all') => {
     const next = new URLSearchParams(searchParams.toString());
     next.delete('page');
@@ -148,51 +144,119 @@ function ForumContent() {
     router.push(query ? `/forum?${query}` : '/forum');
   }, [router, searchParams]);
 
+  const normalizeTopics = useCallback((rows: RawTopicRow[]) => {
+    return rows.map((topic) => {
+      const repliesCount =
+        typeof topic.replies_count === 'number'
+          ? topic.replies_count
+          : Math.max((topic.messages_count || 0) - 1, 0);
+
+      return {
+        ...topic,
+        replies_count: repliesCount,
+      } as Topic;
+    });
+  }, []);
+
+  const fetchTopicsPage = useCallback(async (page: number) => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('page_size', String(forumBatchSize));
+    if (requestedTagIds.length > 0) {
+      params.set('tag_ids', requestedTagIds.join(','));
+      params.set('match', requestedTagMatch);
+    }
+
+    const res = await fetch(`/api/topics?${params.toString()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()) as TopicsApiResponse;
+  }, [forumBatchSize, requestedTagIds, requestedTagMatch]);
+
+  const loadMoreTopics = useCallback(async (targetVisibleCount: number) => {
+    const nextTarget = Math.max(0, targetVisibleCount);
+    const requiredPages = Math.max(1, Math.ceil(nextTarget / forumBatchSize));
+    if (requiredPages <= loadedPageCount) {
+      setVisibleCount(Math.min(nextTarget, threadCount));
+      return;
+    }
+
+    setLoadingMore(true);
+    const collected = [...topics];
+    let totalCount = threadCount;
+    let fetchedPages = loadedPageCount;
+
+    for (let page = loadedPageCount + 1; page <= requiredPages; page += 1) {
+      const payload = await fetchTopicsPage(page);
+      if (!payload) break;
+      const pageRows = normalizeTopics(payload.topics || []);
+      if (pageRows.length === 0) break;
+      collected.push(...pageRows);
+      totalCount = payload.total_count || totalCount;
+      fetchedPages = page;
+      if (collected.length >= totalCount) break;
+    }
+
+    setTopics(collected);
+    setThreadCount(totalCount);
+    setLoadedPageCount(fetchedPages);
+    setVisibleCount(Math.min(nextTarget, totalCount, collected.length));
+    setLoadingMore(false);
+  }, [fetchTopicsPage, forumBatchSize, loadedPageCount, normalizeTopics, setVisibleCount, threadCount, topics]);
+
   useEffect(() => {
     const fetchTopics = async () => {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.set('page', String(currentPage));
-      params.set('page_size', String(THREADS_PER_PAGE));
-      if (requestedTagIds.length > 0) {
-        params.set('tag_ids', requestedTagIds.join(','));
-        params.set('match', requestedTagMatch);
-      }
+      setLoadingMore(false);
+      const preloadPages = Math.max(1, Math.ceil(forumUnreadBoostMax / forumBatchSize));
+      const collected: Topic[] = [];
+      let totalCount = 0;
+      let resolvedFilterTagIds: number[] | null = null;
+      let resolvedMatch: 'any' | 'all' = requestedTagMatch;
 
-      const res = await fetch(`/api/topics?${params.toString()}`, { cache: 'no-store' });
-      if (!res.ok) {
-        setTopics([]);
-        setThreadCount(0);
-        setLoading(false);
-        return;
+      for (let page = 1; page <= preloadPages; page += 1) {
+        const payload = await fetchTopicsPage(page);
+        if (!payload) {
+          setTopics([]);
+          setThreadCount(0);
+          setLoadedPageCount(0);
+          resetVisibleCount(forumInitialVisible);
+          setLoading(false);
+          return;
+        }
+
+        const rows = payload.topics || [];
+        const normalizedRows = normalizeTopics(rows);
+        collected.push(...normalizedRows);
+        totalCount = payload.total_count || totalCount;
+        resolvedFilterTagIds = Array.isArray(payload.filter?.tag_ids)
+          ? payload.filter?.tag_ids.filter((id) => Number.isFinite(id) && id > 0)
+          : [];
+        resolvedMatch = payload.filter?.match === 'all' ? 'all' : 'any';
+
+        if (rows.length < forumBatchSize || collected.length >= totalCount || page >= preloadPages) {
+          setLoadedPageCount(page);
+          break;
+        }
       }
-      const payload = (await res.json()) as TopicsApiResponse;
-      const rows = payload.topics || [];
-      const canonicalFilterTagIds = Array.isArray(payload.filter?.tag_ids)
-        ? payload.filter?.tag_ids.filter((id) => Number.isFinite(id) && id > 0)
-        : [];
 
       if (
-        requestedTagIds.join(',') !== canonicalFilterTagIds.join(',')
-        || requestedTagMatch !== (payload.filter?.match === 'all' ? 'all' : 'any')
+        resolvedFilterTagIds
+        && (
+          requestedTagIds.join(',') !== resolvedFilterTagIds.join(',')
+          || requestedTagMatch !== resolvedMatch
+        )
       ) {
-        pushFilterUrl(canonicalFilterTagIds, payload.filter?.match === 'all' ? 'all' : 'any');
+        pushFilterUrl(resolvedFilterTagIds, resolvedMatch);
       }
 
-      const normalized = rows.map((topic) => {
-        const repliesCount =
-          typeof topic.replies_count === 'number'
-            ? topic.replies_count
-            : Math.max((topic.messages_count || 0) - 1, 0);
+      const unreadCount = collected.filter((topic) => topic.has_new).length;
+      const initialVisible = unreadCount > forumInitialVisible
+        ? Math.min(Math.max(unreadCount, forumInitialVisible), forumUnreadBoostMax)
+        : forumInitialVisible;
 
-        return {
-          ...topic,
-          replies_count: repliesCount,
-        } as Topic;
-      });
-
-      setTopics(normalized);
-      setThreadCount(payload.total_count || 0);
+      setTopics(collected);
+      setThreadCount(totalCount);
+      resetVisibleCount(Math.min(initialVisible, Math.max(totalCount, 0)));
       setLoading(false);
     };
 
@@ -284,13 +348,26 @@ function ForumContent() {
     fetchTopics();
     fetchRandomQuote();
     fetchMessageCount();
-  }, [supabase, currentPage, currentUser, refreshTick, requestedTagIds, requestedTagMatch, pushFilterUrl]);
+  }, [
+    supabase,
+    currentUser,
+    refreshTick,
+    requestedTagIds,
+    requestedTagMatch,
+    pushFilterUrl,
+    forumBatchSize,
+    forumInitialVisible,
+    forumUnreadBoostMax,
+    normalizeTopics,
+    fetchTopicsPage,
+    resetVisibleCount,
+  ]);
 
   useEffect(() => {
     if (!currentUser || !realtimeUpdatesEnabled) return;
 
     const channel = supabase
-      .channel(`forum-live-${currentUser.id}-${currentPage}`)
+      .channel(`forum-live-${currentUser.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'topics' }, () => {
         setRefreshTick((prev) => prev + 1);
       })
@@ -302,7 +379,7 @@ function ForumContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, currentUser, currentPage, realtimeUpdatesEnabled]);
+  }, [supabase, currentUser, realtimeUpdatesEnabled]);
 
   const handleToggleQuoteLike = async () => {
     if (!quote || quoteLikeSaving) return;
@@ -338,16 +415,14 @@ function ForumContent() {
     setQuoteLikeSaving(false);
   };
 
-  const totalPages = Math.max(1, Math.ceil(threadCount / THREADS_PER_PAGE));
-  const visiblePages = Array.from(
-    new Set([
-      1,
-      totalPages,
-      Math.max(1, currentPage - 1),
-      currentPage,
-      Math.min(totalPages, currentPage + 1),
-    ])
-  ).sort((a, b) => a - b);
+  const displayedTopicCount = Math.min(visibleCount, topics.length);
+  const visibleTopics = topics.slice(0, displayedTopicCount);
+  const canShowMore = displayedTopicCount < threadCount;
+
+  const handleShowMore = async () => {
+    const nextVisibleTarget = visibleCount + forumBatchSize;
+    await loadMoreTopics(nextVisibleTarget);
+  };
 
   if (loading) {
     return (
@@ -416,9 +491,8 @@ function ForumContent() {
       ) : (
         <Card className="overflow-hidden">
           <div className="divide-y divide-gray-200">
-          {topics.map((topic) => {
-            const lastPostPage = getLastPostPage(topic);
-            const topicHref = `/forum/topic/${topic.id}${topic.last_post_id ? `${lastPostPage > 1 ? `?page=${lastPostPage}` : ''}#post-${topic.last_post_id}` : ''}`;
+          {visibleTopics.map((topic) => {
+            const topicHref = `/forum/topic/${topic.id}${topic.last_post_id ? `#post-${topic.last_post_id}` : ''}`;
 
             return (
             <Link
@@ -469,35 +543,20 @@ function ForumContent() {
         </Card>
       )}
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm">
-          {currentPage > 1 ? (
-            <Link href={buildPageHref(currentPage - 1)} className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
-              Edellinen
-            </Link>
-          ) : (
-            <span className="px-3 py-1 rounded border border-gray-200 text-gray-400">Edellinen</span>
-          )}
-
-          {visiblePages.map((page) =>
-            page === currentPage ? (
-              <span key={page} className="px-3 py-1 rounded bg-yellow-100 text-yellow-900 font-semibold border border-yellow-200">
-                {page}
-              </span>
-            ) : (
-              <Link key={page} href={buildPageHref(page)} className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
-                {page}
-              </Link>
-            )
-          )}
-
-          {currentPage < totalPages ? (
-            <Link href={buildPageHref(currentPage + 1)} className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
-              Seuraava
-            </Link>
-          ) : (
-            <span className="px-3 py-1 rounded border border-gray-200 text-gray-400">Seuraava</span>
-          )}
+      {canShowMore && (
+        <div className="mt-4 flex flex-col items-center gap-2 text-sm">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleShowMore}
+            disabled={loadingMore}
+            className="min-w-44"
+          >
+            {loadingMore ? 'Ladataan...' : 'Näytä lisää'}
+          </Button>
+          <p className="text-xs text-gray-500">
+            Näytetään {displayedTopicCount} / {threadCount} lankaa
+          </p>
         </div>
       )}
     </div>

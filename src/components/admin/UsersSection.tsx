@@ -36,7 +36,7 @@ export function UsersSection({
                   type="button"
                   disabled={processingUserId === user.id}
                   onClick={() => onSetApprovalStatus(user.id, 'approved')}
-                  className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                 >
                   <Check size={14} />
                   Approve
@@ -45,7 +45,7 @@ export function UsersSection({
                   type="button"
                   disabled={processingUserId === user.id}
                   onClick={() => onSetApprovalStatus(user.id, 'rejected')}
-                  className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  className="admin-compact-btn inline-flex items-center gap-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                 >
                   <X size={14} />
                   Reject
