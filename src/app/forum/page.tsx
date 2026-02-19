@@ -27,7 +27,18 @@ interface Topic {
   has_new: boolean;
 }
 
-interface RawTopicRow extends Omit<Topic, 'replies_count'> {
+interface RawTopicRow {
+  id: number;
+  title: string;
+  views: number;
+  views_unique: number;
+  created_at: string;
+  category_name: string;
+  category_icon: string;
+  author_username: string;
+  last_post_id: number | null;
+  last_post_created_at: string | null;
+  has_new: boolean;
   replies_count?: number | null;
   messages_count?: number | null;
   unread_count?: number | null;
@@ -127,6 +138,10 @@ function ForumContent() {
   );
 
   const formatUnreadLabel = (unreadCount: number) => `${Math.max(0, unreadCount)} uutta`;
+  const formatMessagesLabel = (repliesCount: number) => {
+    const totalMessages = Math.max(1, repliesCount + 1);
+    return `${totalMessages} ${totalMessages === 1 ? 'viesti' : 'viestiä'}`;
+  };
 
   const pushFilterUrl = useCallback((nextTagIds: number[], nextMatch: 'any' | 'all') => {
     const next = new URLSearchParams(searchParams.toString());
@@ -566,12 +581,12 @@ function ForumContent() {
                     <span className="forum-thread-mobile-category">{topic.category_name}</span>
                     <span aria-hidden="true">•</span>
                     <span className="forum-thread-mobile-author">{topic.author_username}</span>
-                    {topic.unread_count > 0 && (
-                      <>
-                        <span aria-hidden="true">•</span>
-                        <span>{formatUnreadLabel(topic.unread_count)}</span>
-                      </>
-                    )}
+                    <span aria-hidden="true">•</span>
+                    <span>
+                      {topic.unread_count > 0
+                        ? formatUnreadLabel(topic.unread_count)
+                        : formatMessagesLabel(topic.replies_count)}
+                    </span>
                     <span aria-hidden="true">•</span>
                     <span>{formatFinnishRelative(topic.last_post_created_at || topic.created_at)}</span>
                   </div>
@@ -581,9 +596,9 @@ function ForumContent() {
                   <span className="forum-thread-meta-item forum-thread-meta-category">{topic.category_name}</span>
                   <span className="forum-thread-meta-item forum-thread-meta-author">{topic.author_username}</span>
                   <span className="forum-thread-meta-item tabular-nums">
-                    {topic.unread_count > 0 && (
-                      <span className="forum-thread-badge">{formatUnreadLabel(topic.unread_count)}</span>
-                    )}
+                    {topic.unread_count > 0
+                      ? <span className="forum-thread-badge">{formatUnreadLabel(topic.unread_count)}</span>
+                      : formatMessagesLabel(topic.replies_count)}
                   </span>
                   <span className="forum-thread-meta-item forum-thread-meta-time tabular-nums">
                     {formatFinnishRelative(topic.last_post_created_at || topic.created_at)}
