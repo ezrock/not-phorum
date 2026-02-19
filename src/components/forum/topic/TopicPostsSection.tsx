@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { PostItem, type Post } from '@/components/forum/PostItem';
+import { PostItem, type Post } from '@/components/forum/post';
 import { ReplyForm } from '@/components/forum/ReplyForm';
 
 interface TopicPostsSectionProps {

@@ -5,7 +5,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import LinkifyIt from 'linkify-it';
 import tlds from 'tlds';
 import { postImage } from '@/lib/cloudinary';
-import type { Post } from '@/components/forum/postItem/types';
+import type { Post } from '@/components/forum/post/post.types';
 
 const URL_MAX_DISPLAY_LENGTH = 60;
 const linkify = new LinkifyIt();

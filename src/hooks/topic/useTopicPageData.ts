@@ -1,7 +1,7 @@
 'use client';
 
-import { useTopicPostsWindow } from '@/hooks/useTopicPostsWindow';
-import { useTopicPostActions } from '@/hooks/useTopicPostActions';
+import { useTopicPostsWindow } from '@/hooks/topic/useTopicPostsWindow';
+import { useTopicPostActions } from '@/hooks/topic/useTopicPostActions';
 import { createClient } from '@/lib/supabase/client';
 
 interface UseTopicPageDataOptions {

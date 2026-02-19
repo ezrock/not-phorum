@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Post } from '@/components/forum/PostItem';
+import type { Post } from '@/components/forum/post';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { createClient } from '@/lib/supabase/client';

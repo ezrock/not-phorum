@@ -4,8 +4,8 @@ import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTopicPageData } from '@/hooks/useTopicPageData';
-import { TopicPageView } from '@/components/forum/TopicPageView';
+import { useTopicPageData } from '@/hooks/topic/useTopicPageData';
+import { TopicPageView } from '@/components/forum/topic';
 
 function TopicContent() {
   const params = useParams();

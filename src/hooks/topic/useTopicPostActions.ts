@@ -4,7 +4,7 @@ import { type Dispatch, type SetStateAction } from 'react';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 import { usePostLikes } from '@/hooks/usePostLikes';
 import { createClient } from '@/lib/supabase/client';
-import type { Post } from '@/components/forum/PostItem';
+import type { Post } from '@/components/forum/post';
 import { useTopicReply } from '@/hooks/topic/useTopicReply';
 import { usePostLinkCopy } from '@/hooks/topic/usePostLinkCopy';
 import { useTopicEditDelete } from '@/hooks/topic/useTopicEditDelete';

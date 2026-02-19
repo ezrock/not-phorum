@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { User } from 'lucide-react';
 import { formatPostDateTime } from '@/lib/formatDate';
 import { profileThumb } from '@/lib/cloudinary';
-import { PostActions } from '@/components/forum/postItem/PostActions';
-import { PostContent } from '@/components/forum/postItem/PostContent';
-import { PostEditForm } from '@/components/forum/postItem/PostEditForm';
+import { PostActions } from '@/components/forum/post/PostActions';
+import { PostContent } from '@/components/forum/post/PostContent';
+import { PostEditForm } from '@/components/forum/post/PostEditForm';
 import type { PostLikeState } from '@/hooks/usePostLikes';
-import type { Post } from '@/components/forum/postItem/types';
+import type { Post } from '@/components/forum/post/post.types';
 
-export type { Post } from '@/components/forum/postItem/types';
+export type { Post } from '@/components/forum/post/post.types';
 
 interface PostItemProps {
   post: Post;

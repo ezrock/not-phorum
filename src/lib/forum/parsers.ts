@@ -1,4 +1,4 @@
-import type { Post } from '@/components/forum/PostItem';
+import type { Post } from '@/components/forum/post';
 import type { Topic } from '@/components/forum/types';
 import type { SupabaseJoinField } from '@/lib/supabase/normalizeJoin';
 import { normalizeJoin } from '@/lib/supabase/normalizeJoin';

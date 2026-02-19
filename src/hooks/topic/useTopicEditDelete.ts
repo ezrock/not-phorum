@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { parsePostRow, type RawPostRow } from '@/lib/forum/parsers';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 import type { TagOption } from '@/components/forum/AddTags';
-import type { Post } from '@/components/forum/PostItem';
+import type { Post } from '@/components/forum/post';
 
 interface EditTopicFirstPostRow {
   topic_id: number;

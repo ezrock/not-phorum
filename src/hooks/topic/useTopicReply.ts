@@ -10,7 +10,7 @@ interface UseTopicReplyOptions {
   supabase: ReturnType<typeof createClient>;
   totalPosts: number;
   windowEndIndex: number;
-  setPosts: Dispatch<SetStateAction<import('@/components/forum/PostItem').Post[]>>;
+  setPosts: Dispatch<SetStateAction<import('@/components/forum/post').Post[]>>;
   setTotalPosts: Dispatch<SetStateAction<number>>;
   setWindowEndIndex: Dispatch<SetStateAction<number>>;
   loadAroundPost: (targetPostId: number) => Promise<boolean>;

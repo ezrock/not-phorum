@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
-import type { Post } from '@/components/forum/PostItem';
+import type { Post } from '@/components/forum/post';
 import type { TagOption } from '@/components/forum/AddTags';
 import { TopicEditMetaFields } from '@/components/forum/topic/TopicEditMetaFields';
 import { TopicPostsSection } from '@/components/forum/topic/TopicPostsSection';
