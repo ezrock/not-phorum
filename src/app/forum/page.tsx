@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatFinnishDateTime } from '@/lib/formatDate';
 import { eventOccursOnDate } from '@/lib/siteEvents';
@@ -51,6 +52,7 @@ function ForumContent() {
     pushUnreadOnlyUrl,
     refreshTick,
     dataError,
+    retryDataFetch,
   } = useForumTopics({
     supabase,
     currentUser,
@@ -120,7 +122,17 @@ function ForumContent() {
       <div className="mb-6">
         {(dataError || quoteError || eventError) && (
           <Alert variant="error">
-            {dataError || quoteError || eventError}
+            <div className="flex items-center justify-between gap-3">
+              <span>{dataError || quoteError || eventError}</span>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={retryDataFetch}
+                className="admin-compact-btn"
+              >
+                Yritä uudelleen
+              </Button>
+            </div>
           </Alert>
         )}
 

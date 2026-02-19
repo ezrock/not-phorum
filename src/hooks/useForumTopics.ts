@@ -231,6 +231,10 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
     await loadMoreTopics(nextVisibleTarget);
   }, [forumBatchSize, loadMoreTopics, visibleCount]);
 
+  const retryDataFetch = useCallback(() => {
+    setRefreshTick((prev) => prev + 1);
+  }, []);
+
   useEffect(() => {
     const fetchTopics = async () => {
       setLoading(true);
@@ -370,5 +374,6 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
     handleShowMore,
     pushUnreadOnlyUrl,
     refreshTick,
+    retryDataFetch,
   };
 }
