@@ -614,36 +614,13 @@ export default function AdminPage() {
     setTagGroupActionError('');
     setProcessingGroupId(groupId);
 
-    const { error: currentError } = await supabase.rpc('upsert_tag_group', {
-      input_group_id: currentGroup.group_id,
-      input_name: currentGroup.group_name.trim(),
-      input_slug: currentGroup.group_slug.trim(),
-      input_description: (currentGroup.description || '').trim(),
-      input_searchable: currentGroup.searchable,
-      input_member_tag_ids: currentGroup.member_tag_ids,
-      input_group_kind: currentGroup.group_kind,
-      input_arrangement_order: otherGroup.arrangement_order,
+    const { error } = await supabase.rpc('swap_tag_group_arrangement_order', {
+      input_first_group_id: currentGroup.group_id,
+      input_second_group_id: otherGroup.group_id,
     });
 
-    if (currentError) {
-      setTagGroupActionError(currentError.message || 'Ryhmän järjestyksen muutos epäonnistui');
-      setProcessingGroupId(null);
-      return;
-    }
-
-    const { error: otherError } = await supabase.rpc('upsert_tag_group', {
-      input_group_id: otherGroup.group_id,
-      input_name: otherGroup.group_name.trim(),
-      input_slug: otherGroup.group_slug.trim(),
-      input_description: (otherGroup.description || '').trim(),
-      input_searchable: otherGroup.searchable,
-      input_member_tag_ids: otherGroup.member_tag_ids,
-      input_group_kind: otherGroup.group_kind,
-      input_arrangement_order: currentGroup.arrangement_order,
-    });
-
-    if (otherError) {
-      setTagGroupActionError(otherError.message || 'Ryhmän järjestyksen muutos epäonnistui');
+    if (error) {
+      setTagGroupActionError(error.message || 'Ryhmän järjestyksen muutos epäonnistui');
       setProcessingGroupId(null);
       return;
     }

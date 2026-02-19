@@ -196,6 +196,14 @@ a[href]:not([class]):hover {
   color: var(--link-accent-hover);
 }
 
+/* Scale down markdown headings so they stay subordinate to the topic title (text-3xl / 1.875rem). */
+.prose h1 { font-size: 1.5rem   !important; }   /* text-2xl  — biggest a user can write */
+.prose h2 { font-size: 1.25rem  !important; }   /* text-xl   */
+.prose h3 { font-size: 1.125rem !important; }   /* text-lg   */
+.prose h4 { font-size: 1rem     !important; }   /* text-base */
+.prose h5,
+.prose h6 { font-size: 0.875rem !important; }   /* text-sm   */
+
 .app-header {
   background: var(--surface-header);
 }

@@ -106,7 +106,7 @@ export function TagsSection({
       </h2>
       <div className="mb-3 space-y-2 text-sm text-gray-600">
         <p>
-          Tagit kuvaavat keskustelun aihetta. Uudet keskustelut ovat tagipohjaisia, ja sama keskustelu voi sisältää useita tageja.
+          Tagit kuvaavat keskustelun aihetta. Uudet keskustelut ovat tagipohjaisia, ja jokaisella keskustelulla on yksi päätagi.
         </p>
       </div>
 
