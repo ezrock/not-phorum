@@ -30,7 +30,7 @@ export const Navigation = (): JSX.Element | null => {
 
   return (
     <nav className="app-header p-4 border-b-4 border-gray-800">
-      <div className="max-w-6xl mx-auto flex items-center gap-4">
+      <div className="app-header-inner flex items-center gap-4">
         <div className="flex items-center gap-8 flex-shrink-0">
           <Link href="/forum" className="hover:opacity-80" aria-label="Freak On home">
             <Image src="/logo32.gif" alt="Freak On logo" width={207} height={24} priority />

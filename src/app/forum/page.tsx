@@ -110,6 +110,7 @@ function ForumContent() {
   });
   const requestedTagsParam = searchParams.get('tags') || '';
   const requestedTagMatch = searchParams.get('match') === 'all' ? 'all' : 'any';
+  const unreadOnly = searchParams.get('unread') === '1';
   const requestedTagIds = useMemo(
     () =>
       Array.from(
@@ -140,6 +141,18 @@ function ForumContent() {
       next.set('match', 'all');
     } else {
       next.delete('match');
+    }
+    const query = next.toString();
+    router.push(query ? `/forum?${query}` : '/forum');
+  }, [router, searchParams]);
+
+  const pushUnreadOnlyUrl = useCallback((nextUnreadOnly: boolean) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete('page');
+    if (nextUnreadOnly) {
+      next.set('unread', '1');
+    } else {
+      next.delete('unread');
     }
     const query = next.toString();
     router.push(query ? `/forum?${query}` : '/forum');
@@ -416,9 +429,13 @@ function ForumContent() {
     setQuoteLikeSaving(false);
   };
 
-  const displayedTopicCount = Math.min(visibleCount, topics.length);
-  const visibleTopics = topics.slice(0, displayedTopicCount);
-  const canShowMore = displayedTopicCount < threadCount;
+  const filteredTopics = unreadOnly
+    ? topics.filter((topic) => topic.has_new)
+    : topics;
+  const displayedTopicCount = Math.min(visibleCount, filteredTopics.length);
+  const visibleTopics = filteredTopics.slice(0, displayedTopicCount);
+  const hasUnloadedPages = topics.length < threadCount;
+  const canShowMore = displayedTopicCount < filteredTopics.length || hasUnloadedPages;
   const unreadThreadCount = topics.filter((topic) => topic.has_new).length;
 
   const handleShowMore = async () => {
@@ -470,7 +487,26 @@ function ForumContent() {
             {threadCount} lankaa, {messageCount} viestiä
             {unreadThreadCount > 0 && (
               <>
-                , <span className="text-highlight-glimmer">{unreadThreadCount} lukematonta</span>
+                ,{' '}
+                {unreadOnly ? (
+                  <button
+                    type="button"
+                    onClick={() => pushUnreadOnlyUrl(false)}
+                    className="text-highlight-glimmer hover:underline"
+                    title="Näytä kaikki langat"
+                  >
+                    {unreadThreadCount} lukematonta
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => pushUnreadOnlyUrl(true)}
+                    className="text-highlight-glimmer hover:underline"
+                    title="Näytä vain lukemattomat langat"
+                  >
+                    {unreadThreadCount} lukematonta
+                  </button>
+                )}
               </>
             )}
             .
@@ -494,6 +530,12 @@ function ForumContent() {
             {requestedTagIds.length > 0
               ? 'Ei aiheita valituilla tageilla.'
               : 'Ei vielä aiheita. Ole ensimmäinen ja aloita keskustelu!'}
+          </p>
+        </Card>
+      ) : unreadOnly && filteredTopics.length === 0 ? (
+        <Card>
+          <p className="text-center text-gray-500 py-8">
+            Ei lukemattomia lankoja nykyisellä suodatuksella.
           </p>
         </Card>
       ) : (

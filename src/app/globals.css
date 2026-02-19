@@ -42,6 +42,7 @@
   --comp-font-weight-bold: 800;
   --comp-text-highlight-static: #b45309;
   --comp-text-highlight-shadow: rgba(250, 204, 21, 0.35);
+  --layout-content-max-width: 72rem;
 
   /* Legacy aliases kept for compatibility with existing component code. */
   --color-white: var(--ref-color-white);
@@ -220,11 +221,19 @@ a[href]:not([class]):hover {
 }
 
 .page-container {
-  max-width: 72rem;
+  max-width: var(--layout-content-max-width);
   margin-left: auto;
   margin-right: auto;
   padding-top: 2rem;
   padding-bottom: 3rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.app-header-inner {
+  max-width: var(--layout-content-max-width);
+  margin-left: auto;
+  margin-right: auto;
   padding-left: 1rem;
   padding-right: 1rem;
 }
