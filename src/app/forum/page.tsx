@@ -24,6 +24,7 @@ interface Topic {
   replies_count: number;
   last_post_id: number | null;
   last_post_created_at: string | null;
+  jump_post_id: number | null;
   unread_count: number;
   has_new: boolean;
 }
@@ -39,6 +40,7 @@ interface RawTopicRow {
   author_username: string;
   last_post_id: number | null;
   last_post_created_at: string | null;
+  jump_post_id: number | null;
   has_new: boolean;
   replies_count?: number | null;
   messages_count?: number | null;
@@ -605,7 +607,8 @@ function ForumContent() {
         <Card className="overflow-hidden">
           <div className="divide-y divide-gray-200">
           {visibleTopics.map((topic) => {
-            const topicHref = `/forum/topic/${topic.id}${topic.last_post_id ? `#post-${topic.last_post_id}` : ''}`;
+            const jumpPostId = topic.jump_post_id ?? topic.last_post_id;
+            const topicHref = `/forum/topic/${topic.id}${jumpPostId ? `#post-${jumpPostId}` : ''}`;
 
             return (
             <Link
