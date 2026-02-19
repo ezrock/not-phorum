@@ -129,7 +129,7 @@ export default function NewTopicPage() {
             selected={selectedTags}
             onChange={setSelectedTags}
             disabled={submitting}
-            allowCreate
+            allowCreate={false}
             maxSelected={1}
             featuredOnly={null}
             label="Tagi"
