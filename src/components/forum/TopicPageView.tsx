@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { PostItem, type Post } from '@/components/forum/PostItem';
 import { ReplyForm } from '@/components/forum/ReplyForm';
 import { AddTags, type TagOption } from '@/components/forum/AddTags';
-import type { Topic, TopicPrimaryTag } from '@/hooks/useTopicPageData';
+import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 
 interface TopicPageViewProps {
   topic: Topic | null;
