@@ -1,12 +1,11 @@
-import { type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/Input';
-import { PostItem, type Post } from '@/components/forum/PostItem';
-import { ReplyForm } from '@/components/forum/ReplyForm';
-import { AddTags, type TagOption } from '@/components/forum/AddTags';
+import type { Post } from '@/components/forum/PostItem';
+import type { TagOption } from '@/components/forum/AddTags';
+import { TopicEditMetaFields } from '@/components/forum/topic/TopicEditMetaFields';
+import { TopicPostsSection } from '@/components/forum/topic/TopicPostsSection';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 
 interface TopicPageViewProps {
@@ -132,98 +131,46 @@ export function TopicPageView({
           </Link>
         </div>
 
-        <div className="mt-6 border-t border-gray-200">
-          {canLoadOlder && (
-            <div className="pt-4 pb-2 flex justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={loadOlderPosts}
-                disabled={loadingMore}
-                className="min-w-44"
-              >
-                {loadingMore ? 'Ladataan...' : 'Näytä vanhempia viestejä'}
-              </Button>
-            </div>
-          )}
-
-          {posts.map((post) => (
-            <PostItem
-              key={post.id}
-              post={post}
-              isOriginalPost={post.id === firstPostId}
-              isHighlighted={highlightedPostId === post.id}
-              canEdit={!!currentUser && (currentUser.id === post.author?.id || (callerIsAdmin && post.id === firstPostId))}
-              canDelete={!!currentUser && currentUser.id === post.author?.id}
-              isEditing={editingPostId === post.id}
-              onStartEdit={() => startEdit(post)}
-              onCancelEdit={() => cancelEdit(post)}
-              onSave={handleEditSave}
+        <TopicPostsSection
+          posts={posts}
+          firstPostId={firstPostId}
+          highlightedPostId={highlightedPostId}
+          currentUser={currentUser}
+          callerIsAdmin={callerIsAdmin}
+          canEditTopicMeta={canEditTopicMeta}
+          editingPostId={editingPostId}
+          editSaving={editSaving}
+          deleteConfirmId={deleteConfirmId}
+          copiedPostId={copiedPostId}
+          postLikes={postLikes}
+          likeSaving={likeSaving}
+          canLoadOlder={canLoadOlder}
+          loadingMore={loadingMore}
+          canShowMore={canShowMore}
+          displayedPostCount={displayedPostCount}
+          totalPosts={totalPosts}
+          submitting={submitting}
+          loadOlderPosts={loadOlderPosts}
+          handleShowMore={handleShowMore}
+          handleReply={handleReply}
+          handleEditSave={handleEditSave}
+          handleDelete={handleDelete}
+          handleCopyPostLink={handleCopyPostLink}
+          setDeleteConfirmId={setDeleteConfirmId}
+          startEdit={startEdit}
+          cancelEdit={cancelEdit}
+          toggleLike={toggleLike}
+          buildEditTopContent={() => (
+            <TopicEditMetaFields
+              topicTitleDraft={topicTitleDraft}
+              onTopicTitleDraftChange={setTopicTitleDraft}
+              topicTagDraft={topicTagDraft}
+              onTopicTagDraftChange={setTopicTagDraft}
               editSaving={editSaving}
-              saveLabel={post.id === firstPostId ? 'Tallenna lanka' : 'Tallenna'}
-              editTopContent={
-                post.id === firstPostId && canEditTopicMeta ? (
-                  <div className="space-y-3">
-                    <div>
-                      <label htmlFor="topic-edit-title" className="block text-sm font-medium mb-1">
-                        Otsikko
-                      </label>
-                      <Input
-                        id="topic-edit-title"
-                        value={topicTitleDraft}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setTopicTitleDraft(e.target.value)}
-                        placeholder="Langan otsikko"
-                      />
-                    </div>
-                    <AddTags
-                      selected={topicTagDraft}
-                      onChange={setTopicTagDraft}
-                      disabled={editSaving}
-                      maxSelected={1}
-                      featuredOnly={null}
-                      label="Tagi"
-                      placeholder="Valitse tagi (tyhjä = off-topic)"
-                    />
-                    {topicEditError && <p className="text-sm text-red-600">{topicEditError}</p>}
-                  </div>
-                ) : null
-              }
-              isConfirmingDelete={deleteConfirmId === post.id}
-              onRequestDelete={() => setDeleteConfirmId(post.id)}
-              onConfirmDelete={() => handleDelete(post.id)}
-              onCancelDelete={() => setDeleteConfirmId(null)}
-              likeState={postLikes[post.id] || { count: 0, likedByMe: false }}
-              likeSaving={!!likeSaving[post.id]}
-              onToggleLike={() => toggleLike(post.id)}
-              isCopied={copiedPostId === post.id}
-              onCopyLink={() => handleCopyPostLink(post.id)}
+              topicEditError={topicEditError}
             />
-          ))}
-        </div>
-
-        {canShowMore && (
-          <div className="mt-6 flex flex-col items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleShowMore}
-              disabled={loadingMore}
-              className="min-w-44"
-            >
-              {loadingMore ? 'Ladataan...' : 'Näytä lisää viestejä'}
-            </Button>
-            <p className="text-xs text-gray-500">
-              Näytetään {displayedPostCount} / {totalPosts} viestiä
-            </p>
-          </div>
-        )}
-
-        {currentUser && (
-          <div className="mt-6 border-t border-gray-200 pt-6 md:ml-36">
-            <h2 className="mb-3 text-base font-medium text-gray-900">Vastaa lankaan</h2>
-            <ReplyForm onSubmit={handleReply} submitting={submitting} />
-          </div>
-        )}
+          )}
+        />
       </Card>
 
       {!currentUser && (
