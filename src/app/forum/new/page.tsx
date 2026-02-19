@@ -13,6 +13,7 @@ import { ArrowLeft, Send, ImagePlus, X } from 'lucide-react';
 import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
 import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 import { AddTags, type TagOption } from '@/components/forum/AddTags';
+import { getFirstValidationError, rules, validate } from '@/lib/validation';
 
 export default function NewTopicPage() {
   const { supabase } = useAuth();
@@ -30,16 +31,21 @@ export default function NewTopicPage() {
     e.preventDefault();
     setError('');
 
-    if (title.trim().length < 1) {
-      setError('Kirjoita otsikko');
-      return;
-    }
-    if (title.trim().length < 3) {
-      setError('Otsikon pitää olla vähintään 3 merkkiä');
-      return;
-    }
-    if (content.trim().length < 1) {
-      setError('Kirjoita viestin sisältö');
+    const validation = validate(
+      { title: title.trim(), content: content.trim() },
+      {
+        title: [
+          rules.required('Kirjoita otsikko'),
+          rules.minLength(3, 'Otsikon pitää olla vähintään 3 merkkiä'),
+        ],
+        content: [
+          rules.required('Kirjoita viestin sisältö'),
+        ],
+      }
+    );
+    const firstError = getFirstValidationError(validation);
+    if (firstError) {
+      setError(firstError);
       return;
     }
     setSubmitting(true);

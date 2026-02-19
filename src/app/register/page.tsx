@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import { getFirstValidationError, rules, validate } from '@/lib/validation';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -45,24 +46,30 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (username.length < 3) {
-      setError('Käyttäjätunnuksen tulee olla vähintään 3 merkkiä');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Salasanan tulee olla vähintään 8 merkkiä');
-      return;
-    }
-
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-      setError('Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Salasanat eivät täsmää');
+    const validation = validate(
+      { username, password, confirmPassword },
+      {
+        username: [
+          rules.minLength(3, 'Käyttäjätunnuksen tulee olla vähintään 3 merkkiä'),
+        ],
+        password: [
+          rules.minLength(8, 'Salasanan tulee olla vähintään 8 merkkiä'),
+          rules.custom(
+            (value: unknown) => {
+              const v = typeof value === 'string' ? value : '';
+              return /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v);
+            },
+            'Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita'
+          ),
+        ],
+        confirmPassword: [
+          rules.equalsField('password', 'Salasanat eivät täsmää'),
+        ],
+      }
+    );
+    const firstError = getFirstValidationError(validation);
+    if (firstError) {
+      setError(firstError);
       return;
     }
 

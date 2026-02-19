@@ -11,6 +11,7 @@ import { Save, Camera, X, Link as LinkIcon, User, Lock, Pencil } from 'lucide-re
 import { extractSecureUrl, profileThumb } from '@/lib/cloudinary';
 import { getCloudinaryUploadPresetOrThrow, getProfileUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
+import { getFirstValidationError, rules, validate } from '@/lib/validation';
 
 function isSafeHttpUrl(rawUrl: string): boolean {
   if (!rawUrl.trim()) return true;
@@ -81,12 +82,29 @@ export function EditProfileForm() {
     setError('');
     setSuccess('');
 
-    if (isAdmin && username.trim().length < 3) {
-      setError('Käyttäjätunnuksen tulee olla vähintään 3 merkkiä');
-      return false;
-    }
-    if (!isSafeHttpUrl(linkUrl)) {
-      setError('Linkin pitää alkaa http:// tai https://');
+    const validation = validate(
+      { username: username.trim(), linkUrl: linkUrl.trim() },
+      {
+        username: [
+          rules.custom(
+            (value: unknown) => {
+              const v = typeof value === 'string' ? value : '';
+              return !isAdmin || v.length >= 3;
+            },
+            'Käyttäjätunnuksen tulee olla vähintään 3 merkkiä'
+          ),
+        ],
+        linkUrl: [
+          rules.custom(
+            (value: unknown) => isSafeHttpUrl(typeof value === 'string' ? value : ''),
+            'Linkin pitää alkaa http:// tai https://'
+          ),
+        ],
+      }
+    );
+    const firstError = getFirstValidationError(validation);
+    if (firstError) {
+      setError(firstError);
       return false;
     }
     return true;
@@ -165,18 +183,27 @@ export function EditProfileForm() {
     setPasswordError('');
     setPasswordSuccess('');
 
-    if (newPassword.length < 8) {
-      setPasswordError('Salasanan tulee olla vähintään 8 merkkiä');
-      return;
-    }
-
-    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      setPasswordError('Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Salasanat eivät täsmää');
+    const validation = validate(
+      { newPassword, confirmPassword },
+      {
+        newPassword: [
+          rules.minLength(8, 'Salasanan tulee olla vähintään 8 merkkiä'),
+          rules.custom(
+            (value: unknown) => {
+              const v = typeof value === 'string' ? value : '';
+              return /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v);
+            },
+            'Salasanassa tulee olla isoja ja pieniä kirjaimia sekä numeroita'
+          ),
+        ],
+        confirmPassword: [
+          rules.equalsField('newPassword', 'Salasanat eivät täsmää'),
+        ],
+      }
+    );
+    const firstError = getFirstValidationError(validation);
+    if (firstError) {
+      setPasswordError(firstError);
       return;
     }
 
