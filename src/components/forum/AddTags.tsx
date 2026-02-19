@@ -17,7 +17,6 @@ interface AddTagsProps {
   selected: TagOption[];
   onChange: (next: TagOption[]) => void;
   disabled?: boolean;
-  allowCreate?: boolean;
   label?: string;
   placeholder?: string;
   featuredOnly?: boolean | null;
@@ -28,20 +27,10 @@ interface TagsApiResponse {
   tags?: TagOption[];
 }
 
-interface CreateTagResponse {
-  tag?: TagOption;
-  error?: string;
-}
-
-function normalizeInputTagName(value: string): string {
-  return value.trim().replace(/\s+/g, ' ');
-}
-
 export function AddTags({
   selected,
   onChange,
   disabled = false,
-  allowCreate = false,
   label = 'Tagit',
   placeholder = 'Lisää tageja...',
   featuredOnly = true,
@@ -50,8 +39,6 @@ export function AddTags({
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<TagOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,7 +59,6 @@ export function AddTags({
     const timeout = setTimeout(async () => {
       if (disabled) return;
       setLoading(true);
-      setError('');
       try {
         const params = new URLSearchParams();
         params.set('status', 'approved');
@@ -125,10 +111,6 @@ export function AddTags({
     onChange(selected.filter((tag) => tag.id !== tagId));
   };
 
-  const normalizedQuery = normalizeInputTagName(query);
-  const hasExactVisibleOption = options.some((tag) => tag.name.toLowerCase() === normalizedQuery.toLowerCase());
-  const hasExactSelectedOption = selected.some((tag) => tag.name.toLowerCase() === normalizedQuery.toLowerCase());
-  const canCreate = allowCreate && normalizedQuery.length > 0 && !hasExactVisibleOption && !hasExactSelectedOption;
   const hasGrouping = options.some((tag) => !!tag.group_label);
   const groupedOptions = options.reduce<Record<string, TagOption[]>>((acc, tag) => {
     const key = tag.group_label || 'Muut tagit';
@@ -136,29 +118,6 @@ export function AddTags({
     acc[key].push(tag);
     return acc;
   }, {});
-
-  const handleCreate = async () => {
-    if (!canCreate || disabled || creating) return;
-    setCreating(true);
-    setError('');
-    try {
-      const res = await fetch('/api/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: normalizedQuery }),
-      });
-      const data = (await res.json()) as CreateTagResponse;
-      if (!res.ok || !data.tag) {
-        setError(data.error || 'Tagin luonti epäonnistui');
-        return;
-      }
-      addTag(data.tag);
-    } catch {
-      setError('Tagin luonti epäonnistui');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   return (
     <div ref={rootRef}>
@@ -219,16 +178,6 @@ export function AddTags({
                       <span>#{tag.name}</span>
                     </button>
                   )))}
-            {!loading && canCreate && (
-              <button
-                type="button"
-                className="block w-full border-t border-gray-200 px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50"
-                onClick={handleCreate}
-                disabled={disabled || creating}
-              >
-                {creating ? 'Luodaan tagia...' : `Luo uusi tagi: #${normalizedQuery}`}
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -252,7 +201,6 @@ export function AddTags({
           </span>
         ))}
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

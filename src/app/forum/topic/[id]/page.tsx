@@ -646,7 +646,6 @@ function TopicContent() {
                         onChange={setTopicTagDraft}
                         disabled={topicTagSaving}
                         maxSelected={1}
-                        allowCreate={false}
                         featuredOnly={null}
                         label="Tagi"
                         placeholder="Valitse tagi (tyhjä = off-topic)"
