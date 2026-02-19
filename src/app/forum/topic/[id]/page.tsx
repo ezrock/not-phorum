@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -70,7 +71,12 @@ interface RawTopicTagRow {
     | null;
 }
 
-interface SetTopicPrimaryTagRow {
+interface EditTopicFirstPostRow {
+  topic_id: number;
+  topic_title: string;
+  post_id: number;
+  post_content: string;
+  post_image_url: string | null;
   tag_id: number;
   tag_name: string;
   tag_slug: string;
@@ -148,10 +154,9 @@ function TopicContent() {
   const [submitting, setSubmitting] = useState(false);
   const [windowStartIndex, setWindowStartIndex] = useState(0);
   const [windowEndIndex, setWindowEndIndex] = useState(0);
-  const [editingTopicTag, setEditingTopicTag] = useState(false);
+  const [topicTitleDraft, setTopicTitleDraft] = useState('');
   const [topicTagDraft, setTopicTagDraft] = useState<TagOption[]>([]);
-  const [topicTagSaving, setTopicTagSaving] = useState(false);
-  const [topicTagError, setTopicTagError] = useState('');
+  const [topicEditError, setTopicEditError] = useState('');
 
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editSaving, setEditSaving] = useState(false);
@@ -164,7 +169,7 @@ function TopicContent() {
 
   const { postLikes, likeSaving, toggleLike, addNewPostLike } = usePostLikes(posts);
   const callerIsAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
-  const canEditTopicTag = !!currentUser && !!topic && (topic.author_id === currentUser.id || callerIsAdmin);
+  const canEditTopicMeta = !!currentUser && !!topic && (topic.author_id === currentUser.id || callerIsAdmin);
 
   const loadMorePosts = useCallback(async (targetEndIndex?: number) => {
     const desiredEnd = Math.min(
@@ -418,39 +423,6 @@ function TopicContent() {
     };
   }, []);
 
-  const handleTopicTagSave = async () => {
-    if (!canEditTopicTag || topicTagSaving) return;
-    setTopicTagSaving(true);
-    setTopicTagError('');
-
-    const selectedTagId = topicTagDraft[0]?.id ?? null;
-    const { data, error } = await supabase.rpc('set_topic_primary_tag', {
-      input_topic_id: topicId,
-      input_tag_id: selectedTagId,
-    });
-
-    if (error) {
-      setTopicTagError(error.message || 'Tagin tallennus epäonnistui');
-      setTopicTagSaving(false);
-      return;
-    }
-
-    const row = Array.isArray(data) && data.length > 0 ? (data[0] as SetTopicPrimaryTagRow) : null;
-    if (row) {
-      setTopicPrimaryTag({
-        id: row.tag_id,
-        name: row.tag_name,
-        slug: row.tag_slug,
-        icon: row.tag_icon || '🏷️',
-      });
-    } else {
-      setRefreshTick((prev) => prev + 1);
-    }
-
-    setEditingTopicTag(false);
-    setTopicTagSaving(false);
-  };
-
   const handleReply = async (content: string, imageUrl: string) => {
     if (!content.trim() || !currentUser) return;
     setSubmitting(true);
@@ -491,6 +463,55 @@ function TopicContent() {
 
   const handleEditSave = async (postId: number, content: string, imageUrl: string) => {
     if (!content.trim() || !currentUser) return;
+
+    if (postId === firstPostId && canEditTopicMeta) {
+      const normalizedTitle = topicTitleDraft.trim();
+      if (normalizedTitle.length < 3) {
+        setTopicEditError('Otsikon pitää olla vähintään 3 merkkiä');
+        return;
+      }
+
+      setEditSaving(true);
+      setTopicEditError('');
+
+      const selectedTagId = topicTagDraft[0]?.id ?? null;
+      const { data, error } = await supabase.rpc('edit_topic_first_post_details', {
+        input_topic_id: topicId,
+        input_title: normalizedTitle,
+        input_content: content.trim(),
+        input_image_url: imageUrl || null,
+        input_tag_id: selectedTagId,
+      });
+
+      if (error) {
+        setTopicEditError(error.message || 'Langan päivitys epäonnistui');
+        setEditSaving(false);
+        return;
+      }
+
+      const row = Array.isArray(data) && data.length > 0 ? (data[0] as EditTopicFirstPostRow) : null;
+      if (row) {
+        setTopic((prev) => (prev ? { ...prev, title: row.topic_title } : prev));
+        setTopicPrimaryTag({
+          id: row.tag_id,
+          name: row.tag_name,
+          slug: row.tag_slug,
+          icon: row.tag_icon || '🏷️',
+        });
+        setPosts((prev) => prev.map((p) => (
+          p.id === row.post_id
+            ? { ...p, content: row.post_content, image_url: row.post_image_url, updated_at: new Date().toISOString() }
+            : p
+        )));
+      } else {
+        setRefreshTick((prev) => prev + 1);
+      }
+
+      setEditingPostId(null);
+      setEditSaving(false);
+      return;
+    }
+
     setEditSaving(true);
 
     const { data, error } = await supabase
@@ -615,77 +636,6 @@ function TopicContent() {
                 <span>{topic.views_unique ?? topic.views} katselua</span>
                 <span>{totalPosts} viestiä</span>
               </div>
-              {canEditTopicTag && (
-                <div className="mt-3 max-w-xl">
-                  {!editingTopicTag ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="admin-compact-btn"
-      onClick={() => {
-                        setTopicTagError('');
-                        if (topicPrimaryTag) {
-                          setTopicTagDraft([{
-                            id: topicPrimaryTag.id,
-                            name: topicPrimaryTag.name,
-                            slug: topicPrimaryTag.slug,
-                            icon: topicPrimaryTag.icon,
-                          }]);
-                        } else {
-                          setTopicTagDraft([]);
-                        }
-                        setEditingTopicTag(true);
-                      }}
-                    >
-                      Muokkaa tagia
-                    </Button>
-                  ) : (
-                    <div className="space-y-2">
-                      <AddTags
-                        selected={topicTagDraft}
-                        onChange={setTopicTagDraft}
-                        disabled={topicTagSaving}
-                        maxSelected={1}
-                        featuredOnly={null}
-                        label="Tagi"
-                        placeholder="Valitse tagi (tyhjä = off-topic)"
-                      />
-                      {topicTagError && <p className="text-sm text-red-600">{topicTagError}</p>}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          onClick={handleTopicTagSave}
-                          disabled={topicTagSaving}
-                        >
-                          {topicTagSaving ? 'Tallennetaan...' : 'Tallenna tagi'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingTopicTag(false);
-                            setTopicTagError('');
-                            if (topicPrimaryTag) {
-                              setTopicTagDraft([{
-                                id: topicPrimaryTag.id,
-                                name: topicPrimaryTag.name,
-                                slug: topicPrimaryTag.slug,
-                                icon: topicPrimaryTag.icon,
-                              }]);
-                            } else {
-                              setTopicTagDraft([]);
-                            }
-                          }}
-                          disabled={topicTagSaving}
-                        >
-                          Peruuta
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
           <Link href="/forum">
@@ -716,12 +666,54 @@ function TopicContent() {
               post={post}
               isOriginalPost={post.id === firstPostId}
               isHighlighted={highlightedPostId === post.id}
-              currentUserId={currentUser?.id ?? null}
+              canEdit={!!currentUser && (currentUser.id === post.author?.id || (callerIsAdmin && post.id === firstPostId))}
+              canDelete={!!currentUser && currentUser.id === post.author?.id}
               isEditing={editingPostId === post.id}
-              onStartEdit={() => setEditingPostId(post.id)}
-              onCancelEdit={() => setEditingPostId(null)}
+              onStartEdit={() => {
+                if (post.id === firstPostId && canEditTopicMeta) {
+                  setTopicTitleDraft(topic.title);
+                  setTopicTagDraft(topicPrimaryTag ? [{
+                    id: topicPrimaryTag.id,
+                    name: topicPrimaryTag.name,
+                    slug: topicPrimaryTag.slug,
+                    icon: topicPrimaryTag.icon,
+                  }] : []);
+                  setTopicEditError('');
+                }
+                setEditingPostId(post.id);
+              }}
+              onCancelEdit={() => {
+                setEditingPostId(null);
+                if (post.id === firstPostId) {
+                  setTopicEditError('');
+                }
+              }}
               onSave={handleEditSave}
               editSaving={editSaving}
+              saveLabel={post.id === firstPostId ? 'Tallenna lanka' : 'Tallenna'}
+              editTopContent={post.id === firstPostId && canEditTopicMeta ? (
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="topic-edit-title" className="block text-sm font-medium mb-1">Otsikko</label>
+                    <Input
+                      id="topic-edit-title"
+                      value={topicTitleDraft}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => setTopicTitleDraft(e.target.value)}
+                      placeholder="Langan otsikko"
+                    />
+                  </div>
+                  <AddTags
+                    selected={topicTagDraft}
+                    onChange={setTopicTagDraft}
+                    disabled={editSaving}
+                    maxSelected={1}
+                    featuredOnly={null}
+                    label="Tagi"
+                    placeholder="Valitse tagi (tyhjä = off-topic)"
+                  />
+                  {topicEditError && <p className="text-sm text-red-600">{topicEditError}</p>}
+                </div>
+              ) : null}
               isConfirmingDelete={deleteConfirmId === post.id}
               onRequestDelete={() => setDeleteConfirmId(post.id)}
               onConfirmDelete={() => handleDelete(post.id)}

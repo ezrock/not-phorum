@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { Edit2, ImagePlus, X, Trash2, Save, User, Heart, Link2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,13 +40,16 @@ interface PostItemProps {
   post: Post;
   isOriginalPost: boolean;
   isHighlighted: boolean;
-  currentUserId: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
   // Edit
   isEditing: boolean;
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSave: (postId: number, content: string, imageUrl: string) => Promise<void>;
   editSaving: boolean;
+  editTopContent?: ReactNode;
+  saveLabel?: string;
   // Delete
   isConfirmingDelete: boolean;
   onRequestDelete: () => void;
@@ -178,12 +181,15 @@ export function PostItem({
   post,
   isOriginalPost,
   isHighlighted,
-  currentUserId,
+  canEdit,
+  canDelete,
   isEditing,
   onStartEdit,
   onCancelEdit,
   onSave,
   editSaving,
+  editTopContent,
+  saveLabel = 'Tallenna',
   isConfirmingDelete,
   onRequestDelete,
   onConfirmDelete,
@@ -235,6 +241,7 @@ export function PostItem({
           </div>
         ) : isEditing ? (
           <div className="flex-1">
+            {editTopContent ? <div className="mb-3">{editTopContent}</div> : null}
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -278,7 +285,7 @@ export function PostItem({
                 disabled={editSaving || !editContent.trim()}
               >
                 <Save size={16} />
-                {editSaving ? 'Tallennetaan...' : 'Tallenna'}
+                {editSaving ? 'Tallennetaan...' : saveLabel}
               </Button>
             </div>
           </div>
@@ -384,7 +391,7 @@ export function PostItem({
                   <Heart size={16} className={likeState.likedByMe ? 'fill-current' : ''} />
                   <span>{likeState.count || 0}</span>
                 </button>
-                {currentUserId && currentUserId === post.author?.id && (
+                {canEdit && (
                   <>
                     <button
                       className="inline-flex h-10 w-10 items-center justify-center rounded text-gray-500 hover:text-yellow-600 hover:bg-gray-100 transition"
@@ -393,7 +400,7 @@ export function PostItem({
                     >
                       <Edit2 size={16} />
                     </button>
-                    {!isOriginalPost && (
+                    {!isOriginalPost && canDelete && (
                       isConfirmingDelete ? (
                         <div className="flex items-center gap-1">
                           <span className="text-xs text-red-600">Poistetaanko?</span>
