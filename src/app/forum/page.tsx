@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { formatFinnishDateTime, formatFinnishRelative } from '@/lib/formatDate';
 import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { useShowMorePaging } from '@/hooks/useShowMorePaging';
+import { eventOccursOnDate } from '@/lib/siteEvents';
 
 interface Topic {
   id: number;
@@ -71,6 +72,16 @@ interface RawRandomQuoteRow {
   author: { username: string } | { username: string }[] | null;
 }
 
+interface SiteEventRow {
+  id: number;
+  name: string;
+  event_date: string;
+  repeats_yearly: boolean;
+  date_range_enabled: boolean;
+  range_start_date: string | null;
+  range_end_date: string | null;
+}
+
 function extractAuthorUsername(author: RawRandomQuoteRow['author']): string | null {
   if (!author) return null;
   if (Array.isArray(author)) {
@@ -95,6 +106,16 @@ function deterministicOffset(seed: number, modulo: number): number {
   return mixed % modulo;
 }
 
+function formatEventDate(dateValue: string): string {
+  if (!dateValue) return '-';
+  const date = new Date(`${dateValue}T00:00:00`);
+  return new Intl.DateTimeFormat('fi-FI', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
 function ForumContent() {
   const { supabase, currentUser, profile } = useAuth();
   const router = useRouter();
@@ -103,6 +124,7 @@ function ForumContent() {
   const [threadCount, setThreadCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [quote, setQuote] = useState<RandomQuote | null>(null);
+  const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<SiteEventRow | null>(null);
   const [quoteLikeSaving, setQuoteLikeSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -367,6 +389,25 @@ function ForumContent() {
       }
     };
 
+    const fetchTodaySingleDayEvent = async () => {
+      const { data, error } = await supabase
+        .from('site_events')
+        .select('id, name, event_date, repeats_yearly, date_range_enabled, range_start_date, range_end_date');
+
+      if (error || !data) {
+        setTodaySingleDayEvent(null);
+        return;
+      }
+
+      const today = new Date();
+      const matches = (data as SiteEventRow[])
+        .filter((event) => event.date_range_enabled !== true)
+        .filter((event) => eventOccursOnDate(event, today))
+        .sort((a, b) => b.id - a.id);
+
+      setTodaySingleDayEvent(matches[0] ?? null);
+    };
+
     const fetchMessageCount = async () => {
       const { count } = await supabase
         .from('posts')
@@ -377,6 +418,7 @@ function ForumContent() {
     };
 
     fetchTopics();
+    fetchTodaySingleDayEvent();
     fetchRandomQuote();
     fetchMessageCount();
   }, [
@@ -475,7 +517,11 @@ function ForumContent() {
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            {quote && (
+            {todaySingleDayEvent ? (
+              <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed">
+                🎂 Tänään on {todaySingleDayEvent.name} ({formatEventDate(todaySingleDayEvent.event_date)} -)
+              </div>
+            ) : quote && (
               <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed flex items-center gap-2">
                 <button
                   type="button"
