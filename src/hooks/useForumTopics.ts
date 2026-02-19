@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useShowMorePaging } from '@/hooks/useShowMorePaging';
 import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { createClient } from '@/lib/supabase/client';
+import { err, ok } from '@/lib/result';
+import { reportError } from '@/lib/reportError';
 
 export interface Topic {
   id: number;
@@ -65,6 +67,7 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
   const [messageCount, setMessageCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [loadedPageCount, setLoadedPageCount] = useState(0);
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -151,17 +154,36 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
 
   const fetchTopicsPage = useCallback(
     async (page: number) => {
-      const params = new URLSearchParams();
-      params.set('page', String(page));
-      params.set('page_size', String(forumBatchSize));
-      if (requestedTagIds.length > 0) {
-        params.set('tag_ids', requestedTagIds.join(','));
-        params.set('match', requestedTagMatch);
-      }
+      try {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('page_size', String(forumBatchSize));
+        if (requestedTagIds.length > 0) {
+          params.set('tag_ids', requestedTagIds.join(','));
+          params.set('match', requestedTagMatch);
+        }
 
-      const res = await fetch(`/api/topics?${params.toString()}`, { cache: 'no-store' });
-      if (!res.ok) return null;
-      return (await res.json()) as TopicsApiResponse;
+        const res = await fetch(`/api/topics?${params.toString()}`, { cache: 'no-store' });
+        if (!res.ok) {
+          const fetchError = new Error(`Topics API failed (${res.status})`);
+          reportError({
+            scope: 'forum.fetchTopicsPage',
+            error: fetchError,
+            meta: { page, status: res.status, requestedTagIds, requestedTagMatch },
+          });
+          return err(fetchError);
+        }
+
+        const payload = (await res.json()) as TopicsApiResponse;
+        return ok(payload);
+      } catch (error) {
+        reportError({
+          scope: 'forum.fetchTopicsPage',
+          error,
+          meta: { page, requestedTagIds, requestedTagMatch },
+        });
+        return err(error instanceof Error ? error : new Error('Topics page fetch failed'));
+      }
     },
     [forumBatchSize, requestedTagIds, requestedTagMatch]
   );
@@ -181,8 +203,12 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
       let fetchedPages = loadedPageCount;
 
       for (let page = loadedPageCount + 1; page <= requiredPages; page += 1) {
-        const payload = await fetchTopicsPage(page);
-        if (!payload) break;
+        const payloadResult = await fetchTopicsPage(page);
+        if (!payloadResult.ok) {
+          setDataError('Aiheiden lataus epäonnistui. Päivitä sivu ja yritä uudelleen.');
+          break;
+        }
+        const payload = payloadResult.data;
         const pageRows = normalizeTopics(payload.topics || []);
         if (pageRows.length === 0) break;
         collected.push(...pageRows);
@@ -209,6 +235,7 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
     const fetchTopics = async () => {
       setLoading(true);
       setLoadingMore(false);
+      setDataError(null);
       const preloadPages = Math.max(1, Math.ceil(forumUnreadBoostMax / forumBatchSize));
       const collected: Topic[] = [];
       let totalCount = 0;
@@ -216,15 +243,16 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
       let resolvedMatch: 'any' | 'all' = requestedTagMatch;
 
       for (let page = 1; page <= preloadPages; page += 1) {
-        const payload = await fetchTopicsPage(page);
-        if (!payload) {
+        const payloadResult = await fetchTopicsPage(page);
+        if (!payloadResult.ok) {
           setTopics([]);
           setThreadCount(0);
           setLoadedPageCount(0);
           resetVisibleCount(forumInitialVisible);
-          setLoading(false);
-          return;
+          setDataError('Aiheiden lataus epäonnistui. Päivitä sivu ja yritä uudelleen.');
+          return err(payloadResult.error);
         }
+        const payload = payloadResult.data;
 
         const rows = payload.topics || [];
         const normalizedRows = normalizeTopics(rows);
@@ -258,20 +286,45 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
       setTopics(collected);
       setThreadCount(totalCount);
       resetVisibleCount(Math.min(initialVisible, Math.max(totalCount, 0)));
-      setLoading(false);
+      return ok(undefined);
     };
 
     const fetchMessageCount = async () => {
-      const { count } = await supabase
-        .from('posts')
-        .select('id', { count: 'exact', head: true })
-        .is('deleted_at', null);
+      try {
+        const { count, error } = await supabase
+          .from('posts')
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null);
 
-      setMessageCount(count || 0);
+        if (error) {
+          reportError({ scope: 'forum.fetchMessageCount', error });
+          return err(error);
+        }
+
+        setMessageCount(count || 0);
+        return ok(undefined);
+      } catch (error) {
+        reportError({ scope: 'forum.fetchMessageCount', error });
+        return err(error instanceof Error ? error : new Error('Message count fetch failed'));
+      }
     };
 
-    fetchTopics();
-    fetchMessageCount();
+    const fetchAll = async () => {
+      const [topicsResult, messageCountResult] = await Promise.all([
+        fetchTopics(),
+        fetchMessageCount(),
+      ]);
+
+      if (!topicsResult.ok) {
+        setDataError('Aiheiden lataus epäonnistui. Päivitä sivu ja yritä uudelleen.');
+      } else if (!messageCountResult.ok) {
+        setDataError('Viestimäärän lataus epäonnistui. Osa tiedoista voi puuttua.');
+      }
+
+      setLoading(false);
+    };
+
+    void fetchAll();
   }, [
     fetchTopicsPage,
     forumBatchSize,
@@ -308,6 +361,7 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
     topics,
     threadCount,
     messageCount,
+    dataError,
     loading,
     loadingMore,
     requestedTagIds,

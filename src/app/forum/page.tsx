@@ -4,12 +4,14 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatFinnishDateTime } from '@/lib/formatDate';
 import { eventOccursOnDate } from '@/lib/siteEvents';
 import { useForumTopics } from '@/hooks/useForumTopics';
 import { useForumQuote } from '@/hooks/useForumQuote';
 import { ForumThreadList } from '@/components/forum/ForumThreadList';
+import { reportError } from '@/lib/reportError';
 
 interface SiteEventRow {
   id: number;
@@ -48,38 +50,51 @@ function ForumContent() {
     handleShowMore,
     pushUnreadOnlyUrl,
     refreshTick,
+    dataError,
   } = useForumTopics({
     supabase,
     currentUser,
     realtimeUpdatesEnabled,
   });
 
-  const { quote, quoteLikeSaving, handleToggleQuoteLike } = useForumQuote({
+  const { quote, quoteLikeSaving, quoteError, handleToggleQuoteLike } = useForumQuote({
     supabase,
     currentUser,
     refreshKey: refreshTick,
   });
 
   const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<SiteEventRow | null>(null);
+  const [eventError, setEventError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTodaySingleDayEvent = async () => {
-      const { data, error } = await supabase
-        .from('site_events')
-        .select('id, name, event_date, repeats_yearly, date_range_enabled, range_start_date, range_end_date');
+      try {
+        setEventError(null);
+        const { data, error } = await supabase
+          .from('site_events')
+          .select('id, name, event_date, repeats_yearly, date_range_enabled, range_start_date, range_end_date');
 
-      if (error || !data) {
+        if (error || !data) {
+          if (error) {
+            reportError({ scope: 'forum.fetchTodaySingleDayEvent', error });
+          }
+          setTodaySingleDayEvent(null);
+          setEventError('Tapahtumatiedon lataus epäonnistui.');
+          return;
+        }
+
+        const today = new Date();
+        const matches = (data as SiteEventRow[])
+          .filter((event) => event.date_range_enabled !== true)
+          .filter((event) => eventOccursOnDate(event, today))
+          .sort((a, b) => b.id - a.id);
+
+        setTodaySingleDayEvent(matches[0] ?? null);
+      } catch (error) {
+        reportError({ scope: 'forum.fetchTodaySingleDayEvent', error });
         setTodaySingleDayEvent(null);
-        return;
+        setEventError('Tapahtumatiedon lataus epäonnistui.');
       }
-
-      const today = new Date();
-      const matches = (data as SiteEventRow[])
-        .filter((event) => event.date_range_enabled !== true)
-        .filter((event) => eventOccursOnDate(event, today))
-        .sort((a, b) => b.id - a.id);
-
-      setTodaySingleDayEvent(matches[0] ?? null);
     };
 
     void fetchTodaySingleDayEvent();
@@ -103,6 +118,12 @@ function ForumContent() {
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
       <div className="mb-6">
+        {(dataError || quoteError || eventError) && (
+          <Alert variant="error">
+            {dataError || quoteError || eventError}
+          </Alert>
+        )}
+
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {todaySingleDayEvent ? (
