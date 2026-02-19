@@ -15,6 +15,9 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          // Supabase SSR cookie bridge:
+          // write to request + response so refreshed session cookies are visible in this middleware pass
+          // and sent back to the browser. See docs/architecture.md.
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,

@@ -18,6 +18,7 @@ export function useSupabase() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Keep callback synchronous; do not await here. See docs/architecture.md.
       setUser(session?.user ?? null);
       setLoading(false);
     });

@@ -22,6 +22,8 @@ export default function Home() {
   // Logged-in users go straight to the forum
   useEffect(() => {
     if (!loading && currentUser) {
+      // Intentionally full navigation (not router.push) for auth-boundary consistency.
+      // See docs/architecture.md.
       window.location.href = '/forum';
     }
   }, [loading, currentUser]);
@@ -53,6 +55,8 @@ export default function Home() {
 
     try {
       await login(email, password);
+      // Intentionally full navigation (not router.push) for auth-boundary consistency.
+      // See docs/architecture.md.
       window.location.href = '/forum';
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Kirjautuminen epäonnistui';

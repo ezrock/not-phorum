@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Keep this callback synchronous (no await). See docs/architecture.md.
       setCurrentUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
@@ -127,7 +128,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await supabase.auth.signOut();
     setCurrentUser(null);
     setProfile(null);
-    // Full page navigation to ensure cookies are cleared for middleware
+    // Intentionally full reload so middleware/cookie guards re-evaluate from a clean request.
+    // See docs/architecture.md.
     window.location.href = '/';
   };
 
