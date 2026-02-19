@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-interface TagRow {
+interface RawTagRow {
   id: number;
   name: string;
   slug: string;
   icon?: string;
 }
 
-interface TagAliasSearchRow {
+interface RawTagAliasSearchRow {
   tag_id: number;
 }
 
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const directIds = (tagMatchRes.data || []).map((row) => Number((row as { id: number }).id));
-    const aliasIds = (aliasMatchRes.data || []).map((row) => Number((row as TagAliasSearchRow).tag_id));
+    const aliasIds = (aliasMatchRes.data || []).map((row) => Number((row as RawTagAliasSearchRow).tag_id));
     const searchedIds = Array.from(
       new Set([...directIds, ...aliasIds].filter((id) => Number.isFinite(id) && id > 0))
     );
@@ -78,6 +78,6 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    tags: (data || []) as TagRow[],
+    tags: (data || []) as RawTagRow[],
   });
 }

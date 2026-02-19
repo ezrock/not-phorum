@@ -31,7 +31,7 @@ interface EventItem {
   quote_preview?: string;
 }
 
-interface PostRow {
+interface RawPostRow {
   id: number;
   content: string;
   created_at: string;
@@ -45,7 +45,7 @@ interface PostRow {
   } | null;
 }
 
-interface QuoteLikeEventRow {
+interface RawQuoteLikeEventRow {
   id: number;
   created_at: string;
   post_id: number;
@@ -199,7 +199,7 @@ export default function LokiPage() {
       const seenIds = new Set<string>();
 
       if (imageRes.data) {
-        for (const post of imageRes.data as unknown as PostRow[]) {
+        for (const post of imageRes.data as unknown as RawPostRow[]) {
           const key = `image-${post.id}`;
           if (seenIds.has(key)) continue;
           seenIds.add(key);
@@ -218,7 +218,7 @@ export default function LokiPage() {
       }
 
       if (urlRes.data) {
-        for (const post of urlRes.data as unknown as PostRow[]) {
+        for (const post of urlRes.data as unknown as RawPostRow[]) {
           const urls = extractUrls(post.content);
           if (urls.length === 0) continue;
           const key = `url-${post.id}`;
@@ -240,7 +240,7 @@ export default function LokiPage() {
       }
 
       if (quoteLikeRes.data) {
-        for (const rawEvent of quoteLikeRes.data as unknown as QuoteLikeEventRow[]) {
+        for (const rawEvent of quoteLikeRes.data as unknown as RawQuoteLikeEventRow[]) {
           const topic = Array.isArray(rawEvent.topic) ? rawEvent.topic[0] : rawEvent.topic;
           const post = Array.isArray(rawEvent.post) ? rawEvent.post[0] : rawEvent.post;
           const actor = Array.isArray(rawEvent.actor) ? rawEvent.actor[0] : rawEvent.actor;

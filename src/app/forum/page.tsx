@@ -14,7 +14,7 @@ import { useForumQuote } from '@/hooks/useForumQuote';
 import { ForumThreadList } from '@/components/forum/ForumThreadList';
 import { reportError } from '@/lib/reportError';
 
-interface SiteEventRow {
+interface RawSiteEventRow {
   id: number;
   name: string;
   event_date: string;
@@ -65,7 +65,7 @@ function ForumContent() {
     refreshKey: refreshTick,
   });
 
-  const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<SiteEventRow | null>(null);
+  const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<RawSiteEventRow | null>(null);
   const [eventError, setEventError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ function ForumContent() {
         }
 
         const today = new Date();
-        const matches = (data as SiteEventRow[])
+        const matches = (data as RawSiteEventRow[])
           .filter((event) => event.date_range_enabled !== true)
           .filter((event) => eventOccursOnDate(event, today))
           .sort((a, b) => b.id - a.id);

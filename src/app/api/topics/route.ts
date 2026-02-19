@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UI_PAGING_SETTINGS } from '@/lib/uiSettings';
 import { createClient } from '@/lib/supabase/server';
 
-interface TopicRow {
+interface RawTopicRow {
   id: number;
   title: string;
   views: number;
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    topics: (topicsData || []) as TopicRow[],
+    topics: (topicsData || []) as RawTopicRow[],
     page,
     page_size: pageSize,
     total_count: typeof totalCountData === 'number' ? totalCountData : 0,

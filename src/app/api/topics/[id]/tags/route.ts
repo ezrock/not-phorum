@@ -11,7 +11,7 @@ interface TopicTagInsert {
   created_by?: string;
 }
 
-interface TopicTagRow {
+interface RawTopicTagRow {
   tag:
     | { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string }
     | { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string }[]
@@ -37,7 +37,7 @@ function parseTagIds(payload: unknown): number[] {
   );
 }
 
-function normalizeTagCell(cell: TopicTagRow['tag']): { id: number; name: string; slug: string; icon?: string } | null {
+function normalizeTagCell(cell: RawTopicTagRow['tag']): { id: number; name: string; slug: string; icon?: string } | null {
   if (!cell) return null;
   if (Array.isArray(cell)) return cell[0] || null;
   return cell;
@@ -61,7 +61,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const tags = ((data || []) as TopicTagRow[])
+  const tags = ((data || []) as RawTopicTagRow[])
     .map((row) => normalizeTagCell(row.tag))
     .filter((tag): tag is { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
     .filter((tag) => tag.redirect_to_tag_id == null && tag.status !== 'hidden')
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: tagsError.message }, { status: 400 });
   }
 
-  const tags = ((tagsData || []) as TopicTagRow[])
+  const tags = ((tagsData || []) as RawTopicTagRow[])
     .map((row) => normalizeTagCell(row.tag))
     .filter((tag): tag is { id: number; name: string; slug: string; icon?: string; redirect_to_tag_id?: number | null; status?: string } => !!tag)
     .filter((tag) => tag.redirect_to_tag_id == null && tag.status !== 'hidden')

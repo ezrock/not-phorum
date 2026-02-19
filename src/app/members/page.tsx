@@ -18,7 +18,7 @@ interface Profile {
   is_admin: boolean;
 }
 
-interface MemberTrophyRow extends TrophyJoinRow {
+interface RawMemberTrophyRow extends TrophyJoinRow {
   profile_id: string;
 }
 
@@ -48,7 +48,7 @@ export default function MembersPage() {
       if (!trophiesRes.error && trophiesRes.data) {
         const grouped: Record<string, Trophy[]> = {};
 
-        for (const row of trophiesRes.data as MemberTrophyRow[]) {
+        for (const row of trophiesRes.data as RawMemberTrophyRow[]) {
           const trophyList = parseTrophies([row]);
           if (trophyList.length === 0) continue;
 
