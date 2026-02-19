@@ -5,6 +5,18 @@
 -- - stricter admin tag creation conflicts
 -- - compact RPC for tag picker/search ordering
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_tags_canonical_approved_name_trgm
+  ON tags USING gin (name gin_trgm_ops)
+  WHERE redirect_to_tag_id IS NULL
+    AND status = 'approved';
+
+CREATE INDEX IF NOT EXISTS idx_tags_canonical_approved_slug_trgm
+  ON tags USING gin (slug gin_trgm_ops)
+  WHERE redirect_to_tag_id IS NULL
+    AND status = 'approved';
+
 DROP FUNCTION IF EXISTS add_tag_alias(bigint, text);
 CREATE OR REPLACE FUNCTION add_tag_alias(
   input_tag_id bigint,
@@ -34,7 +46,7 @@ DECLARE
   conflict_group_name text;
 BEGIN
   IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
+    RAISE EXCEPTION 'Et ole kirjautunut';
   END IF;
 
   SELECT COALESCE(p.is_admin, false)
@@ -43,21 +55,21 @@ BEGIN
   WHERE p.id = auth.uid();
 
   IF caller_is_admin = false THEN
-    RAISE EXCEPTION 'Forbidden';
+    RAISE EXCEPTION 'Ei oikeuksia';
   END IF;
 
   IF input_tag_id IS NULL THEN
-    RAISE EXCEPTION 'Tag id is required';
+    RAISE EXCEPTION 'Tagin id on pakollinen';
   END IF;
 
   normalized := normalize_tag_alias(input_alias);
   IF char_length(normalized) = 0 THEN
-    RAISE EXCEPTION 'Alias is required';
+    RAISE EXCEPTION 'Alias on pakollinen';
   END IF;
 
   SELECT resolve_canonical_tag_id(input_tag_id) INTO effective_tag_id;
   IF effective_tag_id IS NULL THEN
-    RAISE EXCEPTION 'Tag not found';
+    RAISE EXCEPTION 'Tagia ei löytynyt';
   END IF;
 
   SELECT t.id, t.name
@@ -73,7 +85,7 @@ BEGIN
   END IF;
 
   IF conflict_tag_id = effective_tag_id THEN
-    RAISE EXCEPTION 'Alias matches canonical tag name or slug';
+    RAISE EXCEPTION 'Alias on sama kuin tagin nimi tai slug';
   END IF;
 
   -- Alias cannot collide with tag-group names/slugs.
@@ -170,7 +182,7 @@ DECLARE
   conflict_name text;
 BEGIN
   IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
+    RAISE EXCEPTION 'Et ole kirjautunut';
   END IF;
 
   SELECT COALESCE(p.is_admin, false)
@@ -179,15 +191,15 @@ BEGIN
   WHERE p.id = auth.uid();
 
   IF caller_is_admin = false THEN
-    RAISE EXCEPTION 'Forbidden';
+    RAISE EXCEPTION 'Ei oikeuksia';
   END IF;
 
   IF char_length(normalized_name) = 0 THEN
-    RAISE EXCEPTION 'Tag name is required';
+    RAISE EXCEPTION 'Tagin nimi on pakollinen';
   END IF;
 
   IF char_length(normalized_name) > 64 THEN
-    RAISE EXCEPTION 'Tag name is too long';
+    RAISE EXCEPTION 'Tagin nimi on liian pitkä';
   END IF;
 
   IF char_length(normalized_slug) = 0 THEN
@@ -195,11 +207,11 @@ BEGIN
   END IF;
 
   IF char_length(normalized_slug) = 0 THEN
-    RAISE EXCEPTION 'Tag slug is required';
+    RAISE EXCEPTION 'Tagin slug on pakollinen';
   END IF;
 
   IF normalized_slug !~ '^[a-z0-9]+(?:-[a-z0-9]+)*$' THEN
-    RAISE EXCEPTION 'Tag slug format is invalid';
+    RAISE EXCEPTION 'Tagin slugin muoto on virheellinen';
   END IF;
 
   normalized_name_alias := normalize_tag_alias(normalized_name);
@@ -209,7 +221,7 @@ BEGIN
   WHERE lower(btrim(t.name)) = lower(normalized_name)
   LIMIT 1;
   IF conflict_name IS NOT NULL THEN
-    RAISE EXCEPTION 'Tag name already exists: %', conflict_name;
+    RAISE EXCEPTION 'Tagin nimi on jo käytössä: %', conflict_name;
   END IF;
 
   SELECT t.name INTO conflict_name
@@ -217,7 +229,7 @@ BEGIN
   WHERE t.slug = normalized_slug
   LIMIT 1;
   IF conflict_name IS NOT NULL THEN
-    RAISE EXCEPTION 'Tag slug already exists: %', normalized_slug;
+    RAISE EXCEPTION 'Tagin slug on jo käytössä: %', normalized_slug;
   END IF;
 
   SELECT g.name INTO conflict_name
@@ -226,7 +238,7 @@ BEGIN
      OR g.slug = normalized_slug
   LIMIT 1;
   IF conflict_name IS NOT NULL THEN
-    RAISE EXCEPTION 'Tag name or slug already used by group %', conflict_name;
+    RAISE EXCEPTION 'Tagin nimi tai slug on jo käytössä tagiryhmällä %', conflict_name;
   END IF;
 
   SELECT t.name INTO conflict_name
@@ -235,7 +247,7 @@ BEGIN
   WHERE ta.normalized_alias IN (normalized_name_alias, normalized_slug)
   LIMIT 1;
   IF conflict_name IS NOT NULL THEN
-    RAISE EXCEPTION 'Tag name or slug already used by alias for tag %', conflict_name;
+    RAISE EXCEPTION 'Tagin nimi tai slug on jo käytössä tagialiaksena tagille %', conflict_name;
   END IF;
 
   SELECT g.name INTO conflict_name
@@ -244,7 +256,7 @@ BEGIN
   WHERE a.normalized_alias IN (normalized_name_alias, normalized_slug)
   LIMIT 1;
   IF conflict_name IS NOT NULL THEN
-    RAISE EXCEPTION 'Tag name or slug already used by alias for group %', conflict_name;
+    RAISE EXCEPTION 'Tagin nimi tai slug on jo käytössä ryhmäaliaksena ryhmälle %', conflict_name;
   END IF;
 
   BEGIN
@@ -253,7 +265,7 @@ BEGIN
     RETURNING * INTO created_row;
   EXCEPTION
     WHEN unique_violation THEN
-      RAISE EXCEPTION 'Tag creation failed due to a uniqueness conflict';
+      RAISE EXCEPTION 'Tagin luonti epäonnistui: nimi tai slug on jo käytössä';
   END;
 
   RETURN created_row;
@@ -276,7 +288,7 @@ DECLARE
   second_order integer;
 BEGIN
   IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
+    RAISE EXCEPTION 'Et ole kirjautunut';
   END IF;
 
   SELECT COALESCE(p.is_admin, false)
@@ -285,11 +297,11 @@ BEGIN
   WHERE p.id = auth.uid();
 
   IF caller_is_admin = false THEN
-    RAISE EXCEPTION 'Forbidden';
+    RAISE EXCEPTION 'Ei oikeuksia';
   END IF;
 
   IF input_first_group_id IS NULL OR input_second_group_id IS NULL THEN
-    RAISE EXCEPTION 'Both group ids are required';
+    RAISE EXCEPTION 'Molemmat ryhmä-id:t ovat pakollisia';
   END IF;
 
   IF input_first_group_id = input_second_group_id THEN
@@ -303,7 +315,7 @@ BEGIN
     AND g.group_kind IN ('arrangement', 'both');
 
   IF first_order IS NULL THEN
-    RAISE EXCEPTION 'First arrangement group not found';
+    RAISE EXCEPTION 'Ensimmäistä järjestelyryhmää ei löytynyt';
   END IF;
 
   SELECT g.arrangement_order
@@ -313,7 +325,7 @@ BEGIN
     AND g.group_kind IN ('arrangement', 'both');
 
   IF second_order IS NULL THEN
-    RAISE EXCEPTION 'Second arrangement group not found';
+    RAISE EXCEPTION 'Toista järjestelyryhmää ei löytynyt';
   END IF;
 
   UPDATE tag_groups
@@ -366,7 +378,7 @@ DECLARE
   normalized_member_ids bigint[] := resolve_canonical_tag_ids(input_member_tag_ids);
 BEGIN
   IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
+    RAISE EXCEPTION 'Et ole kirjautunut';
   END IF;
 
   SELECT COALESCE(p.is_admin, false)
@@ -375,15 +387,15 @@ BEGIN
   WHERE p.id = auth.uid();
 
   IF caller_is_admin = false THEN
-    RAISE EXCEPTION 'Forbidden';
+    RAISE EXCEPTION 'Ei oikeuksia';
   END IF;
 
   normalized_name := btrim(COALESCE(input_name, ''));
   IF char_length(normalized_name) = 0 THEN
-    RAISE EXCEPTION 'Group name is required';
+    RAISE EXCEPTION 'Ryhmän nimi on pakollinen';
   END IF;
   IF char_length(normalized_name) > 64 THEN
-    RAISE EXCEPTION 'Group name is too long';
+    RAISE EXCEPTION 'Ryhmän nimi on liian pitkä';
   END IF;
 
   normalized_slug := lower(btrim(COALESCE(input_slug, '')));
@@ -391,14 +403,14 @@ BEGIN
     normalized_slug := slugify_tag_text(normalized_name);
   END IF;
   IF char_length(normalized_slug) = 0 THEN
-    RAISE EXCEPTION 'Group slug is required';
+    RAISE EXCEPTION 'Ryhmän slug on pakollinen';
   END IF;
   IF normalized_slug !~ '^[a-z0-9]+(?:-[a-z0-9]+)*$' THEN
-    RAISE EXCEPTION 'Group slug format is invalid';
+    RAISE EXCEPTION 'Ryhmän slugin muoto on virheellinen';
   END IF;
 
   IF normalized_group_kind NOT IN ('search', 'arrangement', 'both') THEN
-    RAISE EXCEPTION 'Group kind is invalid';
+    RAISE EXCEPTION 'Ryhmän käyttötapa on virheellinen';
   END IF;
 
   IF normalized_group_kind IN ('arrangement', 'both') THEN
@@ -422,7 +434,7 @@ BEGIN
       AND t.status <> 'hidden'
       AND lower(btrim(t.name)) = lower(normalized_name)
   ) THEN
-    RAISE EXCEPTION 'Group name cannot be the same as an existing tag name';
+    RAISE EXCEPTION 'Ryhmän nimi ei voi olla sama kuin olemassa olevan tagin nimi';
   END IF;
 
   IF EXISTS (
@@ -431,7 +443,7 @@ BEGIN
     WHERE lower(btrim(g.name)) = lower(normalized_name)
       AND (input_group_id IS NULL OR g.id <> input_group_id)
   ) THEN
-    RAISE EXCEPTION 'Group name already exists';
+    RAISE EXCEPTION 'Ryhmän nimi on jo käytössä';
   END IF;
 
   IF EXISTS (
@@ -440,7 +452,7 @@ BEGIN
     WHERE g.slug = normalized_slug
       AND (input_group_id IS NULL OR g.id <> input_group_id)
   ) THEN
-    RAISE EXCEPTION 'Group slug already exists';
+    RAISE EXCEPTION 'Ryhmän slug on jo käytössä';
   END IF;
 
   IF input_group_id IS NULL THEN
@@ -470,80 +482,56 @@ BEGIN
     RETURNING id INTO effective_group_id;
 
     IF effective_group_id IS NULL THEN
-      RAISE EXCEPTION 'Tag group not found';
+      RAISE EXCEPTION 'Tagiryhmää ei löytynyt';
     END IF;
   END IF;
 
-  WITH desired AS (
-    SELECT
-      u.member_tag_id,
-      MIN(u.ordinality) AS ordinality
-    FROM unnest(COALESCE(normalized_member_ids, ARRAY[]::bigint[])) WITH ORDINALITY AS u(member_tag_id, ordinality)
-    WHERE u.member_tag_id IS NOT NULL
-    GROUP BY u.member_tag_id
-  ), desired_valid AS (
-    SELECT
-      d.member_tag_id AS tag_id,
-      d.ordinality - 1 AS sort_order
-    FROM desired d
-    JOIN tags t ON t.id = d.member_tag_id
-    WHERE t.redirect_to_tag_id IS NULL
-      AND t.status <> 'hidden'
-  )
-  DELETE FROM tag_group_members gm
-  WHERE gm.group_id = effective_group_id
-    AND NOT EXISTS (
-      SELECT 1 FROM desired_valid dv WHERE dv.tag_id = gm.tag_id
-    );
-
-  WITH desired AS (
-    SELECT
-      u.member_tag_id,
-      MIN(u.ordinality) AS ordinality
-    FROM unnest(COALESCE(normalized_member_ids, ARRAY[]::bigint[])) WITH ORDINALITY AS u(member_tag_id, ordinality)
-    WHERE u.member_tag_id IS NOT NULL
-    GROUP BY u.member_tag_id
-  ), desired_valid AS (
-    SELECT
-      d.member_tag_id AS tag_id,
-      d.ordinality - 1 AS sort_order
-    FROM desired d
-    JOIN tags t ON t.id = d.member_tag_id
-    WHERE t.redirect_to_tag_id IS NULL
-      AND t.status <> 'hidden'
-  )
-  UPDATE tag_group_members gm
-  SET sort_order = dv.sort_order
-  FROM desired_valid dv
-  WHERE gm.group_id = effective_group_id
-    AND gm.tag_id = dv.tag_id
-    AND gm.sort_order <> dv.sort_order;
-
-  WITH desired AS (
-    SELECT
-      u.member_tag_id,
-      MIN(u.ordinality) AS ordinality
-    FROM unnest(COALESCE(normalized_member_ids, ARRAY[]::bigint[])) WITH ORDINALITY AS u(member_tag_id, ordinality)
-    WHERE u.member_tag_id IS NOT NULL
-    GROUP BY u.member_tag_id
-  ), desired_valid AS (
-    SELECT
-      d.member_tag_id AS tag_id,
-      d.ordinality - 1 AS sort_order
-    FROM desired d
-    JOIN tags t ON t.id = d.member_tag_id
-    WHERE t.redirect_to_tag_id IS NULL
-      AND t.status <> 'hidden'
-  )
-  INSERT INTO tag_group_members (group_id, tag_id, sort_order, created_by)
-  SELECT effective_group_id, dv.tag_id, dv.sort_order, auth.uid()
-  FROM desired_valid dv
-  WHERE NOT EXISTS (
+  PERFORM 1
+  FROM (
+    WITH desired AS (
+      SELECT
+        u.member_tag_id,
+        MIN(u.ordinality) AS ordinality
+      FROM unnest(COALESCE(normalized_member_ids, ARRAY[]::bigint[])) WITH ORDINALITY AS u(member_tag_id, ordinality)
+      WHERE u.member_tag_id IS NOT NULL
+      GROUP BY u.member_tag_id
+    ), desired_valid AS (
+      SELECT
+        d.member_tag_id AS tag_id,
+        d.ordinality - 1 AS sort_order
+      FROM desired d
+      JOIN tags t ON t.id = d.member_tag_id
+      WHERE t.redirect_to_tag_id IS NULL
+        AND t.status <> 'hidden'
+    ), deleted AS (
+      DELETE FROM tag_group_members gm
+      WHERE gm.group_id = effective_group_id
+        AND NOT EXISTS (
+          SELECT 1 FROM desired_valid dv WHERE dv.tag_id = gm.tag_id
+        )
+      RETURNING 1
+    ), updated AS (
+      UPDATE tag_group_members gm
+      SET sort_order = dv.sort_order
+      FROM desired_valid dv
+      WHERE gm.group_id = effective_group_id
+        AND gm.tag_id = dv.tag_id
+        AND gm.sort_order <> dv.sort_order
+      RETURNING 1
+    ), inserted AS (
+      INSERT INTO tag_group_members (group_id, tag_id, sort_order, created_by)
+      SELECT effective_group_id, dv.tag_id, dv.sort_order, auth.uid()
+      FROM desired_valid dv
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM tag_group_members gm
+        WHERE gm.group_id = effective_group_id
+          AND gm.tag_id = dv.tag_id
+      )
+      RETURNING 1
+    )
     SELECT 1
-    FROM tag_group_members gm
-    WHERE gm.group_id = effective_group_id
-      AND gm.tag_id = dv.tag_id
-  );
+  ) AS write_ops;
 
   RETURN QUERY
   SELECT

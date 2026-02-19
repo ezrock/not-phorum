@@ -104,3 +104,18 @@ Note:
 - Older migrations include category-era logic and earlier function versions.
 - Current runtime behavior is determined by latest migrations (`042+` and onward).
 - Category fields in some result payloads are compatibility placeholders.
+
+## 8) Smoke Tests
+
+Run these in Supabase SQL Editor after applying migrations:
+
+- `supabase/tests/063_tag_domain_regression_smoke.sql`
+
+Coverage:
+- tag/group alias conflict rules
+- atomic arrangement order swap
+- tag group member order persistence
+- tag picker ordering via group alias search
+
+Safety:
+- script wraps writes in a transaction and ends with `ROLLBACK`
