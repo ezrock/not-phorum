@@ -214,17 +214,17 @@ function SearchContent() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {groupHits.length > 0 && (
+          {(groupHits.length > 0 || tagHits.length > 0) && (
             <Card>
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-800">Tagiryhmät</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Tagit</h3>
                 <div className="flex flex-wrap gap-2">
                   {groupHits.map((group) => {
                     const tagParams = group.member_tag_ids.join(',');
                     if (!tagParams) return null;
                     return (
                       <Link
-                        key={group.group_id}
+                        key={`group-${group.group_id}`}
                         href={`/forum?tags=${tagParams}`}
                         className="inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-900 hover:bg-blue-100"
                       >
@@ -234,19 +234,9 @@ function SearchContent() {
                       </Link>
                     );
                   })}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {tagHits.length > 0 && (
-            <Card>
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-800">Tagiosumat</h3>
-                <div className="flex flex-wrap gap-2">
                   {tagHits.map((tag) => (
                     <Link
-                      key={tag.id}
+                      key={`tag-${tag.id}`}
                       href={`/forum?tags=${tag.id}`}
                       className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1 text-sm font-medium text-yellow-900 hover:bg-yellow-100"
                     >
@@ -267,6 +257,7 @@ function SearchContent() {
             </Card>
           ) : (
             <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-gray-800 px-1">Osumat</h3>
               {deduplicatedResults.map((result, index) => (
                 <Link key={`${result.topic_id}-${result.result_type}-${index}`} href={`/forum/topic/${result.topic_id}`}>
                   <Card className="hover:border-yellow-400 transition cursor-pointer">
