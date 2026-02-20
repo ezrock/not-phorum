@@ -1,11 +1,11 @@
 import { type HTMLAttributes, type ReactNode } from 'react';
 import { TagIcon } from '@/components/ui/TagIcon';
 
-export type TagChipTone = 'yellow' | 'blue' | 'gray';
+export type TagChipVariant = 'topic' | 'group';
 export type TagChipSize = 'xs' | 'sm' | 'md';
 
 interface TagChipClassOptions {
-  tone?: TagChipTone;
+  variant?: TagChipVariant;
   size?: TagChipSize;
   clickable?: boolean;
   className?: string;
@@ -16,15 +16,14 @@ function joinClasses(...parts: Array<string | undefined | false>) {
 }
 
 export function getTagChipClasses({
-  tone = 'yellow',
+  variant = 'topic',
   size = 'sm',
   clickable = false,
   className,
 }: TagChipClassOptions) {
-  const toneClasses: Record<TagChipTone, string> = {
-    yellow: 'border-yellow-300 bg-yellow-50 text-yellow-900',
-    blue: 'border-blue-300 bg-blue-50 text-blue-900',
-    gray: 'border-gray-300 bg-gray-50 text-gray-800',
+  const variantClasses: Record<TagChipVariant, string> = {
+    topic: 'border-gray-300 bg-[var(--ref-color-neutral-100)] text-gray-800',
+    group: 'border-blue-300 bg-blue-50 text-blue-900',
   };
 
   const sizeClasses: Record<TagChipSize, string> = {
@@ -35,7 +34,7 @@ export function getTagChipClasses({
 
   return joinClasses(
     'inline-flex items-center rounded-full border',
-    toneClasses[tone],
+    variantClasses[variant],
     sizeClasses[size],
     clickable && 'transition hover:opacity-90',
     className
@@ -44,14 +43,21 @@ export function getTagChipClasses({
 
 interface TagChipProps extends HTMLAttributes<HTMLSpanElement> {
   icon?: ReactNode;
-  tone?: TagChipTone;
+  variant?: TagChipVariant;
   size?: TagChipSize;
   children: ReactNode;
 }
 
-export function TagChip({ icon, tone = 'yellow', size = 'sm', className, children, ...props }: TagChipProps) {
+export function TagChip({
+  icon,
+  variant = 'topic',
+  size = 'sm',
+  className,
+  children,
+  ...props
+}: TagChipProps) {
   return (
-    <span className={getTagChipClasses({ tone, size, className })} {...props}>
+    <span className={getTagChipClasses({ variant, size, className })} {...props}>
       {typeof icon === 'string' ? (
         <TagIcon icon={icon} alt="Tag icon" className="inline-block h-4 w-4 object-contain" />
       ) : icon ? (

@@ -325,7 +325,7 @@ function SearchContent() {
                     <TagChipLink
                       key={`group-${group.group_id}`}
                       href={`/?tags=${tagParams}`}
-                      tone="blue"
+                      variant="group"
                       size="md"
                       icon="📚"
                     >

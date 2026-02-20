@@ -138,7 +138,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
             <div className="space-y-2">
               {topTags.map((tag) => (
                 <div key={tag.tag_id} className="flex items-center gap-2 text-sm">
-                  <TagChip icon="🏷️" className="flex-1 justify-start border-yellow-200 bg-yellow-50/70 text-yellow-900">
+                  <TagChip icon="🏷️" className="flex-1 justify-start">
                     {tag.tag_name}
                   </TagChip>
                   <span className="text-gray-500">{tag.usage_count} aihetta</span>

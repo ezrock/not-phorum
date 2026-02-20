@@ -1,11 +1,11 @@
 import { type AnchorHTMLAttributes, type ReactNode } from 'react';
 import Link, { type LinkProps } from 'next/link';
-import { getTagChipClasses, type TagChipSize, type TagChipTone } from '@/components/ui/TagChip';
+import { getTagChipClasses, type TagChipSize, type TagChipVariant } from '@/components/ui/TagChip';
 import { TagIcon } from '@/components/ui/TagIcon';
 
 interface TagChipLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>, LinkProps {
   icon?: ReactNode;
-  tone?: TagChipTone;
+  variant?: TagChipVariant;
   size?: TagChipSize;
   children: ReactNode;
 }
@@ -13,7 +13,7 @@ interface TagChipLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>,
 export function TagChipLink({
   href,
   icon,
-  tone = 'yellow',
+  variant = 'topic',
   size = 'sm',
   className,
   children,
@@ -22,7 +22,7 @@ export function TagChipLink({
   return (
     <Link
       href={href}
-      className={getTagChipClasses({ tone, size, clickable: true, className: `hover:bg-opacity-80 ${className || ''}` })}
+      className={getTagChipClasses({ variant, size, clickable: true, className: `hover:bg-opacity-80 ${className || ''}` })}
       {...props}
     >
       {typeof icon === 'string' ? (

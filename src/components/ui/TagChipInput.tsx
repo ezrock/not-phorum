@@ -1,10 +1,10 @@
 import { type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { X } from 'lucide-react';
-import { TagChip, type TagChipSize, type TagChipTone } from '@/components/ui/TagChip';
+import { TagChip, type TagChipSize, type TagChipVariant } from '@/components/ui/TagChip';
 
 interface TagChipInputProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   icon?: ReactNode;
-  tone?: TagChipTone;
+  variant?: TagChipVariant;
   size?: TagChipSize;
   label: ReactNode;
   removeLabel: string;
@@ -13,7 +13,7 @@ interface TagChipInputProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>
 
 export function TagChipInput({
   icon,
-  tone = 'yellow',
+  variant = 'topic',
   size = 'md',
   label,
   removeLabel,
@@ -22,7 +22,7 @@ export function TagChipInput({
   ...buttonProps
 }: TagChipInputProps) {
   return (
-    <TagChip icon={icon} tone={tone} size={size}>
+    <TagChip icon={icon} variant={variant} size={size}>
       <span>{label}</span>
       <button
         type="button"
