@@ -18,6 +18,7 @@ export interface CanonicalTagOption {
   id: number;
   name: string;
   slug: string;
+  legacy_icon_path: string | null;
   usage_count: number;
   alias_count: number;
   group_membership_count: number;

@@ -42,6 +42,7 @@ function normalizeCanonicalTags(rows: Record<string, unknown>[]): CanonicalTagOp
     id: Number(row.id),
     name: String(row.name ?? ''),
     slug: String(row.slug ?? ''),
+    legacy_icon_path: row.legacy_icon_path ? String(row.legacy_icon_path) : null,
     usage_count: Number(row.usage_count ?? 0),
     alias_count: Number(row.alias_count ?? 0),
     group_membership_count: Number(row.group_membership_count ?? 0),

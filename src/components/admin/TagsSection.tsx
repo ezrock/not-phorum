@@ -90,6 +90,18 @@ export function TagsSection({
 }: TagsSectionProps) {
   const [pendingDeleteTagId, setPendingDeleteTagId] = useState<number | null>(null);
 
+  const renderLegacyIcon = (path: string | null, alt: string) => (
+    path ? (
+      <img
+        src={path}
+        alt={alt}
+        className="h-4 w-4 flex-shrink-0 object-contain"
+      />
+    ) : (
+      <span className="inline-flex h-4 w-4 items-center justify-center text-xs leading-none">🏷️</span>
+    )
+  );
+
   const toggleGroupMembership = (groupId: number) => {
     if (editingTagGroupIds.includes(groupId)) {
       onEditingTagGroupIdsChange(editingTagGroupIds.filter((id) => id !== groupId));
@@ -229,7 +241,10 @@ export function TagsSection({
                 <div key={tag.id} className="rounded border border-gray-200 bg-white px-3 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
-                      <p className="font-medium truncate">{tag.name}</p>
+                      <p className="font-medium truncate inline-flex items-center gap-1.5">
+                        {renderLegacyIcon(tag.legacy_icon_path, `${tag.name} legacy icon`)}
+                        <span>{tag.name}</span>
+                      </p>
                       <p className="text-xs text-gray-500 truncate">
                         Slug: {tag.slug} • Käytössä: {tag.usage_count} ketjussa • aliakset:{' '}
                         {aliases.length > 0 ? aliases.map((a) => a.alias).join(', ') : 'ei'} • Ryhmissä:{' '}
@@ -249,9 +264,17 @@ export function TagsSection({
 
                   {isEditing && (
                     <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+                      <div className="inline-flex items-center gap-1.5 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
+                        {renderLegacyIcon(tag.legacy_icon_path, `${tag.name} legacy icon`)}
+                        <span>Legacy-kuvake</span>
+                      </div>
+
                       <div className="flex flex-wrap items-end gap-2">
                         <label className="block w-full max-w-xs text-xs text-gray-600">
-                          Tagin nimi
+                          <span className="inline-flex items-center gap-1.5">
+                            {renderLegacyIcon(tag.legacy_icon_path, `${tag.name} legacy icon`)}
+                            <span>Tagin nimi</span>
+                          </span>
                           <input
                             value={editingTagName}
                             onChange={(e) => onEditingTagNameChange(e.target.value)}
