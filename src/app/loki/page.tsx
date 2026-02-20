@@ -292,7 +292,7 @@ export default function LokiPage() {
     return (
       <div className="page-container">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          <p className="state-empty-text">Ladataan...</p>
         </Card>
       </div>
     );
@@ -340,7 +340,7 @@ export default function LokiPage() {
 
       {filtered.length === 0 ? (
         <Card>
-          <p className="text-center text-gray-500 py-8">
+          <p className="state-empty-text">
             Ei tapahtumia.
           </p>
         </Card>

@@ -284,6 +284,167 @@ a[href]:not([class]):hover {
   background: var(--surface-content);
 }
 
+/* Shared layout and state primitives */
+.layout-page-shell {
+  max-width: 72rem;
+  margin: 2rem auto 0;
+  padding: 0 1rem;
+}
+
+.layout-page-shell-thread {
+  max-width: 72rem;
+  margin: 2rem auto 0;
+  padding: 0 1rem;
+  margin-bottom: 3rem;
+}
+
+.layout-center-screen-offset-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  min-height: calc(100vh - 4rem);
+}
+
+.state-empty-text {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem 0;
+}
+
+.state-card-centered {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Shared field primitives */
+.field-input-base {
+  width: 100%;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #ffffff;
+}
+
+.field-input-base:focus {
+  outline: none;
+  border-color: #facc15;
+}
+
+.field-textarea {
+  width: 100%;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #ffffff;
+}
+
+.field-textarea:focus {
+  outline: none;
+  border-color: #facc15;
+}
+
+.field-textarea--reply {
+  margin-bottom: 1rem;
+  min-height: 150px;
+}
+
+.field-textarea--edit {
+  margin-bottom: 0.75rem;
+  min-height: 120px;
+}
+
+.field-textarea--new-topic {
+  min-height: 200px;
+}
+
+.field-textarea--profile-signature {
+  min-height: 80px;
+}
+
+/* Shared interactive surfaces */
+.menu-popover-panel {
+  position: absolute;
+  z-index: 20;
+  margin-top: 0.25rem;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.list-surface {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.list-surface > * + * {
+  border-top: 1px solid #e5e7eb;
+}
+
+.row-card-subtle {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background: #f9fafb;
+  padding: 0.5rem 0.625rem;
+  transition: background-color 120ms ease;
+}
+
+.row-card-subtle:hover {
+  background: #fefce8;
+}
+
+/* Shared icon primitives */
+.tag-icon-sm {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+  line-height: 1;
+}
+
+.tag-icon-lg {
+  display: inline-block;
+  width: 2.25rem;
+  height: 2.25rem;
+  object-fit: contain;
+  line-height: 1;
+}
+
+/* Shared ratio helper for media embeds */
+.ratio-16-9 {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+}
+
+/* Shared token chip primitive (for token inputs) */
+.token-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  background: var(--ref-color-neutral-100);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  color: #1f2937;
+}
+
+.token-chip-remove {
+  border-radius: 0.25rem;
+  padding: 0.125rem;
+}
+
+.token-chip-remove:hover {
+  background: rgb(0 0 0 / 0.08);
+}
+
 .app-card {
   background: var(--surface-card);
 }

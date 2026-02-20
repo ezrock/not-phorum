@@ -42,7 +42,7 @@ export function PostEditForm({
         onKeyDown={(e) => {
           handleMarkdownTextareaShortcut(e, editContent, onEditContentChange);
         }}
-        className="w-full border-2 border-gray-300 rounded-lg p-3 mb-3 min-h-[120px] focus:border-yellow-400 focus:outline-none"
+        className="field-textarea field-textarea--edit"
       />
       {editImageUrl && (
         <div className="relative inline-block mb-3">

@@ -264,7 +264,7 @@ export function EditProfileForm() {
               id="signature"
               value={signature}
               onChange={(e) => setSignature(e.target.value)}
-              className="w-full border-2 border-gray-300 rounded-lg p-3 min-h-[80px] focus:border-yellow-400 focus:outline-none"
+              className="field-textarea field-textarea--profile-signature"
               placeholder="Näkyy viestien alla"
               maxLength={200}
             />

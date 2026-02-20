@@ -72,7 +72,7 @@ export default function NewTopicPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-8 px-4 mb-12">
+    <div className="layout-page-shell-thread max-w-4xl">
       <div className="mb-6">
         <Link href="/" className="app-back-link">
           <ArrowLeft size={16} />
@@ -110,7 +110,7 @@ export default function NewTopicPage() {
               onKeyDown={(e) => {
                 handleMarkdownTextareaShortcut(e, content, setContent);
               }}
-              className="w-full border-2 border-gray-300 rounded-lg p-3 min-h-[200px] focus:border-yellow-400 focus:outline-none"
+              className="field-textarea field-textarea--new-topic"
               placeholder="Kirjoita viestisi..."
               required
             />

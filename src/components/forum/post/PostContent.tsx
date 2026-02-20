@@ -178,8 +178,7 @@ export function PostContent({ post, hasBeenEdited, editedLabel }: PostContentPro
             {youtubeEmbeds.map((embedUrl) => (
               <div
                 key={`${post.id}-${embedUrl}`}
-                className="relative w-full max-w-3xl overflow-hidden rounded-lg border border-gray-200 bg-black"
-                style={{ paddingTop: '56.25%' }}
+                className="ratio-16-9 w-full max-w-3xl overflow-hidden rounded-lg border border-gray-200 bg-black"
               >
                 <iframe
                   src={embedUrl}

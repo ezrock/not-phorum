@@ -226,7 +226,7 @@ function SearchContent() {
     `text-sm underline underline-offset-2 ${activeFilter === filter ? 'text-yellow-700 font-semibold' : 'text-gray-600 hover:text-yellow-700'}`;
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4">
+    <div className="layout-page-shell">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <Search size={28} className="text-gray-800" />
@@ -260,11 +260,11 @@ function SearchContent() {
 
       {loading ? (
         <Card>
-          <p className="text-center text-gray-500 py-8">Haetaan tuloksia...</p>
+          <p className="state-empty-text">Haetaan tuloksia...</p>
         </Card>
       ) : searchError ? (
         <Card>
-          <p className="text-center text-red-600 py-8">
+          <p className="state-empty-text text-red-600">
             Haku epäonnistui: {searchError}
           </p>
         </Card>
@@ -348,11 +348,11 @@ function SearchContent() {
             )}
 
             {showsContentSection && visibleContentResults.length === 0 && query ? (
-              <p className="text-center text-gray-500 py-8">
+              <p className="state-empty-text">
                 Ei sisältöosumia haulle &quot;{query}&quot;. Kokeile eri hakusanoja.
               </p>
             ) : showsContentSection ? (
-              <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 overflow-hidden">
+              <div className="list-surface">
                 {visibleContentResults.map((result, index) => (
                   <Link
                     key={`${result.topic_id}-${result.result_type}-${index}`}
@@ -364,8 +364,7 @@ function SearchContent() {
                         <TagIcon
                           icon={result.category_icon}
                           alt={`${result.category_name} icon`}
-                          className="inline-block text-2xl leading-none"
-                          style={{ width: '1.5rem', height: '1.5rem', objectFit: 'contain' }}
+                          className="tag-icon-sm text-2xl"
                         />
                       </div>
 
@@ -406,7 +405,7 @@ function SearchContent() {
                 ))}
               </div>
             ) : showsTagSection && visibleGroups.length === 0 && visibleTags.length === 0 && query ? (
-              <p className="text-center text-gray-500 py-8">
+              <p className="state-empty-text">
                 Ei osumia valitulle suodattimelle.
               </p>
             ) : null}
@@ -420,9 +419,9 @@ function SearchContent() {
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="layout-page-shell">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          <p className="state-empty-text">Ladataan...</p>
         </Card>
       </div>
     }>

@@ -73,16 +73,16 @@ export default function MembersPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="layout-page-shell">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan jäseniä...</p>
+          <p className="state-empty-text">Ladataan jäseniä...</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4">
+    <div className="layout-page-shell">
       <div className="mb-6">
         <div className="flex items-center gap-3">
           <Users size={28} className="text-gray-800" />
@@ -150,7 +150,7 @@ export default function MembersPage() {
 
         {members.length === 0 && (
           <Card>
-            <p className="text-center text-gray-500 py-8">
+            <p className="state-empty-text">
               Ei vielä jäseniä.
             </p>
           </Card>

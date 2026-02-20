@@ -68,7 +68,7 @@ export default function ProfilePage() {
     return (
       <div className="page-container">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          <p className="state-empty-text">Ladataan...</p>
         </Card>
       </div>
     );

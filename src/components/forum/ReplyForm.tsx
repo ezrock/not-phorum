@@ -33,7 +33,7 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
         onKeyDown={(e) => {
           handleMarkdownTextareaShortcut(e, content, setContent);
         }}
-        className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 min-h-[150px] focus:border-yellow-400 focus:outline-none"
+        className="field-textarea field-textarea--reply"
         placeholder="Kirjoita vastauksesi..."
       />
       <p className="mb-4 -mt-2 text-xs text-gray-500">

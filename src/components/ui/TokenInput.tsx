@@ -83,13 +83,13 @@ export function TokenInput({
           {tokens.map((token) => (
             <span
               key={token.id}
-              className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-2 py-0.5 text-xs text-yellow-900"
+              className="token-chip"
             >
               {token.icon && <span>{token.icon}</span>}
               <span>{token.label}</span>
               <button
                 type="button"
-                className="rounded p-0.5 hover:bg-yellow-100"
+                className="token-chip-remove"
                 onClick={() => onRemoveToken(token.id)}
                 disabled={disabled}
                 aria-label={`Poista ${token.label}`}
@@ -141,7 +141,7 @@ export function TokenInput({
         </div>
 
         {open && onSelectOption && (
-          <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
+          <div className="menu-popover-panel">
             {loading && <div className="px-3 py-2 text-sm text-gray-500">Haetaan...</div>}
             {!loading && visibleOptions.length === 0 && (
               <div className="px-3 py-2 text-sm text-gray-500">{emptyMessage}</div>

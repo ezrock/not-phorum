@@ -71,7 +71,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 4rem)' }}>
+    <div className="layout-center-screen-offset-header">
       <div className="max-w-md w-full">
         <div className="mb-8 flex justify-center">
           <pre className="text-gray-800 leading-tight text-[0.45rem] sm:text-[0.55rem] md:text-xs overflow-hidden text-left">{

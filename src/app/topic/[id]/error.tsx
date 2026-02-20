@@ -11,14 +11,14 @@ export default function TopicError({
   reset: () => void;
 }) {
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4">
+    <div className="layout-page-shell">
       <div className="mb-4">
         <Link href="/" className="app-back-link">
           <ArrowLeft size={16} />
           Takaisin foorumille
         </Link>
       </div>
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+      <div className="state-card-centered">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Aiheen lataus epäonnistui</h2>
         <p className="text-gray-600 mb-6">
           {error.message || 'Odottamaton virhe tapahtui.'}

@@ -109,16 +109,16 @@ function ForumContent() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="layout-page-shell">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          <p className="state-empty-text">Ladataan...</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4">
+    <div className="layout-page-shell">
       <div className="mb-6">
         {(dataError || quoteError || eventError) && (
           <Alert variant="error">
@@ -206,9 +206,9 @@ export default function ForumPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-6xl mx-auto mt-8 px-4">
+        <div className="layout-page-shell">
           <Card>
-            <p className="text-center text-gray-500 py-8">Ladataan...</p>
+            <p className="state-empty-text">Ladataan...</p>
           </Card>
         </div>
       }

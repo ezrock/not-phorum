@@ -135,12 +135,12 @@ export function AddTags({
           }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-yellow-400 focus:outline-none"
+          className="field-input-base"
           disabled={disabled}
         />
 
         {open && (
-          <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
+          <div className="menu-popover-panel">
             {loading && <div className="px-3 py-2 text-sm text-gray-500">Haetaan tageja...</div>}
             {!loading && options.length === 0 && (
               <div className="px-3 py-2 text-sm text-gray-500">Ei osumia</div>

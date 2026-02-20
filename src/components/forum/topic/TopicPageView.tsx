@@ -89,9 +89,9 @@ export function TopicPageView({
 }: TopicPageViewProps) {
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="layout-page-shell">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          <p className="state-empty-text">Ladataan...</p>
         </Card>
       </div>
     );
@@ -99,7 +99,7 @@ export function TopicPageView({
 
   if (!topic) {
     return (
-      <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="layout-page-shell">
         <Card>
           <h2 className="text-2xl font-bold">Aihetta ei löytynyt</h2>
           <Link href="/" className="app-back-link mt-4">
@@ -112,7 +112,7 @@ export function TopicPageView({
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-4 mb-12">
+    <div className="layout-page-shell-thread">
       <div className="mb-4">
         <Link href="/" className="app-back-link">
           <ArrowLeft size={16} />
@@ -125,8 +125,7 @@ export function TopicPageView({
           <TagIcon
             icon={topicPrimaryTag?.icon}
             alt={`${topicPrimaryTag?.name || 'Tagit'} icon`}
-            className="inline-block text-4xl leading-none"
-            style={{ width: '2.25rem', height: '2.25rem', objectFit: 'contain' }}
+            className="tag-icon-lg text-4xl"
           />
           <div>
             <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>

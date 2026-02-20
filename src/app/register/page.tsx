@@ -86,7 +86,7 @@ export default function RegisterPage() {
     return (
       <div className="max-w-md mx-auto mt-16 px-4">
         <Card>
-          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          <p className="state-empty-text">Ladataan...</p>
         </Card>
       </div>
     );

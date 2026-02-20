@@ -53,7 +53,7 @@ export function ForumThreadList({
             Uusi aihe
           </Button>
         </Link>
-        <p className="text-center text-gray-500 py-8">
+        <p className="state-empty-text">
           {requestedTagIds.length > 0
             ? 'Ei aiheita valituilla tageilla.'
             : 'Ei vielä aiheita. Ole ensimmäinen ja aloita keskustelu!'}
@@ -74,7 +74,7 @@ export function ForumThreadList({
             Uusi aihe
           </Button>
         </Link>
-        <p className="text-center text-gray-500 py-8">Ei lukemattomia lankoja nykyisellä suodatuksella.</p>
+        <p className="state-empty-text">Ei lukemattomia lankoja nykyisellä suodatuksella.</p>
       </Card>
     );
   }
@@ -110,8 +110,7 @@ export function ForumThreadList({
                     <TagIcon
                       icon={topic.category_icon}
                       alt={`${topic.category_name} icon`}
-                      className="forum-thread-icon text-2xl leading-none inline-block"
-                      style={{ width: '1.5rem', height: '1.5rem', objectFit: 'contain' }}
+                      className="forum-thread-icon tag-icon-sm text-2xl"
                     />
                   </div>
 

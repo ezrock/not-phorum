@@ -10,7 +10,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <div className="flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 4rem)' }}>
+    <div className="layout-center-screen-offset-header">
       <div className="text-center">
         <h2 className="text-4xl font-bold text-gray-800 mb-4">Jokin meni pieleen</h2>
         <p className="text-gray-600 mb-8">
