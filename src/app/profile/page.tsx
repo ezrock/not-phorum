@@ -35,6 +35,7 @@ export default function ProfilePage() {
     midi_enabled?: boolean;
     hidden_tag_ids?: number[];
     hidden_tag_group_ids?: number[];
+    legacy_tag_icons_enabled?: boolean;
   } | null;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
@@ -137,6 +138,7 @@ export default function ProfilePage() {
       {activeTab === 'settings' && (
         <SettingsPanel
           initialRealtimeEnabled={typedProfile.realtime_updates_enabled ?? false}
+          initialLegacyTagIconsEnabled={typedProfile.legacy_tag_icons_enabled ?? true}
           initialHiddenTagIds={Array.isArray(typedProfile.hidden_tag_ids) ? typedProfile.hidden_tag_ids : []}
           initialHiddenTagGroupIds={Array.isArray(typedProfile.hidden_tag_group_ids) ? typedProfile.hidden_tag_group_ids : []}
         />

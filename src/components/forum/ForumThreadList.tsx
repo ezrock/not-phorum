@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { formatFinnishRelative } from '@/lib/formatDate';
 import type { Topic } from '@/hooks/useForumTopics';
 import { TagChip } from '@/components/ui/TagChip';
+import { TagIcon } from '@/components/ui/TagIcon';
 
 interface ForumThreadListProps {
   topics: Topic[];
@@ -105,7 +106,12 @@ export function ForumThreadList({
               >
                 <div className="forum-thread-row py-2.5 flex items-start gap-3 md:items-center md:gap-4 text-base">
                   <div className="forum-thread-icon-wrap w-8 shrink-0 text-center">
-                    <div className="forum-thread-icon text-2xl leading-none">{topic.category_icon}</div>
+                    <TagIcon
+                      icon={topic.category_icon}
+                      alt={`${topic.category_name} icon`}
+                      className="forum-thread-icon text-2xl leading-none inline-block"
+                      style={{ width: '1.5rem', height: '1.5rem', objectFit: 'contain' }}
+                    />
                   </div>
 
                   <div className="forum-thread-main min-w-0 flex-1">

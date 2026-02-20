@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings2, RefreshCw, EyeOff } from 'lucide-react';
+import { Settings2, RefreshCw, EyeOff, Images } from 'lucide-react';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { TokenInput, type TokenItem, type TokenOption } from '@/components/ui/TokenInput';
 
 interface SettingsPanelProps {
   initialRealtimeEnabled: boolean;
+  initialLegacyTagIconsEnabled: boolean;
   initialHiddenTagIds: number[];
   initialHiddenTagGroupIds: number[];
 }
@@ -65,6 +66,7 @@ function parseImpactRow(data: unknown): HiddenImpactRow | null {
 
 export function SettingsPanel({
   initialRealtimeEnabled,
+  initialLegacyTagIconsEnabled,
   initialHiddenTagIds,
   initialHiddenTagGroupIds,
 }: SettingsPanelProps) {
@@ -74,6 +76,7 @@ export function SettingsPanel({
   const showSectionHeaderIcons = UI_ICON_SETTINGS.showSectionHeaderIcons;
 
   const [realtimeUpdatesEnabled, setRealtimeUpdatesEnabled] = useState(initialRealtimeEnabled);
+  const [legacyTagIconsEnabled, setLegacyTagIconsEnabled] = useState(initialLegacyTagIconsEnabled);
   const [hiddenTagIds, setHiddenTagIds] = useState(() => normalizeIds(initialHiddenTagIds));
   const [hiddenTagGroupIds, setHiddenTagGroupIds] = useState(() => normalizeIds(initialHiddenTagGroupIds));
   const [hiddenTagById, setHiddenTagById] = useState<Record<number, TagHit>>({});
@@ -143,6 +146,32 @@ export function SettingsPanel({
       setSettingsSuccess('Asetukset tallennettu!');
     } catch (err: unknown) {
       setRealtimeUpdatesEnabled((prev) => !prev);
+      setSettingsError(toErrorMessage(err, 'Asetusten tallennus epäonnistui'));
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleLegacyTagIconsToggle = async (nextValue: boolean) => {
+    if (!currentUser) return;
+
+    setSettingsError('');
+    setSettingsSuccess('');
+    setLegacyTagIconsEnabled(nextValue);
+    setSavingSettings(true);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ legacy_tag_icons_enabled: nextValue })
+        .eq('id', currentUser.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      setSettingsSuccess('Asetukset tallennettu!');
+    } catch (err: unknown) {
+      setLegacyTagIconsEnabled((prev) => !prev);
       setSettingsError(toErrorMessage(err, 'Asetusten tallennus epäonnistui'));
     } finally {
       setSavingSettings(false);
@@ -445,6 +474,36 @@ export function SettingsPanel({
       <div>
 
       <section className="section-block">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {showSettingActionIcons && <Images size={20} className="text-gray-600" />}
+              <div>
+                <p className="font-medium">Käytä legacyikoneja</p>
+                <p className="text-sm text-gray-500">
+                  {legacyTagIconsEnabled ? '2004-ikonit käytössä' : '2026-ikonit käytössä'}
+                </p>
+              </div>
+            </div>
+            <button
+              id="legacyTagIconsEnabled"
+              type="button"
+              role="switch"
+              aria-checked={legacyTagIconsEnabled}
+              aria-label="Aiheikonit 2004 / 2026"
+              disabled={savingSettings}
+              onClick={() => handleLegacyTagIconsToggle(!legacyTagIconsEnabled)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                legacyTagIconsEnabled ? 'bg-green-500' : 'bg-gray-300'
+              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  legacyTagIconsEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {showSettingActionIcons && <RefreshCw size={20} className="text-gray-600" />}

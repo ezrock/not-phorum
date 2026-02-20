@@ -10,6 +10,7 @@ import { Search, MessageSquare, FileText, ArrowLeft } from 'lucide-react';
 import { formatFinnishRelative } from '@/lib/formatDate';
 import type { ReactNode } from 'react';
 import { TagChipLink } from '@/components/ui/TagChipLink';
+import { TagIcon } from '@/components/ui/TagIcon';
 
 interface SearchResult {
   result_type: 'topic' | 'post';
@@ -46,7 +47,7 @@ type SearchSortMode = 'latest' | 'best';
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { supabase } = useAuth();
+  const { supabase, profile } = useAuth();
 
   const query = searchParams.get('q') || '';
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -110,7 +111,38 @@ function SearchContent() {
 
     const { data, error } = contentRes;
     if (!error && data) {
-      setResults(data as SearchResult[]);
+      const rawResults = data as SearchResult[];
+      const categoryNames = Array.from(
+        new Set(rawResults.map((row) => row.category_name).filter((name) => !!name))
+      );
+
+      if (categoryNames.length > 0) {
+        const legacyTagIconsEnabled =
+          (profile as { legacy_tag_icons_enabled?: boolean } | null)?.legacy_tag_icons_enabled !== false;
+        const { data: tagRows } = await supabase
+          .from('tags')
+          .select('name, icon, legacy_icon_path')
+          .in('name', categoryNames)
+          .is('redirect_to_tag_id', null);
+
+        const iconByName = new Map<string, string>();
+        for (const row of (tagRows || []) as Record<string, unknown>[]) {
+          const name = String(row.name || '');
+          const legacyIconPath = String(row.legacy_icon_path || '').trim();
+          const icon = String(row.icon || '').trim();
+          if (!name) continue;
+          iconByName.set(name, (legacyTagIconsEnabled ? legacyIconPath : '') || icon || '🏷️');
+        }
+
+        setResults(
+          rawResults.map((row) => ({
+            ...row,
+            category_icon: iconByName.get(row.category_name) || row.category_icon || '🏷️',
+          }))
+        );
+      } else {
+        setResults(rawResults);
+      }
     } else {
       setResults([]);
       setSearchError(error?.message || 'Haku epäonnistui');
@@ -140,7 +172,7 @@ function SearchContent() {
       setGroupHits([]);
     }
     setLoading(false);
-  }, [supabase]);
+  }, [profile, supabase]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -329,7 +361,12 @@ function SearchContent() {
                   >
                     <div className="flex items-center gap-3 px-4 py-3">
                       <div className="flex-shrink-0 w-8 text-center">
-                        <div className="text-2xl">{result.category_icon}</div>
+                        <TagIcon
+                          icon={result.category_icon}
+                          alt={`${result.category_name} icon`}
+                          className="inline-block text-2xl leading-none"
+                          style={{ width: '1.5rem', height: '1.5rem', objectFit: 'contain' }}
+                        />
                       </div>
 
                       <div className="flex-1 min-w-0">

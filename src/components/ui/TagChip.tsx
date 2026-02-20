@@ -1,4 +1,5 @@
 import { type HTMLAttributes, type ReactNode } from 'react';
+import { TagIcon } from '@/components/ui/TagIcon';
 
 export type TagChipTone = 'yellow' | 'blue' | 'gray';
 export type TagChipSize = 'xs' | 'sm' | 'md';
@@ -51,7 +52,11 @@ interface TagChipProps extends HTMLAttributes<HTMLSpanElement> {
 export function TagChip({ icon, tone = 'yellow', size = 'sm', className, children, ...props }: TagChipProps) {
   return (
     <span className={getTagChipClasses({ tone, size, className })} {...props}>
-      {icon ? <span>{icon}</span> : null}
+      {typeof icon === 'string' ? (
+        <TagIcon icon={icon} alt="Tag icon" className="inline-block h-4 w-4 object-contain" />
+      ) : icon ? (
+        <span>{icon}</span>
+      ) : null}
       <span>{children}</span>
     </span>
   );

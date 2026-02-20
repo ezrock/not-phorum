@@ -8,6 +8,7 @@ import { TopicEditMetaFields } from '@/components/forum/topic/TopicEditMetaField
 import { TopicPostsSection } from '@/components/forum/topic/TopicPostsSection';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
 import { TagChip } from '@/components/ui/TagChip';
+import { TagIcon } from '@/components/ui/TagIcon';
 
 interface TopicPageViewProps {
   topic: Topic | null;
@@ -121,7 +122,12 @@ export function TopicPageView({
 
       <Card className="mb-6">
         <div className="flex items-start gap-3">
-          <span className="text-4xl">{topicPrimaryTag?.icon || '🏷️'}</span>
+          <TagIcon
+            icon={topicPrimaryTag?.icon}
+            alt={`${topicPrimaryTag?.name || 'Tagit'} icon`}
+            className="inline-block text-4xl leading-none"
+            style={{ width: '2.25rem', height: '2.25rem', objectFit: 'contain' }}
+          />
           <div>
             <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
             <div className="flex items-center gap-4 text-sm text-gray-500">

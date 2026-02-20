@@ -32,6 +32,7 @@ interface RawTopicTagRow {
         name?: string | null;
         slug?: string | null;
         icon?: string | null;
+        legacy_icon_path?: string | null;
         status?: string | null;
         redirect_to_tag_id?: number | null;
       }
@@ -40,6 +41,7 @@ interface RawTopicTagRow {
         name?: string | null;
         slug?: string | null;
         icon?: string | null;
+        legacy_icon_path?: string | null;
         status?: string | null;
         redirect_to_tag_id?: number | null;
       }[]
@@ -50,7 +52,7 @@ interface UseTopicPostsWindowOptions {
   topicId: number;
   currentUser: { id: string } | null;
   supabase: ReturnType<typeof createClient>;
-  profile: { realtime_updates_enabled?: boolean } | null;
+  profile: { realtime_updates_enabled?: boolean; legacy_tag_icons_enabled?: boolean } | null;
 }
 
 export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }: UseTopicPostsWindowOptions) {
@@ -59,6 +61,7 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
   const anchorBeforeBuffer = UI_PAGING_SETTINGS.threadAnchorBeforeBuffer;
   const anchorAfterBuffer = UI_PAGING_SETTINGS.threadAnchorAfterBuffer;
   const realtimeUpdatesEnabled = profile?.realtime_updates_enabled === true;
+  const legacyTagIconsEnabled = profile?.legacy_tag_icons_enabled ?? true;
 
   const [topic, setTopic] = useState<Topic | null>(null);
   const [topicPrimaryTag, setTopicPrimaryTag] = useState<TopicPrimaryTag | null>(null);
@@ -188,7 +191,7 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
         supabase.from('posts').select('id').eq('topic_id', topicId).order('created_at', { ascending: true }).limit(1),
         supabase
           .from('topic_tags')
-          .select('tag:tags(id, name, slug, icon, status, redirect_to_tag_id)')
+          .select('tag:tags(id, name, slug, icon, legacy_icon_path, status, redirect_to_tag_id)')
           .eq('topic_id', topicId)
           .order('created_at', { ascending: true }),
       ]);
@@ -214,11 +217,13 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
           .find((tag) => !!tag && tag.redirect_to_tag_id == null && tag.status !== 'hidden');
 
         if (normalizedPrimaryTag && normalizedPrimaryTag.id) {
+          const legacyIconPath = String(normalizedPrimaryTag.legacy_icon_path || '').trim();
+          const icon = String(normalizedPrimaryTag.icon || '').trim();
           setTopicPrimaryTag({
             id: normalizedPrimaryTag.id,
             name: normalizedPrimaryTag.name || 'Tagit',
             slug: normalizedPrimaryTag.slug || '',
-            icon: normalizedPrimaryTag.icon?.trim() || '🏷️',
+            icon: (legacyTagIconsEnabled ? legacyIconPath : '') || icon || '🏷️',
           });
         } else {
           setTopicPrimaryTag(null);
@@ -228,7 +233,7 @@ export function useTopicPostsWindow({ topicId, currentUser, supabase, profile }:
     };
 
     void fetchData();
-  }, [supabase, topicId, refreshTick, initialVisibleMessages]);
+  }, [supabase, topicId, refreshTick, initialVisibleMessages, legacyTagIconsEnabled]);
 
   useEffect(() => {
     if (!currentUser || !realtimeUpdatesEnabled || !Number.isFinite(topicId)) return;

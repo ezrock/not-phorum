@@ -19,6 +19,12 @@ interface RawTopicRow {
   has_new: boolean;
 }
 
+interface RawTagIconRow {
+  name: string;
+  icon: string | null;
+  legacy_icon_path: string | null;
+}
+
 function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number.parseInt(value || '', 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -62,13 +68,15 @@ export async function GET(req: NextRequest) {
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id ?? null;
   let excludedTagIds: number[] = [];
+  let legacyTagIconsEnabled = true;
 
   if (userId) {
     const { data: profilePrefs } = await supabase
       .from('profiles')
-      .select('hidden_tag_ids, hidden_tag_group_ids')
+      .select('hidden_tag_ids, hidden_tag_group_ids, legacy_tag_icons_enabled')
       .eq('id', userId)
       .single();
+    legacyTagIconsEnabled = profilePrefs?.legacy_tag_icons_enabled !== false;
 
     const hiddenTagIds = Array.isArray(profilePrefs?.hidden_tag_ids)
       ? profilePrefs.hidden_tag_ids
@@ -164,8 +172,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
+  const topics = ((finalTopicsData || []) as RawTopicRow[]).map((row) => ({ ...row }));
+  const categoryNames = Array.from(new Set(topics.map((row) => row.category_name).filter((name) => !!name)));
+
+  if (categoryNames.length > 0) {
+    const { data: tagRows } = await supabase
+      .from('tags')
+      .select('name, icon, legacy_icon_path')
+      .is('redirect_to_tag_id', null)
+      .in('name', categoryNames);
+
+    const iconByName = new Map<string, string>();
+    for (const row of (tagRows || []) as RawTagIconRow[]) {
+      const legacyIconPath = (row.legacy_icon_path || '').trim();
+      const icon = (row.icon || '').trim();
+      iconByName.set(row.name, (legacyTagIconsEnabled ? legacyIconPath : '') || icon || '🏷️');
+    }
+
+    for (const row of topics) {
+      row.category_icon = iconByName.get(row.category_name) || row.category_icon || '🏷️';
+    }
+  }
+
   return NextResponse.json({
-    topics: (finalTopicsData || []) as RawTopicRow[],
+    topics,
     page,
     page_size: pageSize,
     total_count: typeof finalTotalCountData === 'number' ? finalTotalCountData : 0,

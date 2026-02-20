@@ -8,7 +8,7 @@ interface UseTopicPageDataOptions {
   topicId: number;
   currentUser: { id: string } | null;
   supabase: ReturnType<typeof createClient>;
-  profile: { is_admin?: boolean; realtime_updates_enabled?: boolean } | null;
+  profile: { is_admin?: boolean; realtime_updates_enabled?: boolean; legacy_tag_icons_enabled?: boolean } | null;
 }
 
 export function useTopicPageData({ topicId, currentUser, supabase, profile }: UseTopicPageDataOptions) {

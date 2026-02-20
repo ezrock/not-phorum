@@ -16,7 +16,7 @@ function TopicContent() {
     topicId,
     currentUser,
     supabase,
-    profile: profile as { is_admin?: boolean; realtime_updates_enabled?: boolean } | null,
+    profile: profile as { is_admin?: boolean; realtime_updates_enabled?: boolean; legacy_tag_icons_enabled?: boolean } | null,
   });
 
   return <TopicPageView currentUser={currentUser} {...topicPage} />;
