@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -117,8 +116,9 @@ export default function PublicProfilePage() {
       <div className="page-container">
         <Card>
           <h2 className="text-2xl font-bold">Käyttäjää ei löytynyt</h2>
-          <Link href="/">
-            <Button className="mt-4">Takaisin foorumille</Button>
+          <Link href="/" className="app-back-link mt-4">
+            <ArrowLeft size={16} />
+            Takaisin foorumille
           </Link>
         </Card>
       </div>
@@ -128,7 +128,7 @@ export default function PublicProfilePage() {
   return (
     <div className="page-container">
       <div className="mb-6">
-        <Link href="/" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
+        <Link href="/" className="app-back-link">
           <ArrowLeft size={16} />
           Takaisin foorumille
         </Link>

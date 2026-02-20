@@ -73,7 +73,7 @@ export default function NewTopicPage() {
   return (
     <div className="max-w-4xl mx-auto mt-8 px-4 mb-12">
       <div className="mb-6">
-        <Link href="/" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
+        <Link href="/" className="app-back-link">
           <ArrowLeft size={16} />
           Takaisin lankoihin
         </Link>

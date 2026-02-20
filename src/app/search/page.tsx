@@ -40,6 +40,8 @@ interface TagGroupHit {
   member_tag_ids: number[];
 }
 
+type SearchFilter = 'all' | 'topics' | 'posts' | 'tags' | 'groups';
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,6 +54,7 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [searchError, setSearchError] = useState('');
+  const [activeFilter, setActiveFilter] = useState<SearchFilter>('all');
 
   const highlightMatch = (text: string, needle: string): ReactNode => {
     const trimmedNeedle = needle.trim();
@@ -144,25 +147,34 @@ function SearchContent() {
     e.preventDefault();
     const trimmed = searchInput.trim();
     if (trimmed.length >= 2) {
+      setActiveFilter('all');
       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     }
   };
 
-  // De-duplicate: keep highest-scoring entry per topic_id, then sort by last activity
-  const deduplicatedResults = results.reduce<SearchResult[]>((acc, result) => {
-    const existing = acc.find(r => r.topic_id === result.topic_id);
-    if (!existing) {
-      acc.push(result);
-    } else if (result.similarity_score > existing.similarity_score) {
-      const idx = acc.indexOf(existing);
-      acc[idx] = result;
-    }
-    return acc;
-  }, []).sort((a, b) => {
+  const sortByLastActivity = (a: SearchResult, b: SearchResult) => {
     const aTime = new Date(a.last_post_created_at || a.created_at).getTime();
     const bTime = new Date(b.last_post_created_at || b.created_at).getTime();
     return bTime - aTime;
-  });
+  };
+
+  const topicResults = results.filter((result) => result.result_type === 'topic').sort(sortByLastActivity);
+  const postResults = results.filter((result) => result.result_type === 'post').sort(sortByLastActivity);
+  const allContentResults = [...topicResults, ...postResults].sort(sortByLastActivity);
+
+  const visibleContentResults = activeFilter === 'topics'
+    ? topicResults
+    : activeFilter === 'posts'
+      ? postResults
+      : allContentResults;
+
+  const visibleTags = activeFilter === 'groups' ? [] : tagHits;
+  const visibleGroups = activeFilter === 'tags' ? [] : groupHits;
+  const showsTagSection = activeFilter === 'all' || activeFilter === 'tags' || activeFilter === 'groups';
+  const showsContentSection = activeFilter === 'all' || activeFilter === 'topics' || activeFilter === 'posts';
+
+  const filterButtonClass = (filter: SearchFilter) =>
+    `text-sm underline underline-offset-2 ${activeFilter === filter ? 'text-yellow-700 font-semibold' : 'text-gray-600 hover:text-yellow-700'}`;
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
@@ -187,17 +199,11 @@ function SearchContent() {
           </button>
         </form>
 
-        {query && (
-          <p className="mt-3 text-sm text-gray-600">
-            {loading
-              ? 'Haetaan...'
-              : `Hakutuloksia haulle "${query}": ${deduplicatedResults.length} sisältöosumaa, ${tagHits.length} tagia, ${groupHits.length} ryhmää`}
-          </p>
-        )}
+        {query && loading && <p className="mt-3 text-sm text-gray-600">Haetaan...</p>}
       </div>
 
       <div className="mb-4">
-        <Link href="/" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
+        <Link href="/" className="app-back-link">
           <ArrowLeft size={16} />
           Takaisin foorumille
         </Link>
@@ -214,56 +220,75 @@ function SearchContent() {
           </p>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {(groupHits.length > 0 || tagHits.length > 0) && (
-            <Card>
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-800">Tagit</h3>
-                <div className="flex flex-wrap gap-2">
-                  {groupHits.map((group) => {
-                    const tagParams = group.member_tag_ids.join(',');
-                    if (!tagParams) return null;
-                    return (
-                      <TagChipLink
-                        key={`group-${group.group_id}`}
-                        href={`/?tags=${tagParams}`}
-                        tone="blue"
-                        size="md"
-                        icon="📚"
-                      >
-                        <span>{highlightMatch(group.group_name, query)}</span>
-                        <span className="text-xs text-blue-700">({group.member_count})</span>
-                      </TagChipLink>
-                    );
-                  })}
-                  {tagHits.map((tag) => (
-                    <TagChipLink
-                      key={`tag-${tag.id}`}
-                      href={`/?tags=${tag.id}`}
-                      size="md"
-                      icon={tag.icon || '🏷️'}
-                    >
-                      <span>{highlightMatch(tag.name, query)}</span>
-                    </TagChipLink>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          )}
+        <Card>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Hakutulokset</h3>
 
-          {deduplicatedResults.length === 0 && query ? (
-            <Card>
+            {query && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+<button type="button" className={filterButtonClass('all')} onClick={() => setActiveFilter('all')}>
+                  Kaikki:
+                </button>
+                <button type="button" className={filterButtonClass('topics')} onClick={() => setActiveFilter('topics')}>
+                  {topicResults.length} lankaa
+                </button>
+                <button type="button" className={filterButtonClass('posts')} onClick={() => setActiveFilter('posts')}>
+                  {postResults.length} viestiä
+                </button>
+                <button type="button" className={filterButtonClass('tags')} onClick={() => setActiveFilter('tags')}>
+                  {tagHits.length} aihetta
+                </button>
+                <button type="button" className={filterButtonClass('groups')} onClick={() => setActiveFilter('groups')}>
+                  {groupHits.length} ryhmää
+                </button>
+
+              </div>
+            )}
+
+            {showsTagSection && (visibleGroups.length > 0 || visibleTags.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {visibleGroups.map((group) => {
+                  const tagParams = group.member_tag_ids.join(',');
+                  if (!tagParams) return null;
+                  return (
+                    <TagChipLink
+                      key={`group-${group.group_id}`}
+                      href={`/?tags=${tagParams}`}
+                      tone="blue"
+                      size="md"
+                      icon="📚"
+                    >
+                      <span>{highlightMatch(group.group_name, query)}</span>
+                      <span className="text-xs text-blue-700">({group.member_count})</span>
+                    </TagChipLink>
+                  );
+                })}
+                {visibleTags.map((tag) => (
+                  <TagChipLink
+                    key={`tag-${tag.id}`}
+                    href={`/?tags=${tag.id}`}
+                    size="md"
+                    icon={tag.icon || '🏷️'}
+                  >
+                    <span>{highlightMatch(tag.name, query)}</span>
+                  </TagChipLink>
+                ))}
+              </div>
+            )}
+
+            {showsContentSection && visibleContentResults.length === 0 && query ? (
               <p className="text-center text-gray-500 py-8">
                 Ei sisältöosumia haulle &quot;{query}&quot;. Kokeile eri hakusanoja.
               </p>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-800 px-1">Osumat</h3>
-              {deduplicatedResults.map((result, index) => (
-                <Link key={`${result.topic_id}-${result.result_type}-${index}`} href={`/topic/${result.topic_id}`}>
-                  <Card className="hover:border-yellow-400 transition cursor-pointer">
-                    <div className="flex items-center gap-3">
+            ) : showsContentSection ? (
+              <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 overflow-hidden">
+                {visibleContentResults.map((result, index) => (
+                  <Link
+                    key={`${result.topic_id}-${result.result_type}-${index}`}
+                    href={`/topic/${result.topic_id}`}
+                    className="block hover:bg-yellow-50 transition"
+                  >
+                    <div className="flex items-center gap-3 px-4 py-3">
                       <div className="flex-shrink-0 w-8 text-center">
                         <div className="text-2xl">{result.category_icon}</div>
                       </div>
@@ -301,12 +326,16 @@ function SearchContent() {
                         </p>
                       </div>
                     </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+                  </Link>
+                ))}
+              </div>
+            ) : showsTagSection && visibleGroups.length === 0 && visibleTags.length === 0 && query ? (
+              <p className="text-center text-gray-500 py-8">
+                Ei osumia valitulle suodattimelle.
+              </p>
+            ) : null}
+          </div>
+        </Card>
       )}
     </div>
   );

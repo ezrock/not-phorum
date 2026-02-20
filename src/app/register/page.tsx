@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import { ArrowLeft } from 'lucide-react';
 import { getFirstValidationError, rules, validate } from '@/lib/validation';
 
 export default function RegisterPage() {
@@ -97,8 +98,9 @@ export default function RegisterPage() {
         <Card>
           <h1 className="text-3xl font-bold mb-4">Rekisteröityminen suljettu</h1>
           <p className="text-gray-600">Uusien käyttäjien rekisteröityminen on tällä hetkellä suljettu.</p>
-          <div className="mt-6 text-center">
-            <Link href="/" className="text-yellow-600 hover:underline font-semibold">
+          <div className="mt-6">
+            <Link href="/" className="app-back-link">
+              <ArrowLeft size={16} />
               Takaisin etusivulle
             </Link>
           </div>

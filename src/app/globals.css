@@ -218,6 +218,21 @@ a.app-link:hover {
   color: var(--link-accent-hover);
 }
 
+/* Global back-navigation link style. */
+a.app-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--link-accent);
+}
+
+a.app-back-link:hover {
+  color: var(--link-accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Default styling for plain anchors that don't carry explicit classes. */
 a[href]:not([class]) {
   color: var(--link-accent);

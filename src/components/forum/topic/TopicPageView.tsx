@@ -101,8 +101,9 @@ export function TopicPageView({
       <div className="max-w-6xl mx-auto mt-8 px-4">
         <Card>
           <h2 className="text-2xl font-bold">Aihetta ei löytynyt</h2>
-          <Link href="/">
-            <Button className="mt-4">Takaisin foorumille</Button>
+          <Link href="/" className="app-back-link mt-4">
+            <ArrowLeft size={16} />
+            Takaisin foorumille
           </Link>
         </Card>
       </div>
@@ -111,25 +112,24 @@ export function TopicPageView({
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4 mb-12">
+      <div className="mb-4">
+        <Link href="/" className="app-back-link">
+          <ArrowLeft size={16} />
+          Takaisin foorumille
+        </Link>
+      </div>
+
       <Card className="mb-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <span className="text-4xl">{topicPrimaryTag?.icon || '🏷️'}</span>
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <TagChip>{topicPrimaryTag?.name || 'Tagit'}</TagChip>
-                <span>{topic.views_unique ?? topic.views} katselua</span>
-                <span>{totalPosts} viestiä</span>
-              </div>
+        <div className="flex items-start gap-3">
+          <span className="text-4xl">{topicPrimaryTag?.icon || '🏷️'}</span>
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <TagChip>{topicPrimaryTag?.name || 'Tagit'}</TagChip>
+              <span>{topic.views_unique ?? topic.views} katselua</span>
+              <span>{totalPosts} viestiä</span>
             </div>
           </div>
-          <Link href="/">
-            <Button variant="outline" className="flex items-center gap-2">
-              <ArrowLeft size={16} />
-              Takaisin
-            </Button>
-          </Link>
         </div>
 
         <TopicPostsSection
