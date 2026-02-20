@@ -41,6 +41,7 @@ interface TagGroupHit {
 }
 
 type SearchFilter = 'all' | 'topics' | 'posts' | 'tags' | 'groups';
+type SearchSortMode = 'latest' | 'best';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -55,6 +56,11 @@ function SearchContent() {
   const [searchInput, setSearchInput] = useState(query);
   const [searchError, setSearchError] = useState('');
   const [activeFilter, setActiveFilter] = useState<SearchFilter>('all');
+  const [sortMode, setSortMode] = useState<SearchSortMode>(() => {
+    if (typeof window === 'undefined') return 'latest';
+    const saved = window.localStorage.getItem('search.sortMode');
+    return saved === 'best' ? 'best' : 'latest';
+  });
 
   const highlightMatch = (text: string, needle: string): ReactNode => {
     const trimmedNeedle = needle.trim();
@@ -143,6 +149,10 @@ function SearchContent() {
     return () => window.clearTimeout(timer);
   }, [query, performSearch]);
 
+  useEffect(() => {
+    window.localStorage.setItem('search.sortMode', sortMode);
+  }, [sortMode]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchInput.trim();
@@ -157,10 +167,17 @@ function SearchContent() {
     const bTime = new Date(b.last_post_created_at || b.created_at).getTime();
     return bTime - aTime;
   };
+  const sortByBest = (a: SearchResult, b: SearchResult) => {
+    if (b.similarity_score !== a.similarity_score) {
+      return b.similarity_score - a.similarity_score;
+    }
+    return sortByLastActivity(a, b);
+  };
+  const resultSorter = sortMode === 'best' ? sortByBest : sortByLastActivity;
 
-  const topicResults = results.filter((result) => result.result_type === 'topic').sort(sortByLastActivity);
-  const postResults = results.filter((result) => result.result_type === 'post').sort(sortByLastActivity);
-  const allContentResults = [...topicResults, ...postResults].sort(sortByLastActivity);
+  const topicResults = results.filter((result) => result.result_type === 'topic').sort(resultSorter);
+  const postResults = results.filter((result) => result.result_type === 'post').sort(resultSorter);
+  const allContentResults = [...topicResults, ...postResults].sort(resultSorter);
 
   const visibleContentResults = activeFilter === 'topics'
     ? topicResults
@@ -222,7 +239,29 @@ function SearchContent() {
       ) : (
         <Card>
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">Hakutulokset</h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-gray-800">Hakutulokset</h3>
+              <div className="inline-flex items-center rounded-md border border-gray-300 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setSortMode('latest')}
+                  className={`px-3 py-1 text-xs font-medium transition ${
+                    sortMode === 'latest' ? 'bg-yellow-100 text-yellow-800' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Uusimmat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('best')}
+                  className={`px-3 py-1 text-xs font-medium transition border-l border-gray-300 ${
+                    sortMode === 'best' ? 'bg-yellow-100 text-yellow-800' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Parhaat
+                </button>
+              </div>
+            </div>
 
             {query && (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
