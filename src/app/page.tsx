@@ -160,7 +160,7 @@ function ForumContent() {
                 </button>
                 <span className="min-w-0 break-words">
                   &ldquo;{quote.content}&rdquo; &mdash; {quote.author_username || 'tuntematon'},{' '}
-                  <Link href={`/topic/${quote.topic_id}`} className="text-yellow-700 hover:underline not-italic">
+                  <Link href={`/topic/${quote.topic_id}`} className="content-inline-link not-italic">
                     {formatFinnishDateTime(quote.created_at)}
                   </Link>
                 </span>
@@ -168,7 +168,7 @@ function ForumContent() {
             ) : null}
           </div>
 
-          <p className="text-xs text-gray-500 whitespace-nowrap text-right">
+          <p className="text-muted-xs whitespace-nowrap text-right">
             {threadCount} lankaa, {messageCount} viestiä
             {unreadThreadCount > 0 && (
               <>

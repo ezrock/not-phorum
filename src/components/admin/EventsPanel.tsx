@@ -265,9 +265,9 @@ export function EventsPanel() {
       {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Ladataan tapahtumia...</p>
+        <p className="text-muted-sm">Ladataan tapahtumia...</p>
       ) : events.length === 0 ? (
-        <p className="text-sm text-gray-500">Ei tapahtumia vielä.</p>
+        <p className="text-muted-sm">Ei tapahtumia vielä.</p>
       ) : (
         <EventsTable
           events={events}

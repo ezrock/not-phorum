@@ -93,7 +93,7 @@ export function HdSettingsPanel({ initialRetroEnabled, initialMidiEnabled }: HdS
             {showSettingActionIcons && <Palette size={20} className="text-gray-600" />}
             <div>
               <p className="font-medium">Retrolasit päähän</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-muted-sm">
                 {retroEnabled ? 'CRT-suodatin käytössä' : 'Normaali näkymä käytössä'}
               </p>
             </div>
@@ -123,7 +123,7 @@ export function HdSettingsPanel({ initialRetroEnabled, initialMidiEnabled }: HdS
             {showSettingActionIcons && <Music2 size={20} className="text-gray-600" />}
             <div>
               <p className="font-medium">.mid</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-muted-sm">
                 {midiEnabled ? 'Styge soi... epävireisesti' : 'You died.'}
               </p>
             </div>

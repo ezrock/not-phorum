@@ -87,7 +87,7 @@ export default function NewTopicPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-1">
+            <label htmlFor="title" className="form-label">
               Otsikko
             </label>
             <Input
@@ -100,7 +100,7 @@ export default function NewTopicPage() {
           </div>
 
           <div>
-            <label htmlFor="content" className="block text-sm font-medium mb-1">
+            <label htmlFor="content" className="form-label">
               Viesti
             </label>
             <textarea
@@ -114,12 +114,12 @@ export default function NewTopicPage() {
               placeholder="Kirjoita viestisi..."
               required
             />
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-muted-xs">
               <a
                 href="https://www.markdownguide.org/cheat-sheet/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-yellow-700 hover:underline"
+                className="content-inline-link"
               >
                 Muotoile viesti Markdownilla
               </a>

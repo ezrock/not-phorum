@@ -22,14 +22,14 @@ export function UsersSection({
         Käyttäjät
       </h2>
       {pendingUsers.length === 0 ? (
-        <p className="text-sm text-gray-500">Ei uusia hyväksyntää odottavia käyttäjiä.</p>
+        <p className="text-muted-sm">Ei uusia hyväksyntää odottavia käyttäjiä.</p>
       ) : (
         <div className="space-y-2">
           {pendingUsers.map((user) => (
-            <div key={user.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
+            <div key={user.id} className="list-row-card">
               <div className="min-w-0">
                 <p className="font-medium truncate">{user.username}</p>
-                <p className="text-xs text-gray-500">{new Date(user.created_at).toLocaleString('fi-FI')}</p>
+                <p className="text-muted-xs">{new Date(user.created_at).toLocaleString('fi-FI')}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button

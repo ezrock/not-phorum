@@ -266,7 +266,7 @@ export default function AdminPage() {
 
       {activeTab === 'board' && (
         <Card>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="section-head-row">
             {showHeaderIcons && <Settings2 size={24} className="text-yellow-600" />}
             <h2 className="card-title mb-0">Boardin asetukset</h2>
           </div>
@@ -276,7 +276,7 @@ export default function AdminPage() {
               <UserPlus size={20} className="text-gray-600" />
               <div>
                 <p className="font-medium">Rekisteröityminen</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-muted-sm">
                   {registrationEnabled
                     ? 'Portit auki.'
                     : 'Portit kiinni.'}
@@ -304,7 +304,7 @@ export default function AdminPage() {
                 <ScrollText size={20} className="text-gray-600" />
                 <div>
                 <p className="font-medium">Ilmoitusraita</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-muted-sm">
                   {notificationEnabled ? 'Raita näkyy kirjautuneille käyttäjille' : 'Raita on pois päältä'}
                 </p>
                 </div>
@@ -447,7 +447,7 @@ export default function AdminPage() {
 
       {activeTab === 'trophies' && (
         <Card>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="section-head-row">
             {showHeaderIcons && <Trophy size={24} className="text-yellow-600" />}
             <h2 className="card-title mb-0">Pokaalit (Legacy baseline)</h2>
           </div>
@@ -469,19 +469,19 @@ export default function AdminPage() {
                   )}
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{trophy.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{trophy.code}</p>
+                    <p className="text-muted-xs truncate">{trophy.code}</p>
                   </div>
                 </div>
                 <div className="text-right ml-4">
                   <p className="text-sm font-bold text-yellow-700">{trophy.points} p</p>
-                  <p className="text-xs text-gray-500">{trophy.awarded_count} käyttäjällä</p>
+                  <p className="text-muted-xs">{trophy.awarded_count} käyttäjällä</p>
                 </div>
               </div>
             ))}
           </div>
 
           {trophyOverview.length > 20 && (
-            <p className="mt-4 text-xs text-gray-500">
+            <p className="mt-4 text-muted-xs">
               Näytetään 20 ensimmäistä. Loput löytyvät taulusta `admin_trophy_overview`.
             </p>
           )}
@@ -494,7 +494,7 @@ export default function AdminPage() {
             {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
             Tasot
           </h2>
-          <p className="text-sm text-gray-500">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
+          <p className="text-muted-sm">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
         </Card>
       )}
 

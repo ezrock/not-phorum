@@ -22,7 +22,7 @@ export function TopicEditMetaFields({
   return (
     <div className="space-y-3">
       <div>
-        <label htmlFor="topic-edit-title" className="block text-sm font-medium mb-1">
+        <label htmlFor="topic-edit-title" className="form-label">
           Otsikko
         </label>
         <Input

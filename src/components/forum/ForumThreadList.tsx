@@ -47,7 +47,7 @@ export function ForumThreadList({
         <Link href="/new" className="block mb-4">
           <Button
             variant="primary"
-            className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
+            className="cta-button-wrap-balanced"
           >
             <Plus size={20} />
             Uusi aihe
@@ -68,7 +68,7 @@ export function ForumThreadList({
         <Link href="/new" className="block mb-4">
           <Button
             variant="primary"
-            className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
+            className="cta-button-wrap-balanced"
           >
             <Plus size={20} />
             Uusi aihe
@@ -86,7 +86,7 @@ export function ForumThreadList({
           <Link href="/new" className="block">
             <Button
               variant="primary"
-              className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
+              className="cta-button-wrap-balanced"
             >
               <Plus size={20} />
               Uusi aihe
@@ -169,10 +169,10 @@ export function ForumThreadList({
 
       {canShowMore && (
         <div className="mt-4 flex flex-col items-center gap-2 text-sm">
-          <Button type="button" variant="outline" onClick={onShowMore} disabled={loadingMore} className="min-w-44">
+          <Button type="button" variant="outline" onClick={onShowMore} disabled={loadingMore} className="btn-min-w-44">
             {loadingMore ? 'Ladataan...' : 'Näytä lisää'}
           </Button>
-          <p className="text-xs text-gray-500">
+          <p className="text-muted-xs">
             Näytetään {displayedTopicCount} / {threadCount} lankaa
           </p>
         </div>

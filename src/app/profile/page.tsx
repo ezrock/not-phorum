@@ -90,7 +90,7 @@ export default function ProfilePage() {
         )}
         <div className="min-w-0">
           <h1 className="text-3xl font-bold truncate font-mono">{typedProfile.username}</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-muted-sm">
             Liittymispäivä {typedProfile.created_at ? formatFinnishDate(typedProfile.created_at) : ''}
           </p>
         </div>

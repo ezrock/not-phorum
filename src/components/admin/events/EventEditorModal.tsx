@@ -78,8 +78,8 @@ export function EventEditorModal({
   const blocked = saving || deleting;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-xl rounded-xl border-2 border-gray-800 bg-white p-5 shadow-xl">
+    <div className="modal-overlay">
+      <div className="modal-panel modal-panel-xl">
         <h3 className="text-lg font-bold mb-4">
           {isEditing ? 'Muokkaa tapahtumaa' : 'Lisää tapahtuma'}
         </h3>
@@ -87,7 +87,7 @@ export function EventEditorModal({
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="eventName" className="block text-sm font-medium mb-1">
+            <label htmlFor="eventName" className="form-label">
               Nimi
             </label>
             <Input
@@ -103,7 +103,7 @@ export function EventEditorModal({
           <div className="flex items-center justify-between gap-3 px-1 py-1">
             <div>
               <p className="font-medium text-gray-800">Ajanjakso</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-muted-sm">
                 {formState.dateRangeEnabled ? 'Alku- ja loppupäivä käytössä' : 'Yksittäinen päivä käytössä'}
               </p>
             </div>
@@ -123,7 +123,7 @@ export function EventEditorModal({
 
           {!formState.dateRangeEnabled && (
             <div>
-              <label htmlFor="eventDate" className="block text-sm font-medium mb-1">
+              <label htmlFor="eventDate" className="form-label">
                 Päivä
               </label>
               <Input
@@ -140,7 +140,7 @@ export function EventEditorModal({
           {formState.dateRangeEnabled && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="eventRangeStartDate" className="block text-sm font-medium mb-1">
+                <label htmlFor="eventRangeStartDate" className="form-label">
                   Alkaa
                 </label>
                 <Input
@@ -153,7 +153,7 @@ export function EventEditorModal({
                 />
               </div>
               <div>
-                <label htmlFor="eventRangeEndDate" className="block text-sm font-medium mb-1">
+                <label htmlFor="eventRangeEndDate" className="form-label">
                   Päättyy
                 </label>
                 <Input
@@ -171,7 +171,7 @@ export function EventEditorModal({
           <div className="flex items-center justify-between gap-3 px-1 py-1">
             <div>
               <p className="font-medium text-gray-800">Toistuu vuosittain</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-muted-sm">
                 {formState.repeatsYearly ? 'Tapahtuma toistuu joka vuosi' : 'Tapahtuma on kertaluonteinen'}
               </p>
             </div>
@@ -193,7 +193,7 @@ export function EventEditorModal({
             <h4 className="section-header">Tiedostot</h4>
 
             <div>
-              <label htmlFor="eventMusicFile" className="block text-sm font-medium mb-1">
+              <label htmlFor="eventMusicFile" className="form-label">
                 <span className="inline-flex items-center gap-1">
                   <Music2 size={16} />
                   MIDI-tiedosto
@@ -213,28 +213,28 @@ export function EventEditorModal({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-muted-xs mt-1">
                 Löydetty {midiSongs.length} MIDI-tiedostoa kansiosta `public/midi`.
               </p>
               {!formState.musicEnabled && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-muted-xs mt-1">
                   Tiedosto tallennetaan valmiiksi, mutta sitä käytetään vain jos musiikki on päällä.
                 </p>
               )}
               {midiSongs.length === 0 && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-error-xs">
                   MIDI-tiedostoja ei löytynyt kansiosta `public/midi`.
                 </p>
               )}
               {formState.musicEnabled && formState.musicFile && !midiSet.has(formState.musicFile) && (
-                <p className="text-xs text-red-600 mt-1">Valittu MIDI puuttuu kansiosta `public/midi`.</p>
+                <p className="text-error-xs">Valittu MIDI puuttuu kansiosta `public/midi`.</p>
               )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3 px-1 py-1">
               <div>
                 <p className="font-medium text-gray-800">Midin soittaminen</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-muted-sm">
                   {formState.musicEnabled ? 'MIDI soi tapahtuman aikana' : 'MIDI ei soi tapahtuman aikana'}
                 </p>
               </div>
@@ -253,7 +253,7 @@ export function EventEditorModal({
             </div>
 
             <div className="mt-4">
-              <label htmlFor="eventLogoFile" className="block text-sm font-medium mb-1">
+              <label htmlFor="eventLogoFile" className="form-label">
                 <span className="inline-flex items-center gap-1">
                   <ImageIcon size={16} />
                   Logo
@@ -273,18 +273,18 @@ export function EventEditorModal({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-muted-xs mt-1">
                 Löydetty {logos.length} logotiedostoa kansiosta `public/logo`.
               </p>
               {formState.logoEnabled && formState.logoFile && !logoSet.has(formState.logoFile) && (
-                <p className="text-xs text-red-600 mt-1">Valittu logo puuttuu kansiosta `public/logo`.</p>
+                <p className="text-error-xs">Valittu logo puuttuu kansiosta `public/logo`.</p>
               )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3 px-1 py-1">
               <div>
                 <p className="font-medium text-gray-800">Logon näyttäminen</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-muted-sm">
                   {formState.logoEnabled ? 'Logo näytetään tapahtuman aikana' : 'Logoa ei näytetä tapahtuman aikana'}
                 </p>
               </div>

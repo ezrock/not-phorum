@@ -142,22 +142,22 @@ export function TokenInput({
 
         {open && onSelectOption && (
           <div className="menu-popover-panel">
-            {loading && <div className="px-3 py-2 text-sm text-gray-500">Haetaan...</div>}
+            {loading && <div className="popover-state-row">Haetaan...</div>}
             {!loading && visibleOptions.length === 0 && (
-              <div className="px-3 py-2 text-sm text-gray-500">{emptyMessage}</div>
+              <div className="popover-state-row">{emptyMessage}</div>
             )}
             {!loading &&
               visibleOptions.map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50"
+                  className="popover-option-row"
                   onClick={() => onSelectOption(option)}
                   disabled={disabled}
                 >
                   <span className="mr-1">{option.icon || ''}</span>
                   <span>{option.label}</span>
-                  {option.meta && <span className="ml-1 text-xs text-gray-500">{option.meta}</span>}
+                  {option.meta && <span className="ml-1 text-muted-xs">{option.meta}</span>}
                 </button>
               ))}
           </div>

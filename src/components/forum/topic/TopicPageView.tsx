@@ -129,7 +129,7 @@ export function TopicPageView({
           />
           <div>
             <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-4 text-muted-sm">
               <TagChip>{topicPrimaryTag?.name || 'Tagit'}</TagChip>
               <span>{topic.views_unique ?? topic.views} katselua</span>
               <span>{totalPosts} viestiä</span>

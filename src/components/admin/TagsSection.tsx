@@ -125,10 +125,10 @@ export function TagsSection({
       {unreviewedTags.length > 0 && (
         <div className="space-y-2">
           {unreviewedTags.map((tag) => (
-            <div key={tag.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
+            <div key={tag.id} className="list-row-card">
               <div className="min-w-0">
                 <p className="font-medium truncate">{tag.name}</p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-muted-xs truncate">
                   {tag.slug} • {tag.usage_count} käyttöä • {new Date(tag.created_at).toLocaleString('fi-FI')}
                 </p>
               </div>
@@ -191,7 +191,7 @@ export function TagsSection({
 
       <div className="mt-6 border-t border-gray-200 pt-4">
         <h3 className="font-semibold text-gray-800 mb-2">Kanoniset tagit ja aliakset</h3>
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="text-muted-xs mb-3">
           Aliakset toimivat hakusynonyymeinä (esim. &quot;pleikka&quot; -&gt; PlayStation 5). Merge siirtää aliakset myös kohdetagille.
         </p>
         <AdminActionError message={tagActionError} className="mb-3" />
@@ -245,7 +245,7 @@ export function TagsSection({
                         {renderLegacyIcon(tag.legacy_icon_path, `${tag.name} legacy icon`)}
                         <span>{tag.name}</span>
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-muted-xs truncate">
                         Slug: {tag.slug} • Käytössä: {tag.usage_count} ketjussa • aliakset:{' '}
                         {aliases.length > 0 ? aliases.map((a) => a.alias).join(', ') : 'ei'} • Ryhmissä:{' '}
                         {groupsForTag.length > 0 ? groupsForTag.map((g) => g.group_name).join(', ') : 'ei'}
@@ -431,7 +431,7 @@ export function TagsSection({
                           )}
                         </div>
                       )}
-                      <p className="text-xs text-gray-500">Vanha nimi/slug lisätään automaattisesti aliakseksi.</p>
+                      <p className="text-muted-xs">Vanha nimi/slug lisätään automaattisesti aliakseksi.</p>
                     </div>
                   )}
                 </div>

@@ -121,7 +121,7 @@ export function AddTags({
 
   return (
     <div ref={rootRef}>
-      <label htmlFor="topic-tags" className="block text-sm font-medium mb-1">
+      <label htmlFor="topic-tags" className="form-label">
         {label}
       </label>
 
@@ -141,9 +141,9 @@ export function AddTags({
 
         {open && (
           <div className="menu-popover-panel">
-            {loading && <div className="px-3 py-2 text-sm text-gray-500">Haetaan tageja...</div>}
+            {loading && <div className="popover-state-row">Haetaan tageja...</div>}
             {!loading && options.length === 0 && (
-              <div className="px-3 py-2 text-sm text-gray-500">Ei osumia</div>
+              <div className="popover-state-row">Ei osumia</div>
             )}
             {!loading &&
               (hasGrouping
@@ -156,7 +156,7 @@ export function AddTags({
                         <button
                           key={tag.id}
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50"
+                          className="popover-option-row"
                           onClick={() => addTag(tag)}
                           disabled={disabled}
                         >
@@ -170,7 +170,7 @@ export function AddTags({
                     <button
                       key={tag.id}
                       type="button"
-                      className="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50"
+                      className="popover-option-row"
                       onClick={() => addTag(tag)}
                       disabled={disabled}
                     >

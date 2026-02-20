@@ -228,7 +228,7 @@ function SearchContent() {
   return (
     <div className="layout-page-shell">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="section-head-row">
           <Search size={28} className="text-gray-800" />
           <h2 className="text-3xl font-bold">Haku</h2>
         </div>
@@ -386,7 +386,7 @@ function SearchContent() {
                           </p>
                         )}
 
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <div className="flex items-center gap-3 text-muted-xs">
                           <span className="text-yellow-600 font-medium">{result.category_name}</span>
                           <span>{result.author_username}</span>
                           <span className={result.result_type === 'topic' ? 'text-yellow-700' : 'text-blue-600'}>
@@ -395,7 +395,7 @@ function SearchContent() {
                         </div>
                       </div>
 
-                      <div className="text-right flex-shrink-0">
+                      <div className="meta-right-slot">
                         <p className="text-xs font-semibold text-gray-700">
                           {formatFinnishRelative(result.last_post_created_at || result.created_at)}
                         </p>

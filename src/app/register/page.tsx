@@ -118,7 +118,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-1">
+            <label htmlFor="username" className="form-label">
               Käyttäjätunnus
             </label>
             <Input
@@ -134,7 +134,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
+            <label htmlFor="email" className="form-label">
               Sähköposti
             </label>
             <Input
@@ -148,7 +148,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
+            <label htmlFor="password" className="form-label">
               Salasana
             </label>
             <Input
@@ -163,7 +163,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+            <label htmlFor="confirmPassword" className="form-label">
               Vahvista salasana
             </label>
             <Input
@@ -189,7 +189,7 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Onko sinulla jo tili?{' '}
-            <Link href="/login" className="text-yellow-600 hover:underline font-semibold">
+            <Link href="/login" className="auth-inline-link">
               Kirjaudu sisään
             </Link>
           </p>

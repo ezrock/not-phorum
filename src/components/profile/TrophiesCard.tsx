@@ -37,7 +37,7 @@ export function TrophiesCard({ trophies }: TrophiesCardProps) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">Ei kunniamerkkejä vielä.</p>
+        <p className="text-muted-sm">Ei kunniamerkkejä vielä.</p>
       )}
     </Card>
   );

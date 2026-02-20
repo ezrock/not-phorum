@@ -36,12 +36,12 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
         className="field-textarea field-textarea--reply"
         placeholder="Kirjoita vastauksesi..."
       />
-      <p className="mb-4 -mt-2 text-xs text-gray-500">
+      <p className="mb-4 -mt-2 text-muted-xs">
         <a
           href="https://www.markdownguide.org/cheat-sheet/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-yellow-700 hover:underline"
+          className="content-inline-link"
         >
           Muotoile viesti Markdownilla
         </a>

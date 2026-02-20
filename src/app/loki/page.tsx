@@ -384,7 +384,7 @@ export default function LokiPage() {
                         <span>
                           {event.type === 'quote' ? 'tykkäsi lainauksesta ketjuun ' : `${getActionText(event.type)} ketjuun `}
                         </span>
-                        <Link href={topicHref} className="text-yellow-700 hover:underline font-medium">
+                        <Link href={topicHref} className="content-inline-link font-medium">
                           {event.topic_title}
                         </Link>
                         {event.type === 'quote' && event.content_preview && (
@@ -402,7 +402,7 @@ export default function LokiPage() {
                               {event.urls[0]}
                             </a>
                             {event.urls.length > 1 && (
-                              <span className="text-sm text-gray-500"> (+{event.urls.length - 1} lisää)</span>
+                              <span className="text-muted-sm"> (+{event.urls.length - 1} lisää)</span>
                             )}
                           </span>
                         )}
@@ -434,7 +434,7 @@ export default function LokiPage() {
 
                     </div>
 
-                    <div className="text-right flex-shrink-0">
+                    <div className="meta-right-slot">
                       <Link href={topicHref} className="text-xs text-gray-500 hover:text-yellow-700 hover:underline">
                         {formatFinnishDateTime(event.created_at)}
                       </Link>

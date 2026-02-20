@@ -479,7 +479,7 @@ export function SettingsPanel({
               {showSettingActionIcons && <Images size={20} className="text-gray-600" />}
               <div>
                 <p className="font-medium">Käytä legacyikoneja</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-muted-sm">
                   {legacyTagIconsEnabled ? '2004-ikonit käytössä' : '2026-ikonit käytössä'}
                 </p>
               </div>
@@ -509,7 +509,7 @@ export function SettingsPanel({
               {showSettingActionIcons && <RefreshCw size={20} className="text-gray-600" />}
               <div>
                 <p className="font-medium">Reaaliaikaiset päivitykset</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-muted-sm">
                   {realtimeUpdatesEnabled
                     ? 'Ketjut ja viestit päivittyvät automaattisesti'
                     : 'Päivitykset vain sivun latauksella'}
@@ -543,7 +543,7 @@ export function SettingsPanel({
             Piilotetut aiheet
           </h3>
 
-          <p className="mb-3 text-sm text-gray-500">
+          <p className="mb-3 text-muted-sm">
             Valitse tagit tai tagiryhmät, joiden aiheet haluat piilottaa foorumin listauksesta.
           </p>
 
@@ -561,7 +561,7 @@ export function SettingsPanel({
             disabled={savingHiddenFilters}
           />
 
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="mt-3 text-muted-xs">
             {loadingHiddenImpact && 'Lasketaan piilotusvaikutusta...'}
             {!loadingHiddenImpact && hiddenImpact && (
               <>

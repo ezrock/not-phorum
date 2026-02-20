@@ -116,7 +116,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           {showHeaderIcons && <Star size={20} className="text-yellow-600" />}
           Top 5
         </h2>
-        <p className="text-sm text-gray-500">Ladataan...</p>
+        <p className="text-muted-sm">Ladataan...</p>
       </Card>
     );
   }
@@ -146,7 +146,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Ei dataa vielä.</p>
+            <p className="text-muted-sm">Ei dataa vielä.</p>
           )}
         </section>
 
@@ -161,16 +161,16 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
                 <Link
                   key={post.post_id}
                   href={`/topic/${post.topic_id}`}
-                  className="block rounded border border-gray-200 bg-gray-50 px-2.5 py-2 hover:bg-yellow-50 transition"
+                  className="list-row-card-compact block"
                 >
-                  <p className="text-xs text-gray-500 truncate mb-1">{post.topic_title}</p>
+                  <p className="text-muted-xs truncate mb-1">{post.topic_title}</p>
                   <p className="text-sm text-gray-700 line-clamp-2">{post.content_preview}</p>
                   <p className="text-xs text-yellow-700 mt-1">{post.likes_count} tykkäystä</p>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Ei tykättyjä viestejä vielä.</p>
+            <p className="text-muted-sm">Ei tykättyjä viestejä vielä.</p>
           )}
         </section>
 
@@ -185,7 +185,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
                 <Link
                   key={topic.id}
                   href={`/topic/${topic.id}`}
-                  className="flex items-center gap-2 text-sm rounded border border-gray-200 bg-gray-50 px-2.5 py-2 hover:bg-yellow-50 transition"
+                  className="list-row-card-compact flex items-center gap-2 text-sm"
                 >
                   <span className="flex-1 truncate font-medium">{topic.title}</span>
                   <span className="text-gray-500 whitespace-nowrap">{topic.views} katselua</span>
@@ -193,7 +193,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Ei aiheita vielä.</p>
+            <p className="text-muted-sm">Ei aiheita vielä.</p>
           )}
         </section>
 
@@ -208,7 +208,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
                 <Link
                   key={author.author_id}
                   href={`/profile/${author.author_id}`}
-                  className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-2.5 py-2 hover:bg-yellow-50 transition"
+                  className="list-row-card-compact flex items-center gap-2"
                 >
                   {author.profile_image_url ? (
                     <img
@@ -222,12 +222,12 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
                     </span>
                   )}
                   <span className="text-sm font-medium flex-1 truncate">{author.username}</span>
-                  <span className="text-xs text-gray-500 whitespace-nowrap">{author.likes_given} tykkäystä</span>
+                  <span className="text-muted-xs whitespace-nowrap">{author.likes_given} tykkäystä</span>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Et ole tykännyt vielä muiden viesteistä.</p>
+            <p className="text-muted-sm">Et ole tykännyt vielä muiden viesteistä.</p>
           )}
         </section>
       </div>

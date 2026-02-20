@@ -119,7 +119,7 @@ export function TagGroupsSection({
       <p className="text-sm text-gray-600 mb-4">
         Ryhmät auttavat selaamaan tageja (esim. 8-bit, 16-bit), mutta ryhmiä ei voi valita keskustelun tageiksi.
       </p>
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-muted-xs mb-4">
         Sama tagi voi kuulua useaan ryhmään. Ryhmän nimi ei voi olla sama kuin olemassa olevan tagin nimi.
       </p>
       <AdminActionError message={tagGroupActionError} className="mb-4" />
@@ -191,7 +191,7 @@ export function TagGroupsSection({
       </div>
 
       {tagGroups.length === 0 ? (
-        <p className="text-sm text-gray-500">Ei ryhmiä vielä.</p>
+        <p className="text-muted-sm">Ei ryhmiä vielä.</p>
       ) : (
         <div className="space-y-8">
           {[
@@ -202,7 +202,7 @@ export function TagGroupsSection({
             <div key={section.key} className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-800">{section.title}</h3>
               {section.groups.length === 0 ? (
-                <p className="text-xs text-gray-500">Ei ryhmiä tässä osiossa.</p>
+                <p className="text-muted-xs">Ei ryhmiä tässä osiossa.</p>
               ) : (
                 section.groups.map((group) => {
                   const aliases = tagGroupAliasesByGroupId[group.group_id] || [];
@@ -214,7 +214,7 @@ export function TagGroupsSection({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 space-y-1">
                           <p className="font-medium truncate">{group.group_name}</p>
-                          <p className="text-xs text-gray-500 truncate">
+                          <p className="text-muted-xs truncate">
                             Slug: {group.group_slug}
                             {' • '}Käyttö: {formatGroupKind(group.group_kind)}
                             {(group.group_kind === 'arrangement' || group.group_kind === 'both') ? ` • järjestys: ${group.arrangement_order}` : ''}
@@ -368,7 +368,7 @@ export function TagGroupsSection({
                     />
                     {group.member_tag_ids.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-xs text-gray-500">Tagien järjestys haussa</p>
+                        <p className="text-muted-xs">Tagien järjestys haussa</p>
                         <div className="space-y-1">
                           {group.member_tag_ids.map((tagId, index) => {
                             const token = canonicalTagToToken(tagId);

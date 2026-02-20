@@ -149,13 +149,13 @@ export default function PublicProfilePage() {
             {profile.display_name && (
               <p className="text-sm text-gray-600">{profile.display_name}</p>
             )}
-            <p className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+            <p className="flex items-center gap-1 text-muted-sm mt-1">
               <Calendar size={14} />
               Jäsen {formatFinnishDate(profile.created_at)} alkaen
             </p>
             <div className="flex items-center gap-2 mt-2">
               {isCurrentUserAdmin && profile.is_admin && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded">
+                <span className="admin-badge">
                   <Shield size={12} />
                   Admin
                 </span>

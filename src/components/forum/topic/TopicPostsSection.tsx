@@ -76,7 +76,7 @@ export function TopicPostsSection({
               variant="outline"
               onClick={loadOlderPosts}
               disabled={loadingMore}
-              className="min-w-44"
+              className="btn-min-w-44"
             >
               {loadingMore ? 'Ladataan...' : 'Näytä vanhempia viestejä'}
             </Button>
@@ -118,11 +118,11 @@ export function TopicPostsSection({
             variant="outline"
             onClick={handleShowMore}
             disabled={loadingMore}
-            className="min-w-44"
+            className="btn-min-w-44"
           >
             {loadingMore ? 'Ladataan...' : 'Näytä lisää viestejä'}
           </Button>
-          <p className="text-xs text-gray-500">
+          <p className="text-muted-xs">
             Näytetään {displayedPostCount} / {totalPosts} viestiä
           </p>
         </div>

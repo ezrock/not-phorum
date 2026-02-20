@@ -236,7 +236,7 @@ export function EditProfileForm() {
               disabled={!isAdmin}
               className={!isAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-muted-xs mt-1">
               {isAdmin
                 ? 'Käyttäjätunnuksen muutos vaatii erillisen vahvistuksen.'
                 : 'Käyttäjätunnusta voi muuttaa vain admin.'}
@@ -244,7 +244,7 @@ export function EditProfileForm() {
           </div>
 
           <div>
-            <label htmlFor="displayName" className="block text-sm font-medium mb-1">
+            <label htmlFor="displayName" className="form-label">
               Nimi
             </label>
             <Input
@@ -257,7 +257,7 @@ export function EditProfileForm() {
           </div>
 
           <div>
-            <label htmlFor="signature" className="block text-sm font-medium mb-1">
+            <label htmlFor="signature" className="form-label">
               Allekirjoitus
             </label>
             <textarea
@@ -323,7 +323,7 @@ export function EditProfileForm() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
+            <label htmlFor="email" className="form-label">
               Sähköposti
             </label>
             <Input
@@ -336,7 +336,7 @@ export function EditProfileForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+            <label className="form-label inline-flex items-center gap-1">
               <LinkIcon size={14} />
               Linkki
             </label>
@@ -381,7 +381,7 @@ export function EditProfileForm() {
 
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
-            <label htmlFor="newPassword" className="block text-sm font-medium mb-1">
+            <label htmlFor="newPassword" className="form-label">
               Uusi salasana
             </label>
             <Input
@@ -396,7 +396,7 @@ export function EditProfileForm() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+            <label htmlFor="confirmPassword" className="form-label">
               Vahvista salasana
             </label>
             <Input
@@ -423,8 +423,8 @@ export function EditProfileForm() {
       </Card>
 
       {showUsernameConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-xl border-2 border-gray-800 bg-white p-5 shadow-xl">
+        <div className="modal-overlay">
+          <div className="modal-panel modal-panel-md">
             <h3 className="text-lg font-bold mb-2">Vahvista käyttäjätunnuksen muutos</h3>
             <p className="text-sm text-gray-600 mb-4">
               Olet muuttamassa käyttäjätunnusta:
@@ -433,7 +433,7 @@ export function EditProfileForm() {
               {' -> '}
               <span className="font-semibold text-gray-800">{username.trim()}</span>
             </p>
-            <p className="text-xs text-gray-500 mb-5">
+            <p className="text-muted-xs mb-5">
               Tämä muutos näkyy kaikkialla foorumilla. Haluatko varmasti jatkaa?
             </p>
             <div className="flex justify-end gap-2">

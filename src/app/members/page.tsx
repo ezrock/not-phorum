@@ -109,13 +109,13 @@ export default function MembersPage() {
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     {member.username}
                     {myProfile?.is_admin && member.is_admin && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-200 px-1.5 py-0.5 rounded">
+                      <span className="admin-badge px-1.5">
                         <Shield size={10} />
                         Admin
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-muted-xs">
                     Liittynyt {formatFinnishDate(member.created_at)}
                   </p>
 

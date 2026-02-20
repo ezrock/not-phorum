@@ -98,7 +98,7 @@ _______________  _______      _____
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
+              <label htmlFor="email" className="form-label">
                 Sähköposti
               </label>
               <Input
@@ -112,7 +112,7 @@ _______________  _______      _____
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
+              <label htmlFor="password" className="form-label">
                 Salasana
               </label>
               <Input
@@ -139,7 +139,7 @@ _______________  _______      _____
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 Eikö sinulla ole tiliä?{' '}
-                <Link href="/register" className="text-yellow-600 hover:underline font-semibold">
+                <Link href="/register" className="auth-inline-link">
                   Rekisteröidy tästä
                 </Link>
               </p>
