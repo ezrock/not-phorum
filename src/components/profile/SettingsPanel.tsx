@@ -49,6 +49,20 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function parseImpactRow(data: unknown): HiddenImpactRow | null {
+  const row = Array.isArray(data)
+    ? (data[0] as Record<string, unknown> | undefined)
+    : (data as Record<string, unknown> | null);
+  if (!row || typeof row !== 'object') return null;
+  return {
+    hidden_topic_count: Number(row.hidden_topic_count ?? 0),
+    total_topic_count: Number(row.total_topic_count ?? 0),
+    hidden_message_count: Number(row.hidden_message_count ?? 0),
+    total_message_count: Number(row.total_message_count ?? 0),
+    hidden_message_percent: Number(row.hidden_message_percent ?? 0),
+  };
+}
+
 export function SettingsPanel({
   initialRealtimeEnabled,
   initialHiddenTagIds,
@@ -70,6 +84,7 @@ export function SettingsPanel({
   const [loadingHideOptions, setLoadingHideOptions] = useState(false);
   const [hiddenImpact, setHiddenImpact] = useState<HiddenImpactRow | null>(null);
   const [loadingHiddenImpact, setLoadingHiddenImpact] = useState(false);
+  const [hiddenImpactError, setHiddenImpactError] = useState('');
 
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingHiddenFilters, setSavingHiddenFilters] = useState(false);
@@ -233,26 +248,123 @@ export function SettingsPanel({
   useEffect(() => {
     const fetchImpact = async () => {
       setLoadingHiddenImpact(true);
+      setHiddenImpactError('');
       try {
         const { data, error } = await supabase.rpc('get_hidden_topic_filter_impact', {
           input_hidden_tag_ids: hiddenTagIds,
           input_hidden_tag_group_ids: hiddenTagGroupIds,
         });
-        if (error) throw error;
-        const row = Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
-        if (!row) {
-          setHiddenImpact(null);
+        if (!error) {
+          const parsed = parseImpactRow(data);
+          if (parsed) {
+            setHiddenImpact(parsed);
+            return;
+          }
+        }
+
+        const { data: canonicalDirectData, error: canonicalDirectError } = await supabase.rpc('resolve_canonical_tag_ids', {
+          input_tag_ids: hiddenTagIds,
+        });
+        if (canonicalDirectError) throw canonicalDirectError;
+
+        let groupMemberIds: number[] = [];
+        if (hiddenTagGroupIds.length > 0) {
+          const { data: membersData, error: membersError } = await supabase
+            .from('tag_group_members')
+            .select('tag_id')
+            .in('group_id', hiddenTagGroupIds);
+          if (membersError) throw membersError;
+          groupMemberIds = (membersData || [])
+            .map((row) => Number(row.tag_id))
+            .filter((value) => Number.isFinite(value) && value > 0);
+        }
+
+        const { data: canonicalGroupData, error: canonicalGroupError } = await supabase.rpc('resolve_canonical_tag_ids', {
+          input_tag_ids: groupMemberIds,
+        });
+        if (canonicalGroupError) throw canonicalGroupError;
+
+        const excludedTagIds = Array.from(
+          new Set([
+            ...(Array.isArray(canonicalDirectData) ? canonicalDirectData : []),
+            ...(Array.isArray(canonicalGroupData) ? canonicalGroupData : []),
+          ])
+        )
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value) && value > 0);
+
+        const { count: totalTopicCount, error: totalTopicError } = await supabase
+          .from('topics')
+          .select('id', { count: 'exact', head: true });
+        if (totalTopicError) throw totalTopicError;
+
+        const { count: totalMessageCount, error: totalMessageError } = await supabase
+          .from('posts')
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null);
+        if (totalMessageError) throw totalMessageError;
+
+        if (excludedTagIds.length === 0) {
+          setHiddenImpact({
+            hidden_topic_count: 0,
+            total_topic_count: totalTopicCount || 0,
+            hidden_message_count: 0,
+            total_message_count: totalMessageCount || 0,
+            hidden_message_percent: 0,
+          });
           return;
         }
+
+        const { data: topicTagRows, error: topicTagError } = await supabase
+          .from('topic_tags')
+          .select('topic_id')
+          .in('tag_id', excludedTagIds);
+        if (topicTagError) throw topicTagError;
+
+        const hiddenTopicIds = Array.from(
+          new Set(
+            (topicTagRows || [])
+              .map((row) => Number(row.topic_id))
+              .filter((value) => Number.isFinite(value) && value > 0)
+          )
+        );
+
+        let hiddenMessageCount = 0;
+        if (hiddenTopicIds.length > 0) {
+          const chunkSize = 500;
+          for (let i = 0; i < hiddenTopicIds.length; i += chunkSize) {
+            const chunk = hiddenTopicIds.slice(i, i + chunkSize);
+            const { count: chunkCount, error: chunkError } = await supabase
+              .from('posts')
+              .select('id', { count: 'exact', head: true })
+              .in('topic_id', chunk)
+              .is('deleted_at', null);
+            if (chunkError) throw chunkError;
+            hiddenMessageCount += chunkCount || 0;
+          }
+        }
+
+        const safeTotalMessageCount = totalMessageCount || 0;
+        const hiddenPercent = safeTotalMessageCount > 0
+          ? Number(((hiddenMessageCount / safeTotalMessageCount) * 100).toFixed(1))
+          : 0;
+
         setHiddenImpact({
-          hidden_topic_count: Number(row.hidden_topic_count ?? 0),
-          total_topic_count: Number(row.total_topic_count ?? 0),
-          hidden_message_count: Number(row.hidden_message_count ?? 0),
-          total_message_count: Number(row.total_message_count ?? 0),
-          hidden_message_percent: Number(row.hidden_message_percent ?? 0),
+          hidden_topic_count: hiddenTopicIds.length,
+          total_topic_count: totalTopicCount || 0,
+          hidden_message_count: hiddenMessageCount,
+          total_message_count: safeTotalMessageCount,
+          hidden_message_percent: hiddenPercent,
         });
-      } catch {
-        setHiddenImpact(null);
+      } catch (err: unknown) {
+        setHiddenImpactError(toErrorMessage(err, 'Piilotusvaikutuksen laskenta epäonnistui'));
+        setHiddenImpact({
+          hidden_topic_count: 0,
+          total_topic_count: 0,
+          hidden_message_count: 0,
+          total_message_count: 0,
+          hidden_message_percent: 0,
+        });
       } finally {
         setLoadingHiddenImpact(false);
       }
@@ -397,6 +509,7 @@ export function SettingsPanel({
                 {hiddenImpact.hidden_topic_count} ketjua piilossa ({hiddenImpact.hidden_message_percent.toFixed(1)} % kaikista viesteistä).
               </>
             )}
+            {!loadingHiddenImpact && hiddenImpactError && ` ${hiddenImpactError}`}
           </p>
         </section>
 
