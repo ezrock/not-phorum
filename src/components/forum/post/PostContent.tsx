@@ -1,6 +1,6 @@
 'use client';
 
-import { Children } from 'react';
+import { Children, isValidElement, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import LinkifyIt from 'linkify-it';
@@ -9,8 +9,8 @@ import { postImage } from '@/lib/cloudinary';
 import type { Post } from '@/components/forum/post/post.types';
 
 const URL_MAX_DISPLAY_LENGTH = 60;
-const UNDERLINE_START = '__UNDERLINE_START__';
-const UNDERLINE_END = '__UNDERLINE_END__';
+const UNDERLINE_START = 'ULSTARTTOKEN';
+const UNDERLINE_END = 'ULENDTOKEN';
 const linkify = new LinkifyIt();
 linkify.set({ fuzzyLink: true, fuzzyIP: false, fuzzyEmail: false });
 linkify.tlds(tlds as string[]);
@@ -110,6 +110,14 @@ function encodeUnderlineSyntax(markdown: string): string {
   });
 }
 
+function flattenText(node: ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(flattenText).join('');
+  if (isValidElement(node)) return flattenText(node.props.children);
+  return '';
+}
+
 interface PostContentProps {
   post: Post;
   hasBeenEdited: boolean;
@@ -152,9 +160,7 @@ export function PostContent({ post, hasBeenEdited, editedLabel }: PostContentPro
               );
             },
             em: ({ children }) => {
-              const plain = Children.toArray(children)
-                .map((child) => (typeof child === 'string' ? child : ''))
-                .join('');
+              const plain = Children.toArray(children).map((child) => flattenText(child)).join('');
               if (plain.includes(UNDERLINE_START) && plain.includes(UNDERLINE_END)) {
                 const clean = plain
                   .replaceAll(UNDERLINE_START, '')
