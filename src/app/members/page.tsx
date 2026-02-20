@@ -18,6 +18,15 @@ interface Profile {
   is_admin: boolean;
 }
 
+interface InactiveMember {
+  id: string;
+  username: string;
+  profile_image_url: string | null;
+  created_at: string;
+  is_admin: boolean;
+  last_activity_at: string | null;
+}
+
 interface RawMemberTrophyRow extends TrophyJoinRow {
   profile_id: string;
 }
@@ -25,17 +34,20 @@ interface RawMemberTrophyRow extends TrophyJoinRow {
 export default function MembersPage() {
   const { supabase, profile: myProfile } = useAuth();
   const [members, setMembers] = useState<Profile[]>([]);
+  const [inactiveMembers, setInactiveMembers] = useState<InactiveMember[]>([]);
   const [memberTrophies, setMemberTrophies] = useState<Record<string, Trophy[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMembers = async () => {
-      const [membersRes, trophiesRes] = await Promise.all([
+      const [membersRes, inactiveRes, trophiesRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, username, profile_image_url, created_at, is_admin')
           .eq('approval_status', 'approved')
           .order('created_at', { ascending: true }),
+        supabase
+          .rpc('get_inactive_members_since', { input_days: 365 }),
         supabase
           .from('profile_trophies')
           .select('profile_id, trophy:trophies(id, code, name, points, icon_path)'),
@@ -43,6 +55,10 @@ export default function MembersPage() {
 
       if (!membersRes.error && membersRes.data) {
         setMembers(membersRes.data);
+      }
+
+      if (!inactiveRes.error && inactiveRes.data) {
+        setInactiveMembers(inactiveRes.data as InactiveMember[]);
       }
 
       if (!trophiesRes.error && trophiesRes.data) {
@@ -65,6 +81,7 @@ export default function MembersPage() {
 
         setMemberTrophies(grouped);
       }
+
       setLoading(false);
     };
 
@@ -93,7 +110,9 @@ export default function MembersPage() {
         </p>
       </div>
 
-      <div className="space-y-2">
+
+
+      <div className="space-y-2 mb-4">
         {members.map((member) => (
           <Link key={member.id} href={`/profile/${member.id}`}>
             <Card className="hover:border-yellow-400 transition cursor-pointer">
@@ -156,6 +175,29 @@ export default function MembersPage() {
           </Card>
         )}
       </div>
+
+      {inactiveMembers.length > 0 && (
+        <Card>
+          <h3 className="card-title mb-2">Missä he ovat nyt?</h3>
+          <p className="text-muted-sm mb-3">
+            365 päivää hiljaisuutta: {inactiveMembers.length}
+          </p>
+
+          <div className="space-y-2">
+            {inactiveMembers.map((member) => (
+              <Link key={`inactive-${member.id}`} href={`/profile/${member.id}`} className="list-row-card hover:border-yellow-400 transition">
+                <span className="font-medium truncate">{member.username}</span>
+                <span className="text-muted-xs whitespace-nowrap">
+                  {member.last_activity_at
+                    ? `Viimeksi aktiivinen ${formatFinnishDate(member.last_activity_at)}`
+                    : `Ei aktiviteettia (liittynyt ${formatFinnishDate(member.created_at)})`}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
+
     </div>
   );
 }
