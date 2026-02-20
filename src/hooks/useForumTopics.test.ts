@@ -96,7 +96,7 @@ describe('useForumTopics tag filtering pipeline', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(routerPushMock).toHaveBeenCalledWith('/forum?tags=3');
+    expect(routerPushMock).toHaveBeenCalledWith('/?tags=3');
   });
 
   it('normalizes API rows into replies_count and unread_count safely', async () => {

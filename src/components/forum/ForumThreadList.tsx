@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { formatFinnishRelative } from '@/lib/formatDate';
 import type { Topic } from '@/hooks/useForumTopics';
+import { TagChip } from '@/components/ui/TagChip';
 
 interface ForumThreadListProps {
   topics: Topic[];
@@ -42,7 +43,7 @@ export function ForumThreadList({
   if (topics.length === 0) {
     return (
       <Card>
-        <Link href="/forum/new" className="block mb-4">
+        <Link href="/new" className="block mb-4">
           <Button
             variant="primary"
             className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
@@ -63,7 +64,7 @@ export function ForumThreadList({
   if (unreadOnly && filteredTopics.length === 0) {
     return (
       <Card>
-        <Link href="/forum/new" className="block mb-4">
+        <Link href="/new" className="block mb-4">
           <Button
             variant="primary"
             className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
@@ -81,7 +82,7 @@ export function ForumThreadList({
     <>
       <Card className="overflow-hidden">
         <div className="pb-8 border-b border-gray-200">
-          <Link href="/forum/new" className="block">
+          <Link href="/new" className="block">
             <Button
               variant="primary"
               className="w-full whitespace-normal text-center leading-tight flex items-center justify-center gap-2"
@@ -94,7 +95,7 @@ export function ForumThreadList({
         <div className="divide-y divide-gray-200">
           {visibleTopics.map((topic) => {
             const jumpPostId = topic.jump_post_id ?? topic.last_post_id;
-            const topicHref = `/forum/topic/${topic.id}${jumpPostId ? `#post-${jumpPostId}` : ''}`;
+            const topicHref = `/topic/${topic.id}${jumpPostId ? `#post-${jumpPostId}` : ''}`;
 
             return (
               <Link
@@ -119,7 +120,9 @@ export function ForumThreadList({
                     </div>
 
                     <div className="forum-thread-mobile-meta">
-                      <span className="forum-thread-mobile-category">{topic.category_name}</span>
+                      <TagChip size="xs" className="forum-thread-mobile-category">
+                        {topic.category_name}
+                      </TagChip>
                       <span aria-hidden="true">•</span>
                       <span className="forum-thread-mobile-author">{topic.author_username}</span>
                       <span aria-hidden="true">•</span>
@@ -134,7 +137,9 @@ export function ForumThreadList({
                   </div>
 
                   <div className="forum-thread-meta">
-                    <span className="forum-thread-meta-item forum-thread-meta-category">{topic.category_name}</span>
+                    <span className="forum-thread-meta-item forum-thread-meta-category">
+                      <TagChip size="xs">{topic.category_name}</TagChip>
+                    </span>
                     <span className="forum-thread-meta-item forum-thread-meta-author">{topic.author_username}</span>
                     <span className="forum-thread-meta-item tabular-nums">
                       {topic.unread_count > 0 ? (

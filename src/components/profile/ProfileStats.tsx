@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MessageSquare, LogIn, Eye, BarChart3 } from 'lucide-react';
 import type { TopicStat, TopTagStat } from '@/hooks/useProfileStats';
+import { TagChipLink } from '@/components/ui/TagChipLink';
 
 interface ProfileStatsProps {
   postCount: number;
@@ -54,7 +55,7 @@ export function ProfileStats({
         <span className="font-bold">{loginNetworkCount}</span>
       </div>
       {mostPopularTopic && (
-        <Link href={`/forum/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+        <Link href={`/topic/${mostPopularTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
           <Eye size={18} className="text-yellow-600" />
           <span className="text-sm text-gray-500 flex-shrink-0">Suosituin aihe</span>
           <span className="font-bold text-sm text-right flex-1 truncate">{mostPopularTopic.title}</span>
@@ -62,7 +63,7 @@ export function ProfileStats({
         </Link>
       )}
       {mostActiveTopic && (
-        <Link href={`/forum/topic/${mostActiveTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
+        <Link href={`/topic/${mostActiveTopic.id}`} className="flex items-center gap-3 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition">
           <BarChart3 size={18} className="text-yellow-600" />
           <span className="text-sm text-gray-500 flex-shrink-0">Aktiivisin aihe</span>
           <span className="font-bold text-sm text-right flex-1 truncate">{mostActiveTopic.title}</span>
@@ -74,14 +75,14 @@ export function ProfileStats({
           <p className="text-xs text-gray-500 mb-2">Käytetyimmät tagit</p>
           <div className="flex flex-wrap gap-2">
             {topTags.map((tag) => (
-              <Link
+              <TagChipLink
                 key={tag.tag_id}
-                href={`/forum?tags=${tag.tag_id}`}
-                className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs text-yellow-900 hover:bg-yellow-100"
+                href={`/?tags=${tag.tag_id}`}
+                icon="🏷️"
               >
                 <span>{tag.tag_name}</span>
                 <span className="text-yellow-700">({tag.usage_count})</span>
-              </Link>
+              </TagChipLink>
             ))}
           </div>
         </div>

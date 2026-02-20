@@ -7,6 +7,7 @@ import { BarChart3, Heart, Star, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { profileThumb } from '@/lib/cloudinary';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
+import { TagChip } from '@/components/ui/TagChip';
 
 interface TopFiveCardProps {
   profileId: string;
@@ -137,8 +138,9 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
             <div className="space-y-2">
               {topTags.map((tag) => (
                 <div key={tag.tag_id} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">🏷️</span>
-                  <span className="flex-1 font-medium">{tag.tag_name}</span>
+                  <TagChip icon="🏷️" className="flex-1 justify-start border-yellow-200 bg-yellow-50/70 text-yellow-900">
+                    {tag.tag_name}
+                  </TagChip>
                   <span className="text-gray-500">{tag.usage_count} aihetta</span>
                 </div>
               ))}
@@ -158,7 +160,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
               {topLikedPosts.map((post) => (
                 <Link
                   key={post.post_id}
-                  href={`/forum/topic/${post.topic_id}`}
+                  href={`/topic/${post.topic_id}`}
                   className="block rounded border border-gray-200 bg-gray-50 px-2.5 py-2 hover:bg-yellow-50 transition"
                 >
                   <p className="text-xs text-gray-500 truncate mb-1">{post.topic_title}</p>
@@ -182,7 +184,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
               {mostViewedThreads.map((topic) => (
                 <Link
                   key={topic.id}
-                  href={`/forum/topic/${topic.id}`}
+                  href={`/topic/${topic.id}`}
                   className="flex items-center gap-2 text-sm rounded border border-gray-200 bg-gray-50 px-2.5 py-2 hover:bg-yellow-50 transition"
                 >
                   <span className="flex-1 truncate font-medium">{topic.title}</span>

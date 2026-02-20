@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { TagChipInput } from '@/components/ui/TagChipInput';
 
 export interface TagOption {
   id: number;
@@ -183,22 +183,14 @@ export function AddTags({
       </div>
       <div className="flex flex-wrap gap-2 mt-2">
         {selected.map((tag) => (
-          <span
+          <TagChipInput
             key={tag.id}
-            className="inline-flex items-center gap-1 rounded-full border border-yellow-400 bg-yellow-50 px-3 py-1 text-sm text-yellow-900"
-          >
-            <span>{tag.icon || '🏷️'}</span>
-            <span>{tag.name}</span>
-            <button
-              type="button"
-              onClick={() => removeTag(tag.id)}
-              className="rounded-full p-0.5 hover:bg-yellow-200"
-              aria-label={`Poista tagi ${tag.name}`}
-              disabled={disabled}
-            >
-              <X size={12} />
-            </button>
-          </span>
+            icon={tag.icon || '🏷️'}
+            label={tag.name}
+            removeLabel={`Poista tagi ${tag.name}`}
+            onRemove={() => removeTag(tag.id)}
+            disabled={disabled}
+          />
         ))}
       </div>
     </div>

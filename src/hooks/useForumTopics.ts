@@ -112,7 +112,7 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
         next.delete('match');
       }
       const query = next.toString();
-      router.push(query ? `/forum?${query}` : '/forum');
+      router.push(query ? `/?${query}` : '/');
     },
     [router, searchParams]
   );
@@ -127,7 +127,7 @@ export function useForumTopics({ supabase, currentUser, realtimeUpdatesEnabled }
         next.delete('unread');
       }
       const query = next.toString();
-      router.push(query ? `/forum?${query}` : '/forum');
+      router.push(query ? `/?${query}` : '/');
     },
     [router, searchParams]
   );

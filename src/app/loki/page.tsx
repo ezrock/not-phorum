@@ -348,7 +348,7 @@ export default function LokiPage() {
         <Card className="overflow-hidden">
           <div className="divide-y divide-gray-200">
             {filtered.map((event) => {
-              const topicHref = `/forum/topic/${event.topic_id}${event.post_id ? `#post-${event.post_id}` : ''}`;
+              const topicHref = `/topic/${event.topic_id}${event.post_id ? `#post-${event.post_id}` : ''}`;
               const media = getMediaForEvent(event);
               const rowAlignmentClass = media ? 'items-start' : 'items-center';
 

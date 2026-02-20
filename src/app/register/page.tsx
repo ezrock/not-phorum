@@ -73,7 +73,7 @@ export default function RegisterPage() {
       await register(email, password, username);
       // Intentionally full navigation (not router.push) for auth-boundary consistency.
       // See docs/architecture.md.
-      window.location.href = '/forum';
+      window.location.href = '/';
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Rekisteröityminen epäonnistui';
       setError(message);

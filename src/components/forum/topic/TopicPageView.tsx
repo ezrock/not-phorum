@@ -7,6 +7,7 @@ import type { TagOption } from '@/components/forum/AddTags';
 import { TopicEditMetaFields } from '@/components/forum/topic/TopicEditMetaFields';
 import { TopicPostsSection } from '@/components/forum/topic/TopicPostsSection';
 import type { Topic, TopicPrimaryTag } from '@/components/forum/types';
+import { TagChip } from '@/components/ui/TagChip';
 
 interface TopicPageViewProps {
   topic: Topic | null;
@@ -100,7 +101,7 @@ export function TopicPageView({
       <div className="max-w-6xl mx-auto mt-8 px-4">
         <Card>
           <h2 className="text-2xl font-bold">Aihetta ei löytynyt</h2>
-          <Link href="/forum">
+          <Link href="/">
             <Button className="mt-4">Takaisin foorumille</Button>
           </Link>
         </Card>
@@ -117,13 +118,13 @@ export function TopicPageView({
             <div>
               <h1 className="text-3xl font-bold mb-2">{topic.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="text-yellow-800 font-medium">{topicPrimaryTag?.name || 'Tagit'}</span>
+                <TagChip>{topicPrimaryTag?.name || 'Tagit'}</TagChip>
                 <span>{topic.views_unique ?? topic.views} katselua</span>
                 <span>{totalPosts} viestiä</span>
               </div>
             </div>
           </div>
-          <Link href="/forum">
+          <Link href="/">
             <Button variant="outline" className="flex items-center gap-2">
               <ArrowLeft size={16} />
               Takaisin

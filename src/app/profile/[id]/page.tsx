@@ -117,7 +117,7 @@ export default function PublicProfilePage() {
       <div className="page-container">
         <Card>
           <h2 className="text-2xl font-bold">Käyttäjää ei löytynyt</h2>
-          <Link href="/forum">
+          <Link href="/">
             <Button className="mt-4">Takaisin foorumille</Button>
           </Link>
         </Card>
@@ -128,7 +128,7 @@ export default function PublicProfilePage() {
   return (
     <div className="page-container">
       <div className="mb-6">
-        <Link href="/forum" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
+        <Link href="/" className="flex items-center gap-2 text-yellow-600 hover:underline text-sm">
           <ArrowLeft size={16} />
           Takaisin foorumille
         </Link>

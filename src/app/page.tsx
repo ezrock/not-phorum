@@ -1,152 +1,219 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/Input';
-import { Alert } from '@/components/ui/Alert';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { Heart } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatFinnishDateTime } from '@/lib/formatDate';
+import { eventOccursOnDate } from '@/lib/siteEvents';
+import { useForumTopics } from '@/hooks/useForumTopics';
+import { useForumQuote } from '@/hooks/useForumQuote';
+import { ForumThreadList } from '@/components/forum/ForumThreadList';
+import { reportError } from '@/lib/reportError';
 
-export default function Home() {
-  const { currentUser, loading, login } = useAuth();
+interface RawSiteEventRow {
+  id: number;
+  name: string;
+  event_date: string;
+  repeats_yearly: boolean;
+  date_range_enabled: boolean;
+  range_start_date: string | null;
+  range_end_date: string | null;
+}
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [registrationEnabled, setRegistrationEnabled] = useState(false);
-  const [checkingSettings, setCheckingSettings] = useState(true);
+function formatEventDate(dateValue: string): string {
+  if (!dateValue) return '-';
+  const date = new Date(`${dateValue}T00:00:00`);
+  return new Intl.DateTimeFormat('fi-FI', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
 
-  // Logged-in users go straight to the forum
+function ForumContent() {
+  const { supabase, currentUser, profile } = useAuth();
+  const realtimeUpdatesEnabled =
+    (profile as { realtime_updates_enabled?: boolean } | null)?.realtime_updates_enabled === true;
+
+  const {
+    topics,
+    threadCount,
+    messageCount,
+    loading,
+    loadingMore,
+    requestedTagIds,
+    unreadOnly,
+    visibleCount,
+    handleShowMore,
+    pushUnreadOnlyUrl,
+    refreshTick,
+    dataError,
+    retryDataFetch,
+  } = useForumTopics({
+    supabase,
+    currentUser,
+    realtimeUpdatesEnabled,
+  });
+
+  const { quote, quoteLikeSaving, quoteError, handleToggleQuoteLike } = useForumQuote({
+    supabase,
+    currentUser,
+    refreshKey: refreshTick,
+  });
+
+  const [todaySingleDayEvent, setTodaySingleDayEvent] = useState<RawSiteEventRow | null>(null);
+  const [eventError, setEventError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!loading && currentUser) {
-      // Intentionally full navigation (not router.push) for auth-boundary consistency.
-      // See docs/architecture.md.
-      window.location.href = '/forum';
-    }
-  }, [loading, currentUser]);
+    const fetchTodaySingleDayEvent = async () => {
+      try {
+        setEventError(null);
+        const { data, error } = await supabase
+          .from('site_events')
+          .select('id, name, event_date, repeats_yearly, date_range_enabled, range_start_date, range_end_date');
 
-  useEffect(() => {
-    const fetchRegistrationSetting = async () => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+        if (error || !data) {
+          if (error) {
+            reportError({ scope: 'forum.fetchTodaySingleDayEvent', error });
+          }
+          setTodaySingleDayEvent(null);
+          setEventError('Tapahtumatiedon lataus epäonnistui.');
+          return;
+        }
 
-      const { data } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'registration_enabled')
-        .single();
+        const today = new Date();
+        const matches = (data as RawSiteEventRow[])
+          .filter((event) => event.date_range_enabled !== true)
+          .filter((event) => eventOccursOnDate(event, today))
+          .sort((a, b) => b.id - a.id);
 
-      setRegistrationEnabled(data?.value === 'true');
-      setCheckingSettings(false);
+        setTodaySingleDayEvent(matches[0] ?? null);
+      } catch (error) {
+        reportError({ scope: 'forum.fetchTodaySingleDayEvent', error });
+        setTodaySingleDayEvent(null);
+        setEventError('Tapahtumatiedon lataus epäonnistui.');
+      }
     };
 
-    fetchRegistrationSetting();
-  }, []);
+    void fetchTodaySingleDayEvent();
+  }, [supabase, refreshTick]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoggingIn(true);
+  const unreadThreadCount = useMemo(
+    () => topics.filter((topic) => topic.unread_count > 0).length,
+    [topics]
+  );
 
-    try {
-      await login(email, password);
-      // Intentionally full navigation (not router.push) for auth-boundary consistency.
-      // See docs/architecture.md.
-      window.location.href = '/forum';
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Kirjautuminen epäonnistui';
-      setError(message);
-      setLoggingIn(false);
-    }
-  };
-
-  // Hide the login form once we know the user is logged in (redirect is in progress)
-  if (!loading && currentUser) {
-    return null;
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto mt-8 px-4">
+        <Card>
+          <p className="text-center text-gray-500 py-8">Ladataan...</p>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 4rem)' }}>
-      <div className="max-w-md w-full">
-        <div className="mb-8 flex justify-center">
-          <pre className="text-gray-800 leading-tight text-[0.45rem] sm:text-[0.55rem] md:text-xs overflow-hidden text-left">{
-`___________                      __     ________
-\\_   _____/______   ____ _____  |  | __ \\_____  \\   ____
- |    __) \\_  __ \\_/ __ \\\\__  \\ |  |/ /  /   |   \\ /    \\
- |     \\   |  | \\/\\  ___/ / __ \\|    <  /    |    \\   |  \\
- \\___  /   |__|    \\___  >____  /__|_ \\ \\_______  /___|  /
-     \\/                \\/     \\/     \\/         \\/     \\/
-_______________  _______      _____
-\\_____  \\   _  \\ \\   _  \\    /  |  |
- /  ____/  /_\\  \\/  /_\\  \\  /   |  |_  ______
-/       \\  \\_/   \\  \\_/   \\/    ^   / /_____/
-\\_______ \\_____  /\\_____  /\\____   |
-        \\/     \\/       \\/      |__|`
-        }
-        </pre>
+    <div className="max-w-6xl mx-auto mt-8 px-4">
+      <div className="mb-6">
+        {(dataError || quoteError || eventError) && (
+          <Alert variant="error">
+            <div className="flex items-center justify-between gap-3">
+              <span>{dataError || quoteError || eventError}</span>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={retryDataFetch}
+                className="admin-compact-btn"
+              >
+                Yritä uudelleen
+              </Button>
+            </div>
+          </Alert>
+        )}
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            {todaySingleDayEvent ? (
+              <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed">
+                🎂 Tänään on {todaySingleDayEvent.name} ({formatEventDate(todaySingleDayEvent.event_date)} -)
+              </div>
+            ) : quote ? (
+              <div className="min-w-0 text-gray-500 text-xs italic leading-relaxed flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleQuoteLike}
+                  disabled={quoteLikeSaving}
+                  className={`inline-flex h-5 items-center gap-1 rounded px-1.5 not-italic leading-none transition ${
+                    quote.liked_by_me
+                      ? 'text-red-600 bg-red-50 hover:bg-red-100'
+                      : 'text-gray-500 hover:text-red-600 hover:bg-gray-100'
+                  }`}
+                  title={quote.liked_by_me ? 'Poista tykkäys lainaukselta' : 'Tykkää lainauksesta'}
+                >
+                  <Heart size={12} className={`h-3 w-3 shrink-0 ${quote.liked_by_me ? 'fill-current' : ''}`} />
+                  <span className="inline-flex items-center leading-none tabular-nums">{quote.likes_count}</span>
+                </button>
+                <span className="min-w-0 break-words">
+                  &ldquo;{quote.content}&rdquo; &mdash; {quote.author_username || 'tuntematon'},{' '}
+                  <Link href={`/topic/${quote.topic_id}`} className="text-yellow-700 hover:underline not-italic">
+                    {formatFinnishDateTime(quote.created_at)}
+                  </Link>
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          <p className="text-xs text-gray-500 whitespace-nowrap text-right">
+            {threadCount} lankaa, {messageCount} viestiä
+            {unreadThreadCount > 0 && (
+              <>
+                ,{' '}
+                <button
+                  type="button"
+                  onClick={() => pushUnreadOnlyUrl(!unreadOnly)}
+                  className="text-highlight-glimmer hover:underline"
+                  title={unreadOnly ? 'Näytä kaikki langat' : 'Näytä vain lukemattomat langat'}
+                >
+                  {unreadThreadCount} lukematonta
+                </button>
+              </>
+            )}
+            .
+          </p>
         </div>
 
-        <Card>
-          <h2 className="text-xl font-bold mb-4">Kirjaudu sisään</h2>
-
-          {error && <Alert variant="error">{error}</Alert>}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Sähköposti
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                required
-                placeholder="esim@example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
-                Salasana
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              variant="success"
-              disabled={loggingIn}
-              className="w-full"
-            >
-              {loggingIn ? 'Kirjaudutaan...' : 'Kirjaudu sisään'}
-            </Button>
-          </form>
-
-          {!checkingSettings && registrationEnabled && (
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                Eikö sinulla ole tiliä?{' '}
-                <Link href="/register" className="text-yellow-600 hover:underline font-semibold">
-                  Rekisteröidy tästä
-                </Link>
-              </p>
-            </div>
-          )}
-        </Card>
       </div>
+
+      <ForumThreadList
+        topics={topics}
+        threadCount={threadCount}
+        visibleCount={visibleCount}
+        loadingMore={loadingMore}
+        unreadOnly={unreadOnly}
+        requestedTagIds={requestedTagIds}
+        onShowMore={handleShowMore}
+      />
     </div>
+  );
+}
+
+export default function ForumPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-6xl mx-auto mt-8 px-4">
+          <Card>
+            <p className="text-center text-gray-500 py-8">Ladataan...</p>
+          </Card>
+        </div>
+      }
+    >
+      <ForumContent />
+    </Suspense>
   );
 }

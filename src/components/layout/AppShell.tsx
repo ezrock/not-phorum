@@ -14,7 +14,7 @@ interface AppShellProps {
 }
 
 const PUBLIC_PATHS = new Set(['/login', '/register']);
-const AUTH_ROOTS = ['/forum', '/members', '/profile', '/admin', '/loki', '/pending-approval'];
+const AUTH_ROOTS = ['/', '/members', '/profile', '/admin', '/loki', '/pending-approval', '/search', '/new', '/topic'];
 const NOTIFICATION_REPEAT_COUNT = 8;
 const SITE_SETTINGS_UPDATED_EVENT = 'site-settings-updated';
 
@@ -75,7 +75,7 @@ export function AppShell({ children }: AppShellProps) {
 
   useEffect(() => {
     if (shouldRedirectLoggedIn) {
-      router.replace('/forum');
+      router.replace('/');
     }
     if (shouldRedirectLoggedOut) {
       router.replace('/login');
