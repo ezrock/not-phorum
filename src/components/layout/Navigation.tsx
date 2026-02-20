@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,14 +28,17 @@ export const Navigation = (): JSX.Element | null => {
   };
 
   return (
-    <nav className="app-header p-4 border-b-4 border-gray-800">
-      <div className="app-header-inner flex items-center gap-4">
-        <div className="flex items-center gap-8 flex-shrink-0">
-          <Link href="/" className="hover:opacity-80" aria-label="Freak On home">
-            <Image src="/logo32.gif" alt="Freak On logo" width={207} height={24} priority />
+    <nav className="app-header app-nav p-4 border-b-1 border-gray-200">
+      <div className="app-header-inner app-nav-inner flex items-center gap-4">
+        <div className="app-nav-left flex items-center gap-8 flex-shrink-0">
+          <Link href="/" className="app-nav-logo hover:opacity-80" aria-label="Freak On home">
+            <picture>
+              <source media="(max-width: 480px)" srcSet="/logo32-sm.gif" />
+              <img src="/logo32.gif" alt="Freak On logo" className="app-nav-logo-image" />
+            </picture>
           </Link>
 
-          <div className="flex gap-2">
+          <div className="app-nav-links flex gap-2">
             <Link href="/members" className="flex items-center gap-2 px-4 py-2 max-h-10 hover:bg-yellow-300 rounded">
               {showNavLinkIcons && <Users size={20} />}
               Membut
@@ -54,8 +56,8 @@ export const Navigation = (): JSX.Element | null => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-1 min-w-0 ml-4">
-          <form onSubmit={handleSearch} className="flex-1 min-w-0">
+        <div className="app-nav-right flex items-center gap-2 flex-1 min-w-0 ml-4">
+          <form onSubmit={handleSearch} className="app-nav-search flex-1 min-w-0">
             <SearchInput
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -76,7 +78,7 @@ export const Navigation = (): JSX.Element | null => {
                 </span>
               )
             )}
-            <span>{profile.username}</span>
+            <span className="bp-hide-sm">{profile.username}</span>
           </Link>
           <button
             onClick={logout}

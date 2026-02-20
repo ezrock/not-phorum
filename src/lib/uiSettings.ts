@@ -2,7 +2,7 @@ export const UI_ICON_SETTINGS = {
   showHeaderIcons: true,
   showSectionHeaderIcons: true,
   showSettingActionIcons: true,
-  showNavigationLinkIcons: true,
+  showNavigationLinkIcons: false,
 } as const;
 
 export const UI_PAGING_SETTINGS = {

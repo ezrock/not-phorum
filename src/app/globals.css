@@ -2,6 +2,16 @@
 @plugin "@tailwindcss/typography";
 
 :root {
+  /* Global breakpoints:
+   * sm: <= 480px (mobile)
+   * md: 481px - 1024px (tablet / small desktop)
+   * lg: >= 1025px (desktop)
+   */
+  --bp-sm-max: 480px;
+  --bp-md-min: 481px;
+  --bp-md-max: 1024px;
+  --bp-lg-min: 1025px;
+
   /* Reference tokens: raw palette values only. */
   --ref-color-white: #ffffff;
   --ref-color-black-900: #171717;
@@ -86,6 +96,40 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Breakpoint visibility helpers for upcoming responsive work. */
+.bp-only-sm,
+.bp-only-md,
+.bp-only-lg {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  .bp-only-sm {
+    display: initial !important;
+  }
+  .bp-hide-sm {
+    display: none !important;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+  .bp-only-md {
+    display: initial !important;
+  }
+  .bp-hide-md {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .bp-only-lg {
+    display: initial !important;
+  }
+  .bp-hide-lg {
+    display: none !important;
+  }
 }
 
 body.retro-enabled {
@@ -246,6 +290,72 @@ a[href]:not([class]):hover {
   padding-right: 1rem;
 }
 
+.app-nav-logo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.app-nav-logo-image {
+  display: block;
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .app-nav-logo-image {
+    height: 20px;
+  }
+
+  .app-nav {
+    padding: 0.625rem;
+  }
+
+  .app-nav-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .app-nav-left {
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .app-nav-links {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.25rem;
+  }
+
+  .app-nav-links > a {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .app-nav-right {
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .app-nav-search {
+    grid-column: 1 / -1;
+  }
+
+  .app-nav-right > a,
+  .app-nav-right > button {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
 .page-tabs {
   display: flex;
   align-items: center;
@@ -255,12 +365,17 @@ a[href]:not([class]):hover {
 }
 
 .page-tab-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.5rem 1rem;
   min-height: 2.5rem;
   border-radius: 0.25rem;
   font-size: 1rem;
   line-height: 1.25rem;
   font-weight: 500;
+  text-decoration: none;
+  vertical-align: middle;
   transition: background-color 150ms, color 150ms;
 }
 
@@ -412,7 +527,7 @@ a[href]:not([class]):hover {
   display: inline-flex;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
   .forum-thread-row {
     align-items: center;
     gap: 1rem;
