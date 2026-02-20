@@ -1,30 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings2, RefreshCw, Palette, Music2, Sparkles } from 'lucide-react';
+import { Settings2, RefreshCw, EyeOff } from 'lucide-react';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
+import { TokenInput, type TokenItem, type TokenOption } from '@/components/ui/TokenInput';
 
 interface SettingsPanelProps {
   initialRealtimeEnabled: boolean;
-  initialRetroEnabled: boolean;
-  initialMidiEnabled: boolean;
+  initialHiddenTagIds: number[];
+  initialHiddenTagGroupIds: number[];
 }
 
-export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, initialMidiEnabled }: SettingsPanelProps) {
+interface TagHit {
+  id: number;
+  name: string;
+  slug: string;
+  icon?: string;
+}
+
+interface TagGroupHit {
+  group_id: number;
+  group_name: string;
+  group_slug: string;
+  member_count: number;
+}
+
+function normalizeIds(values: number[]): number[] {
+  return Array.from(new Set(values.filter((value) => Number.isFinite(value) && value > 0)));
+}
+
+export function SettingsPanel({
+  initialRealtimeEnabled,
+  initialHiddenTagIds,
+  initialHiddenTagGroupIds,
+}: SettingsPanelProps) {
   const { currentUser, supabase, refreshProfile } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
   const showSettingActionIcons = UI_ICON_SETTINGS.showSettingActionIcons;
   const showSectionHeaderIcons = UI_ICON_SETTINGS.showSectionHeaderIcons;
 
   const [realtimeUpdatesEnabled, setRealtimeUpdatesEnabled] = useState(initialRealtimeEnabled);
-  const [retroEnabled, setRetroEnabled] = useState(initialRetroEnabled);
-  const [midiEnabled, setMidiEnabled] = useState(initialMidiEnabled);
+  const [hiddenTagIds, setHiddenTagIds] = useState(() => normalizeIds(initialHiddenTagIds));
+  const [hiddenTagGroupIds, setHiddenTagGroupIds] = useState(() => normalizeIds(initialHiddenTagGroupIds));
+  const [hiddenTagById, setHiddenTagById] = useState<Record<number, TagHit>>({});
+  const [hiddenGroupById, setHiddenGroupById] = useState<Record<number, TagGroupHit>>({});
+
+  const [hideQuery, setHideQuery] = useState('');
+  const [hideOptions, setHideOptions] = useState<TokenOption[]>([]);
+  const [loadingHideOptions, setLoadingHideOptions] = useState(false);
+
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingHiddenFilters, setSavingHiddenFilters] = useState(false);
   const [settingsError, setSettingsError] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
+
+  const saveHiddenFilters = async (nextTagIds: number[], nextGroupIds: number[]) => {
+    if (!currentUser) return;
+
+    const normalizedTagIds = normalizeIds(nextTagIds);
+    const normalizedGroupIds = normalizeIds(nextGroupIds);
+
+    setSavingHiddenFilters(true);
+    setSettingsError('');
+    setSettingsSuccess('');
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          hidden_tag_ids: normalizedTagIds,
+          hidden_tag_group_ids: normalizedGroupIds,
+        })
+        .eq('id', currentUser.id);
+
+      if (error) throw error;
+
+      setHiddenTagIds(normalizedTagIds);
+      setHiddenTagGroupIds(normalizedGroupIds);
+      await refreshProfile();
+      setSettingsSuccess('Asetukset tallennettu!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Asetusten tallennus epäonnistui';
+      setSettingsError(message);
+    } finally {
+      setSavingHiddenFilters(false);
+    }
+  };
 
   const handleRealtimeToggle = async (nextValue: boolean) => {
     if (!currentUser) return;
@@ -53,57 +117,159 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
     }
   };
 
-  const handleRetroToggle = async (nextValue: boolean) => {
-    if (!currentUser) return;
+  useEffect(() => {
+    const hydrateSelectedLabels = async () => {
+      if (hiddenTagIds.length > 0) {
+        const params = new URLSearchParams();
+        params.set('status', 'approved');
+        params.set('ids', hiddenTagIds.join(','));
+        params.set('limit', String(Math.max(20, hiddenTagIds.length + 5)));
+
+        const tagRes = await fetch(`/api/tags?${params.toString()}`, { cache: 'no-store' });
+        if (tagRes.ok) {
+          const payload = (await tagRes.json()) as { tags?: TagHit[] };
+          const next: Record<number, TagHit> = {};
+          for (const tag of payload.tags || []) {
+            next[tag.id] = tag;
+          }
+          setHiddenTagById((prev) => ({ ...prev, ...next }));
+        }
+      }
+
+      if (hiddenTagGroupIds.length > 0) {
+        const { data } = await supabase.rpc('get_tag_groups_with_members');
+        if (Array.isArray(data)) {
+          const next: Record<number, TagGroupHit> = {};
+          for (const row of data as Record<string, unknown>[]) {
+            const id = Number(row.group_id);
+            if (!hiddenTagGroupIds.includes(id)) continue;
+            next[id] = {
+              group_id: id,
+              group_name: String(row.group_name ?? ''),
+              group_slug: String(row.group_slug ?? ''),
+              member_count: Number(row.member_count ?? 0),
+            };
+          }
+          setHiddenGroupById((prev) => ({ ...prev, ...next }));
+        }
+      }
+    };
+
+    void hydrateSelectedLabels();
+  }, [hiddenTagIds, hiddenTagGroupIds, supabase]);
+
+  useEffect(() => {
+    const query = hideQuery.trim();
+    const timer = window.setTimeout(async () => {
+      if (!query) {
+        setHideOptions([]);
+        return;
+      }
+
+      setLoadingHideOptions(true);
+      try {
+        const [tagRes, groupRes] = await Promise.all([
+          fetch(`/api/tags?status=approved&query=${encodeURIComponent(query)}&limit=10`, { cache: 'no-store' }),
+          supabase.rpc('search_tag_groups', {
+            input_query: query,
+            input_limit: 8,
+          }),
+        ]);
+
+        const options: TokenOption[] = [];
+
+        if (tagRes.ok) {
+          const payload = (await tagRes.json()) as { tags?: TagHit[] };
+          for (const tag of payload.tags || []) {
+            if (hiddenTagIds.includes(tag.id)) continue;
+            options.push({
+              id: `tag:${tag.id}`,
+              label: tag.name,
+              icon: tag.icon || '🏷️',
+              meta: `tagi · ${tag.slug}`,
+            });
+          }
+        }
+
+        if (Array.isArray(groupRes.data)) {
+          for (const row of groupRes.data as Record<string, unknown>[]) {
+            const groupId = Number(row.group_id);
+            if (!Number.isFinite(groupId) || groupId <= 0) continue;
+            if (hiddenTagGroupIds.includes(groupId)) continue;
+            options.push({
+              id: `group:${groupId}`,
+              label: String(row.group_name ?? ''),
+              icon: '📚',
+              meta: `ryhmä · ${Number(row.member_count ?? 0)} tagia`,
+            });
+          }
+        }
+
+        setHideOptions(options);
+      } finally {
+        setLoadingHideOptions(false);
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [hideQuery, hiddenTagIds, hiddenTagGroupIds, supabase]);
+
+  const hiddenTokens = useMemo<TokenItem[]>(() => {
+    const tagTokens = hiddenTagIds.map((tagId) => {
+      const tag = hiddenTagById[tagId];
+      return {
+        id: `tag:${tagId}`,
+        label: tag?.name || `Tagi #${tagId}`,
+        icon: tag?.icon || '🏷️',
+      };
+    });
+
+    const groupTokens = hiddenTagGroupIds.map((groupId) => {
+      const group = hiddenGroupById[groupId];
+      return {
+        id: `group:${groupId}`,
+        label: group?.group_name || `Ryhmä #${groupId}`,
+        icon: '📚',
+      };
+    });
+
+    return [...tagTokens, ...groupTokens];
+  }, [hiddenTagById, hiddenGroupById, hiddenTagGroupIds, hiddenTagIds]);
+
+  const handleSelectHiddenOption = (option: TokenOption) => {
+    const [kind, rawId] = String(option.id).split(':');
+    const id = Number.parseInt(rawId, 10);
+    if (!Number.isFinite(id) || id <= 0) return;
 
     setSettingsError('');
     setSettingsSuccess('');
-    setRetroEnabled(nextValue);
-    setSavingSettings(true);
+    setHideQuery('');
 
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ retro_enabled: nextValue })
-        .eq('id', currentUser.id);
+    if (kind === 'tag') {
+      void saveHiddenFilters([...hiddenTagIds, id], hiddenTagGroupIds);
+      return;
+    }
 
-      if (error) throw error;
-
-      await refreshProfile();
-      setSettingsSuccess('Asetukset tallennettu!');
-    } catch (err: unknown) {
-      setRetroEnabled((prev) => !prev);
-      const message = err instanceof Error ? err.message : 'Asetusten tallennus epäonnistui';
-      setSettingsError(message);
-    } finally {
-      setSavingSettings(false);
+    if (kind === 'group') {
+      void saveHiddenFilters(hiddenTagIds, [...hiddenTagGroupIds, id]);
     }
   };
 
-  const handleMidiToggle = async (nextValue: boolean) => {
-    if (!currentUser) return;
+  const handleRemoveHiddenToken = (id: number | string) => {
+    const [kind, rawId] = String(id).split(':');
+    const numericId = Number.parseInt(rawId, 10);
+    if (!Number.isFinite(numericId) || numericId <= 0) return;
 
     setSettingsError('');
     setSettingsSuccess('');
-    setMidiEnabled(nextValue);
-    setSavingSettings(true);
 
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ midi_enabled: nextValue })
-        .eq('id', currentUser.id);
+    if (kind === 'tag') {
+      void saveHiddenFilters(hiddenTagIds.filter((tagId) => tagId !== numericId), hiddenTagGroupIds);
+      return;
+    }
 
-      if (error) throw error;
-
-      await refreshProfile();
-      setSettingsSuccess('Asetukset tallennettu!');
-    } catch (err: unknown) {
-      setMidiEnabled((prev) => !prev);
-      const message = err instanceof Error ? err.message : 'Asetusten tallennus epäonnistui';
-      setSettingsError(message);
-    } finally {
-      setSavingSettings(false);
+    if (kind === 'group') {
+      void saveHiddenFilters(hiddenTagIds, hiddenTagGroupIds.filter((groupId) => groupId !== numericId));
     }
   };
 
@@ -118,7 +284,8 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
       {settingsSuccess && <Alert variant="success">{settingsSuccess}</Alert>}
 
       <div>
-        <section className="section-block">
+
+      <section className="section-block">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {showSettingActionIcons && <RefreshCw size={20} className="text-gray-600" />}
@@ -154,70 +321,30 @@ export function SettingsPanel({ initialRealtimeEnabled, initialRetroEnabled, ini
 
         <section className="section-block">
           <h3 className="section-header">
-            {showSectionHeaderIcons && <Sparkles size={16} className="text-yellow-600" />}
-            High definition graphics &amp; audio
+            {showSectionHeaderIcons && <EyeOff size={16} className="text-yellow-600" />}
+            Piilotetut aiheet
           </h3>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {showSettingActionIcons && <Palette size={20} className="text-gray-600" />}
-              <div>
-                <p className="font-medium">Retrolasit päähän</p>
-                <p className="text-sm text-gray-500">
-                  {retroEnabled ? 'CRT-suodatin käytössä' : 'Normaali näkymä käytössä'}
-                </p>
-              </div>
-            </div>
-            <button
-              id="retroEnabled"
-              type="button"
-              role="switch"
-              aria-checked={retroEnabled}
-              aria-label="Retro"
-              disabled={savingSettings}
-              onClick={() => handleRetroToggle(!retroEnabled)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                retroEnabled ? 'bg-green-500' : 'bg-gray-300'
-              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  retroEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
+          <p className="mb-3 text-sm text-gray-500">
+            Valitse tagit tai tagiryhmät, joiden aiheet haluat piilottaa foorumin listauksesta.
+          </p>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {showSettingActionIcons && <Music2 size={20} className="text-gray-600" />}
-              <div>
-                <p className="font-medium">.mid</p>
-                <p className="text-sm text-gray-500">
-                  {midiEnabled ? 'Styge soi... epävireisesti' : 'You died.'}
-                </p>
-              </div>
-            </div>
-            <button
-              id="midiEnabled"
-              type="button"
-              role="switch"
-              aria-checked={midiEnabled}
-              aria-label=".mid"
-              disabled={savingSettings}
-              onClick={() => handleMidiToggle(!midiEnabled)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                midiEnabled ? 'bg-green-500' : 'bg-gray-300'
-              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  midiEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
+          <TokenInput
+            label="Piilota tagit / ryhmät"
+            placeholder="Hae tageja tai ryhmiä..."
+            tokens={hiddenTokens}
+            query={hideQuery}
+            onQueryChange={setHideQuery}
+            onRemoveToken={handleRemoveHiddenToken}
+            options={hideOptions}
+            onSelectOption={handleSelectHiddenOption}
+            loading={loadingHideOptions || savingHiddenFilters}
+            emptyMessage="Ei osumia"
+            disabled={savingHiddenFilters}
+          />
         </section>
+
+      
       </div>
     </Card>
   );

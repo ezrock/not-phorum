@@ -11,11 +11,12 @@ import { ProfileStats } from '@/components/profile/ProfileStats';
 import { TrophiesCard } from '@/components/profile/TrophiesCard';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { SettingsPanel } from '@/components/profile/SettingsPanel';
+import { HdSettingsPanel } from '@/components/profile/HdSettingsPanel';
 import { useProfileStats } from '@/hooks/useProfileStats';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 
-type ProfileTab = 'profile' | 'edit' | 'settings';
-const PROFILE_TABS: ProfileTab[] = ['profile', 'edit', 'settings'];
+type ProfileTab = 'profile' | 'edit' | 'settings' | 'chick';
+const PROFILE_TABS: ProfileTab[] = ['profile', 'edit', 'settings', 'chick'];
 
 function isProfileTab(value: string): value is ProfileTab {
   return PROFILE_TABS.includes(value as ProfileTab);
@@ -32,6 +33,8 @@ export default function ProfilePage() {
     realtime_updates_enabled?: boolean;
     retro_enabled?: boolean;
     midi_enabled?: boolean;
+    hidden_tag_ids?: number[];
+    hidden_tag_group_ids?: number[];
   } | null;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
@@ -93,14 +96,14 @@ export default function ProfilePage() {
       </div>
 
       <div className="page-tabs mb-6">
-        {(['profile', 'edit', 'settings'] as const).map((tab) => (
+        {(['profile', 'edit', 'settings', 'chick'] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
             className={`page-tab-button ${activeTab === tab ? 'is-active' : ''}`}
           >
-            {tab === 'profile' ? 'Profiili' : tab === 'edit' ? 'Muokkaa' : 'Asetukset'}
+            {tab === 'profile' ? 'Profiili' : tab === 'edit' ? 'Muokkaa' : tab === 'settings' ? 'Asetukset' : '🐣'}
           </button>
         ))}
       </div>
@@ -135,6 +138,13 @@ export default function ProfilePage() {
       {activeTab === 'settings' && (
         <SettingsPanel
           initialRealtimeEnabled={typedProfile.realtime_updates_enabled ?? false}
+          initialHiddenTagIds={Array.isArray(typedProfile.hidden_tag_ids) ? typedProfile.hidden_tag_ids : []}
+          initialHiddenTagGroupIds={Array.isArray(typedProfile.hidden_tag_group_ids) ? typedProfile.hidden_tag_group_ids : []}
+        />
+      )}
+
+      {activeTab === 'chick' && (
+        <HdSettingsPanel
           initialRetroEnabled={typedProfile.retro_enabled ?? false}
           initialMidiEnabled={typedProfile.midi_enabled ?? false}
         />

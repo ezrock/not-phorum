@@ -59,16 +59,68 @@ export async function GET(req: NextRequest) {
         .filter((value) => Number.isFinite(value) && value > 0)
     : [];
 
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id ?? null;
+  let excludedTagIds: number[] = [];
+
+  if (userId) {
+    const { data: profilePrefs } = await supabase
+      .from('profiles')
+      .select('hidden_tag_ids, hidden_tag_group_ids')
+      .eq('id', userId)
+      .single();
+
+    const hiddenTagIds = Array.isArray(profilePrefs?.hidden_tag_ids)
+      ? profilePrefs.hidden_tag_ids
+          .map((value) => Number.parseInt(String(value), 10))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      : [];
+
+    const hiddenTagGroupIds = Array.isArray(profilePrefs?.hidden_tag_group_ids)
+      ? profilePrefs.hidden_tag_group_ids
+          .map((value) => Number.parseInt(String(value), 10))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      : [];
+
+    let hiddenGroupTagIds: number[] = [];
+    if (hiddenTagGroupIds.length > 0) {
+      const { data: groupMembers } = await supabase
+        .from('tag_group_members')
+        .select('tag_id')
+        .in('group_id', hiddenTagGroupIds);
+
+      hiddenGroupTagIds = Array.isArray(groupMembers)
+        ? groupMembers
+            .map((row) => Number.parseInt(String(row.tag_id), 10))
+            .filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+    }
+
+    const rawExcluded = Array.from(new Set([...hiddenTagIds, ...hiddenGroupTagIds]));
+    if (rawExcluded.length > 0) {
+      const { data: canonicalExcludedRaw } = await supabase.rpc('resolve_canonical_tag_ids', {
+        input_tag_ids: rawExcluded,
+      });
+      excludedTagIds = Array.isArray(canonicalExcludedRaw)
+        ? canonicalExcludedRaw
+            .map((value) => Number.parseInt(String(value), 10))
+            .filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+    }
+  }
+
   const [{ data: topicsData, error: topicsError }, { data: totalCountData, error: totalError }] = await Promise.all([
-    supabase.rpc('get_topic_list_state_filtered', {
+    supabase.rpc('get_topic_list_state_filtered_with_exclusions', {
       input_page: page,
       input_page_size: pageSize,
       input_tag_ids: canonicalTagIds,
       input_match_all: matchAll,
+      input_excluded_tag_ids: excludedTagIds,
     }),
-    supabase.rpc('get_topic_count_filtered', {
+    supabase.rpc('get_topic_count_filtered_with_exclusions', {
       input_tag_ids: canonicalTagIds,
       input_match_all: matchAll,
+      input_excluded_tag_ids: excludedTagIds,
     }),
   ]);
 
