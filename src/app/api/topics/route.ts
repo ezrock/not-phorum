@@ -124,18 +124,51 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  if (topicsError) {
-    return NextResponse.json({ error: topicsError.message }, { status: 400 });
+  let finalTopicsData = topicsData;
+  let finalTotalCountData = totalCountData;
+  let finalTopicsError = topicsError;
+  let finalTotalError = totalError;
+
+  const shouldFallbackToLegacyRpc = Boolean(topicsError || totalError);
+
+  if (shouldFallbackToLegacyRpc) {
+    const [{ data: legacyTopicsData, error: legacyTopicsError }, { data: legacyTotalCountData, error: legacyTotalError }] = await Promise.all([
+      supabase.rpc('get_topic_list_state_filtered', {
+        input_page: page,
+        input_page_size: pageSize,
+        input_tag_ids: canonicalTagIds,
+        input_match_all: matchAll,
+      }),
+      supabase.rpc('get_topic_count_filtered', {
+        input_tag_ids: canonicalTagIds,
+        input_match_all: matchAll,
+      }),
+    ]);
+
+    finalTopicsData = legacyTopicsData as RawTopicRow[] | null;
+    finalTotalCountData = legacyTotalCountData;
+    finalTopicsError = legacyTopicsError;
+    finalTotalError = legacyTotalError;
   }
-  if (totalError) {
-    return NextResponse.json({ error: totalError.message }, { status: 400 });
+
+  if (finalTopicsError) {
+    const message = shouldFallbackToLegacyRpc
+      ? `Topics query failed after legacy fallback: ${finalTopicsError.message}`
+      : finalTopicsError.message;
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+  if (finalTotalError) {
+    const message = shouldFallbackToLegacyRpc
+      ? `Topics count failed after legacy fallback: ${finalTotalError.message}`
+      : finalTotalError.message;
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   return NextResponse.json({
-    topics: (topicsData || []) as RawTopicRow[],
+    topics: (finalTopicsData || []) as RawTopicRow[],
     page,
     page_size: pageSize,
-    total_count: typeof totalCountData === 'number' ? totalCountData : 0,
+    total_count: typeof finalTotalCountData === 'number' ? finalTotalCountData : 0,
     filter: {
       tag_ids: canonicalTagIds,
       match: matchAll ? 'all' : 'any',

@@ -28,8 +28,25 @@ interface TagGroupHit {
   member_count: number;
 }
 
+interface HiddenImpactRow {
+  hidden_topic_count: number;
+  total_topic_count: number;
+  hidden_message_count: number;
+  total_message_count: number;
+  hidden_message_percent: number;
+}
+
 function normalizeIds(values: number[]): number[] {
   return Array.from(new Set(values.filter((value) => Number.isFinite(value) && value > 0)));
+}
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  if (err && typeof err === 'object') {
+    const maybeMessage = (err as { message?: unknown }).message;
+    if (typeof maybeMessage === 'string' && maybeMessage.trim()) return maybeMessage;
+  }
+  return fallback;
 }
 
 export function SettingsPanel({
@@ -51,6 +68,8 @@ export function SettingsPanel({
   const [hideQuery, setHideQuery] = useState('');
   const [hideOptions, setHideOptions] = useState<TokenOption[]>([]);
   const [loadingHideOptions, setLoadingHideOptions] = useState(false);
+  const [hiddenImpact, setHiddenImpact] = useState<HiddenImpactRow | null>(null);
+  const [loadingHiddenImpact, setLoadingHiddenImpact] = useState(false);
 
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingHiddenFilters, setSavingHiddenFilters] = useState(false);
@@ -83,8 +102,7 @@ export function SettingsPanel({
       await refreshProfile();
       setSettingsSuccess('Asetukset tallennettu!');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Asetusten tallennus epäonnistui';
-      setSettingsError(message);
+      setSettingsError(toErrorMessage(err, 'Asetusten tallennus epäonnistui'));
     } finally {
       setSavingHiddenFilters(false);
     }
@@ -110,8 +128,7 @@ export function SettingsPanel({
       setSettingsSuccess('Asetukset tallennettu!');
     } catch (err: unknown) {
       setRealtimeUpdatesEnabled((prev) => !prev);
-      const message = err instanceof Error ? err.message : 'Asetusten tallennus epäonnistui';
-      setSettingsError(message);
+      setSettingsError(toErrorMessage(err, 'Asetusten tallennus epäonnistui'));
     } finally {
       setSavingSettings(false);
     }
@@ -186,7 +203,6 @@ export function SettingsPanel({
               id: `tag:${tag.id}`,
               label: tag.name,
               icon: tag.icon || '🏷️',
-              meta: `tagi · ${tag.slug}`,
             });
           }
         }
@@ -200,7 +216,7 @@ export function SettingsPanel({
               id: `group:${groupId}`,
               label: String(row.group_name ?? ''),
               icon: '📚',
-              meta: `ryhmä · ${Number(row.member_count ?? 0)} tagia`,
+              meta: `${Number(row.member_count ?? 0)} aihetta`,
             });
           }
         }
@@ -213,6 +229,37 @@ export function SettingsPanel({
 
     return () => window.clearTimeout(timer);
   }, [hideQuery, hiddenTagIds, hiddenTagGroupIds, supabase]);
+
+  useEffect(() => {
+    const fetchImpact = async () => {
+      setLoadingHiddenImpact(true);
+      try {
+        const { data, error } = await supabase.rpc('get_hidden_topic_filter_impact', {
+          input_hidden_tag_ids: hiddenTagIds,
+          input_hidden_tag_group_ids: hiddenTagGroupIds,
+        });
+        if (error) throw error;
+        const row = Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
+        if (!row) {
+          setHiddenImpact(null);
+          return;
+        }
+        setHiddenImpact({
+          hidden_topic_count: Number(row.hidden_topic_count ?? 0),
+          total_topic_count: Number(row.total_topic_count ?? 0),
+          hidden_message_count: Number(row.hidden_message_count ?? 0),
+          total_message_count: Number(row.total_message_count ?? 0),
+          hidden_message_percent: Number(row.hidden_message_percent ?? 0),
+        });
+      } catch {
+        setHiddenImpact(null);
+      } finally {
+        setLoadingHiddenImpact(false);
+      }
+    };
+
+    void fetchImpact();
+  }, [hiddenTagIds, hiddenTagGroupIds, supabase]);
 
   const hiddenTokens = useMemo<TokenItem[]>(() => {
     const tagTokens = hiddenTagIds.map((tagId) => {
@@ -342,6 +389,15 @@ export function SettingsPanel({
             emptyMessage="Ei osumia"
             disabled={savingHiddenFilters}
           />
+
+          <p className="mt-3 text-xs text-gray-500">
+            {loadingHiddenImpact && 'Lasketaan piilotusvaikutusta...'}
+            {!loadingHiddenImpact && hiddenImpact && (
+              <>
+                {hiddenImpact.hidden_topic_count} ketjua piilossa ({hiddenImpact.hidden_message_percent.toFixed(1)} % kaikista viesteistä).
+              </>
+            )}
+          </p>
         </section>
 
       

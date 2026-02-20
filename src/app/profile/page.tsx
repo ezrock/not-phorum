@@ -38,7 +38,7 @@ export default function ProfilePage() {
   } | null;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
-  const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic, topTags } = useProfileStats(currentUser?.id ?? null);
+  const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic } = useProfileStats(currentUser?.id ?? null);
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
 
   useEffect(() => {
@@ -123,7 +123,6 @@ export default function ProfilePage() {
               loginNetworkCount={typedProfile.login_network_count || 0}
               mostPopularTopic={mostPopularTopic}
               mostActiveTopic={mostActiveTopic}
-              topTags={topTags}
             />
           </Card>
 
