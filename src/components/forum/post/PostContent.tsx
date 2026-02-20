@@ -114,7 +114,7 @@ function flattenText(node: ReactNode): string {
   if (typeof node === 'string') return node;
   if (typeof node === 'number') return String(node);
   if (Array.isArray(node)) return node.map(flattenText).join('');
-  if (isValidElement(node)) return flattenText(node.props.children);
+  if (isValidElement<{ children?: ReactNode }>(node)) return flattenText(node.props.children);
   return '';
 }
 
