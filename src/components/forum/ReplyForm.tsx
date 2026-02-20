@@ -6,6 +6,7 @@ import { MessageSquare, ImagePlus, X } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
 import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
+import { handleMarkdownTextareaShortcut } from '@/lib/markdownShortcuts';
 
 interface ReplyFormProps {
   onSubmit: (content: string, imageUrl: string) => Promise<void>;
@@ -29,6 +30,9 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
+        onKeyDown={(e) => {
+          handleMarkdownTextareaShortcut(e, content, setContent);
+        }}
         className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 min-h-[150px] focus:border-yellow-400 focus:outline-none"
         placeholder="Kirjoita vastauksesi..."
       />

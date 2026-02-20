@@ -1,5 +1,6 @@
 'use client';
 
+import { Children } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import LinkifyIt from 'linkify-it';
@@ -8,6 +9,8 @@ import { postImage } from '@/lib/cloudinary';
 import type { Post } from '@/components/forum/post/post.types';
 
 const URL_MAX_DISPLAY_LENGTH = 60;
+const UNDERLINE_START = '__UNDERLINE_START__';
+const UNDERLINE_END = '__UNDERLINE_END__';
 const linkify = new LinkifyIt();
 linkify.set({ fuzzyLink: true, fuzzyIP: false, fuzzyEmail: false });
 linkify.tlds(tlds as string[]);
@@ -101,6 +104,12 @@ function preserveSingleLineBreaks(markdown: string): string {
   return normalized.replace(/(?<!\n)\n(?!\n)/g, '  \n');
 }
 
+function encodeUnderlineSyntax(markdown: string): string {
+  return markdown.replace(/\+\+([^\n]+?)\+\+/g, (_match, inner: string) => {
+    return `*${UNDERLINE_START}${inner}${UNDERLINE_END}*`;
+  });
+}
+
 interface PostContentProps {
   post: Post;
   hasBeenEdited: boolean;
@@ -142,9 +151,21 @@ export function PostContent({ post, hasBeenEdited, editedLabel }: PostContentPro
                 </a>
               );
             },
+            em: ({ children }) => {
+              const plain = Children.toArray(children)
+                .map((child) => (typeof child === 'string' ? child : ''))
+                .join('');
+              if (plain.includes(UNDERLINE_START) && plain.includes(UNDERLINE_END)) {
+                const clean = plain
+                  .replaceAll(UNDERLINE_START, '')
+                  .replaceAll(UNDERLINE_END, '');
+                return <u>{clean}</u>;
+              }
+              return <em>{children}</em>;
+            },
           }}
         >
-          {preserveSingleLineBreaks(autoLinkPlainUrls(post.content))}
+          {encodeUnderlineSyntax(preserveSingleLineBreaks(autoLinkPlainUrls(post.content)))}
         </ReactMarkdown>
         {youtubeEmbeds.length > 0 && (
           <div className="mt-4 space-y-3 not-prose">

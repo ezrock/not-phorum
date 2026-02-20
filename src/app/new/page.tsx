@@ -14,6 +14,7 @@ import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
 import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
 import { AddTags, type TagOption } from '@/components/forum/AddTags';
 import { getFirstValidationError, rules, validate } from '@/lib/validation';
+import { handleMarkdownTextareaShortcut } from '@/lib/markdownShortcuts';
 
 export default function NewTopicPage() {
   const { supabase } = useAuth();
@@ -106,6 +107,9 @@ export default function NewTopicPage() {
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onKeyDown={(e) => {
+                handleMarkdownTextareaShortcut(e, content, setContent);
+              }}
               className="w-full border-2 border-gray-300 rounded-lg p-3 min-h-[200px] focus:border-yellow-400 focus:outline-none"
               placeholder="Kirjoita viestisi..."
               required

@@ -6,6 +6,7 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { Button } from '@/components/ui/button';
 import { extractSecureUrl, postThumb } from '@/lib/cloudinary';
 import { getCloudinaryUploadPresetOrThrow, getPostUploadWidgetOptions } from '@/lib/cloudinaryWidget';
+import { handleMarkdownTextareaShortcut } from '@/lib/markdownShortcuts';
 
 interface PostEditFormProps {
   editTopContent?: ReactNode;
@@ -38,6 +39,9 @@ export function PostEditForm({
       <textarea
         value={editContent}
         onChange={(e) => onEditContentChange(e.target.value)}
+        onKeyDown={(e) => {
+          handleMarkdownTextareaShortcut(e, editContent, onEditContentChange);
+        }}
         className="w-full border-2 border-gray-300 rounded-lg p-3 mb-3 min-h-[120px] focus:border-yellow-400 focus:outline-none"
       />
       {editImageUrl && (
