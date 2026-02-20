@@ -97,6 +97,7 @@ export function ForumThreadList({
           {visibleTopics.map((topic) => {
             const jumpPostId = topic.jump_post_id ?? topic.last_post_id;
             const topicHref = `/topic/${topic.id}${jumpPostId ? `#post-${jumpPostId}` : ''}`;
+            const hasUnread = topic.unread_count > 0;
 
             return (
               <Link
@@ -132,11 +133,13 @@ export function ForumThreadList({
                       <span aria-hidden="true">•</span>
                       <span className="forum-thread-mobile-author">{topic.author_username}</span>
                       <span aria-hidden="true">•</span>
-                      <span>
-                        {topic.unread_count > 0
-                          ? formatUnreadLabel(topic.unread_count)
-                          : formatMessagesLabel(topic.replies_count)}
-                      </span>
+                      {hasUnread ? (
+                        <span className="forum-thread-badge forum-thread-badge-mobile">
+                          {formatUnreadLabel(topic.unread_count)}
+                        </span>
+                      ) : (
+                        <span>{formatMessagesLabel(topic.replies_count)}</span>
+                      )}
                       <span aria-hidden="true">•</span>
                       <span>{formatFinnishRelative(topic.last_post_created_at || topic.created_at)}</span>
                     </div>
@@ -148,7 +151,7 @@ export function ForumThreadList({
                     </span>
                     <span className="forum-thread-meta-item forum-thread-meta-author">{topic.author_username}</span>
                     <span className="forum-thread-meta-item tabular-nums">
-                      {topic.unread_count > 0 ? (
+                      {hasUnread ? (
                         <span className="forum-thread-badge">{formatUnreadLabel(topic.unread_count)}</span>
                       ) : (
                         formatMessagesLabel(topic.replies_count)
