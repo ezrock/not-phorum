@@ -95,27 +95,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Track login counters and refresh profile immediately so stats update without manual reload.
     if (data.user) {
       const accessToken = data.session?.access_token;
-      const loginCountPromise = supabase.rpc('increment_login_count', { target_user_id: data.user.id });
-      const networkPromise = fetch('/api/auth/login-network', {
+      const loginActivityRes = await fetch('/api/auth/login-network', {
         method: 'POST',
         credentials: 'include',
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
 
-      const [loginCountRes, networkRes] = await Promise.allSettled([loginCountPromise, networkPromise]);
-
-      if (loginCountRes.status === 'fulfilled' && loginCountRes.value.error) {
-        console.warn('increment_login_count failed:', loginCountRes.value.error.message);
-      }
-      if (loginCountRes.status === 'rejected') {
-        console.warn('increment_login_count request failed');
-      }
-
-      if (networkRes.status === 'fulfilled' && !networkRes.value.ok) {
-        console.warn('login-network tracking failed:', networkRes.value.status);
-      }
-      if (networkRes.status === 'rejected') {
-        console.warn('login-network request failed');
+      if (!loginActivityRes.ok) {
+        console.warn('login activity tracking failed:', loginActivityRes.status);
       }
 
       await fetchProfile(data.user.id);

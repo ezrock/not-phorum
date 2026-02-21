@@ -58,10 +58,6 @@ function getClientIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
   const hmacSecret = process.env.LOGIN_NETWORK_HMAC_SECRET;
-  if (!hmacSecret) {
-    // Skip silently when secret is not configured.
-    return NextResponse.json({ skipped: true }, { status: 202 });
-  }
 
   const cookieClient = await createClient();
   let authedClient: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createSupabaseClient> = cookieClient;
@@ -101,12 +97,15 @@ export async function POST(req: NextRequest) {
     authedClient = bearerClient;
   }
 
-  const normalizedNetwork = normalizeIpForPrivacy(getClientIp(req));
-  const fingerprint = createHmac('sha256', hmacSecret)
-    .update(`${userId}:${normalizedNetwork}`)
-    .digest('hex');
+  let fingerprint: string | null = null;
+  if (hmacSecret) {
+    const normalizedNetwork = normalizeIpForPrivacy(getClientIp(req));
+    fingerprint = createHmac('sha256', hmacSecret)
+      .update(`${userId}:${normalizedNetwork}`)
+      .digest('hex');
+  }
 
-  const { error } = await authedClient.rpc('track_login_network', {
+  const { data, error } = await authedClient.rpc('record_login_activity', {
     target_user_id: userId,
     fingerprint,
   });
@@ -115,5 +114,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    networkTracked: Boolean(fingerprint),
+    stats: data ?? null,
+  });
 }

@@ -137,7 +137,11 @@ describe('AuthProvider critical flows', () => {
       email: 'u3@example.com',
       password: 'secret123',
     });
-    expect(rpcMock).toHaveBeenCalledWith('increment_login_count', { target_user_id: 'user-3' });
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/login-network', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Authorization: 'Bearer token-1' },
+    });
 
     await act(async () => {
       await result.current.register('u4@example.com', 'pw123456', 'newbie');
