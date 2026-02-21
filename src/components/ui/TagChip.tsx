@@ -43,6 +43,7 @@ export function getTagChipClasses({
 
 interface TagChipProps extends HTMLAttributes<HTMLSpanElement> {
   icon?: ReactNode;
+  count?: ReactNode;
   variant?: TagChipVariant;
   size?: TagChipSize;
   children: ReactNode;
@@ -50,6 +51,7 @@ interface TagChipProps extends HTMLAttributes<HTMLSpanElement> {
 
 export function TagChip({
   icon,
+  count,
   variant = 'topic',
   size = 'sm',
   className,
@@ -63,7 +65,12 @@ export function TagChip({
       ) : icon ? (
         <span>{icon}</span>
       ) : null}
-      <span>{children}</span>
+      <span className="min-w-0 truncate">{children}</span>
+      {count !== undefined && count !== null ? (
+        <span className="ml-auto shrink-0 rounded-full bg-black/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+          {count}
+        </span>
+      ) : null}
     </span>
   );
 }

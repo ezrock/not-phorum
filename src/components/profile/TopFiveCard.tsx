@@ -19,6 +19,8 @@ interface TopTagStat {
   tag_name: string;
   tag_slug: string;
   usage_count: number;
+  tag_icon?: string;
+  legacy_icon_path?: string | null;
 }
 
 interface ViewedTopicStat {
@@ -43,7 +45,7 @@ interface TopLikedAuthor {
 }
 
 export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
-  const { supabase } = useAuth();
+  const { supabase, profile } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
   const showSectionHeaderIcons = UI_ICON_SETTINGS.showSectionHeaderIcons;
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
   const [mostViewedThreads, setMostViewedThreads] = useState<ViewedTopicStat[]>([]);
   const [topLikedPosts, setTopLikedPosts] = useState<TopLikedPost[]>([]);
   const [likedAuthors, setLikedAuthors] = useState<TopLikedAuthor[]>([]);
+  const maxTagUsage = topTags.reduce((max, tag) => Math.max(max, tag.usage_count), 0);
 
   useEffect(() => {
     if (!profileId) return;
@@ -80,7 +83,28 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
       ]);
 
       if (!topTagsRes.error && topTagsRes.data) {
-        setTopTags(topTagsRes.data as TopTagStat[]);
+        const topTagRows = topTagsRes.data as TopTagStat[];
+        const tagIds = topTagRows.map((tag) => tag.tag_id).filter((id) => Number.isFinite(id) && id > 0);
+
+        if (tagIds.length > 0) {
+          const { data: iconRows } = await supabase
+            .from('tags')
+            .select('id, icon, legacy_icon_path')
+            .in('id', tagIds);
+
+          const legacyTagIconsEnabled =
+            (profile as { legacy_tag_icons_enabled?: boolean } | null)?.legacy_tag_icons_enabled !== false;
+          const iconById = new Map<number, string>();
+          for (const row of (iconRows || []) as { id: number; icon: string | null; legacy_icon_path: string | null }[]) {
+            const legacyIconPath = (row.legacy_icon_path || '').trim();
+            const icon = (row.icon || '').trim();
+            iconById.set(row.id, (legacyTagIconsEnabled ? legacyIconPath : '') || icon || '🏷️');
+          }
+
+          setTopTags(topTagRows.map((tag) => ({ ...tag, tag_icon: iconById.get(tag.tag_id) || '🏷️' })));
+        } else {
+          setTopTags(topTagRows);
+        }
       } else {
         setTopTags([]);
       }
@@ -107,7 +131,7 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
     };
 
     fetchTopFive();
-  }, [profileId, supabase]);
+  }, [profile, profileId, supabase]);
 
   if (loading) {
     return (
@@ -137,11 +161,19 @@ export function TopFiveCard({ profileId, className = '' }: TopFiveCardProps) {
           {topTags.length > 0 ? (
             <div className="space-y-2">
               {topTags.map((tag) => (
-                <div key={tag.tag_id} className="flex items-center gap-2 text-sm">
-                  <TagChip icon="🏷️" className="flex-1 justify-start">
-                    {tag.tag_name}
-                  </TagChip>
-                  <span className="text-gray-500">{tag.usage_count} aihetta</span>
+                <div key={tag.tag_id} className="text-sm">
+                  <div className="h-8 w-full rounded-md">
+                    <TagChip
+                      icon={tag.tag_icon || '🏷️'}
+                      count={tag.usage_count}
+                      className="h-full justify-start overflow-hidden whitespace-nowrap"
+                      style={{
+                        width: `${Math.round((tag.usage_count / Math.max(maxTagUsage, 1)) * 100)}%`,
+                      }}
+                    >
+                      {tag.tag_name}
+                    </TagChip>
+                  </div>
                 </div>
               ))}
             </div>
