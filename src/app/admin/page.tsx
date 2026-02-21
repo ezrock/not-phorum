@@ -3,10 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, UserPlus, Trophy, ScrollText, Settings2, BarChart3 } from 'lucide-react';
-import { trophyLocalIconUrl } from '@/lib/trophies';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/button';
+import { Shield, BarChart3 } from 'lucide-react';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { EventsPanel } from '@/components/admin/EventsPanel';
 import { UsersSection } from '@/components/admin/UsersSection';
@@ -14,6 +11,8 @@ import { TagsSection } from '@/components/admin/TagsSection';
 import { TagGroupsSection } from '@/components/admin/TagGroupsSection';
 import { useAdminTagManagement } from '@/components/admin/useAdminTagManagement';
 import { useAdminPageState } from '@/components/admin/useAdminPageState';
+import { AdminBoardSettingsCard } from '@/components/admin/AdminBoardSettingsCard';
+import { AdminTrophiesCard } from '@/components/admin/AdminTrophiesCard';
 
 type AdminTab = 'board' | 'users' | 'tags' | 'tag_groups' | 'trophies' | 'levels' | 'events';
 const ADMIN_TABS: AdminTab[] = ['board', 'events', 'trophies', 'users', 'tags', 'tag_groups', 'levels'];
@@ -101,88 +100,19 @@ export default function AdminPage() {
 
   const activeTabContent: Record<AdminTab, ReactNode> = {
     board: (
-      <Card>
-        <div className="section-head-row">
-          {showHeaderIcons && <Settings2 size={24} className="text-yellow-600" />}
-          <h2 className="card-title mb-0">Boardin asetukset</h2>
-        </div>
-
-        <div className="flex items-center justify-between px-3">
-          <div className="flex items-center gap-3">
-            <UserPlus size={20} className="text-gray-600" />
-            <div>
-              <p className="font-medium">Rekisteröityminen</p>
-              <p className="text-muted-sm">
-                {adminState.registrationEnabled
-                  ? 'Portit auki.'
-                  : 'Portit kiinni.'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={adminState.handleToggleRegistration}
-            disabled={adminState.toggling}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              adminState.registrationEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${adminState.toggling ? 'opacity-50' : ''}`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                adminState.registrationEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-
-        <div className="section-block">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ScrollText size={20} className="text-gray-600" />
-              <div>
-                <p className="font-medium">Ilmoitusraita</p>
-                <p className="text-muted-sm">
-                  {adminState.notificationEnabled ? 'Raita näkyy kirjautuneille käyttäjille' : 'Raita on pois päältä'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={adminState.handleToggleNotification}
-              disabled={adminState.notificationToggling}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                adminState.notificationEnabled ? 'bg-green-500' : 'bg-gray-300'
-              } ${adminState.notificationToggling ? 'opacity-50' : ''}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  adminState.notificationEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="mt-4">
-            <label htmlFor="notificationMessage" className="block text-sm text-gray-700 mb-1">
-              Ilmoitusviesti
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="notificationMessage"
-                value={adminState.notificationMessage}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => adminState.setNotificationMessage(e.target.value)}
-                placeholder="Kirjoita ilmoitusviesti..."
-              />
-              <Button
-                type="button"
-                variant="primary"
-                onClick={adminState.handleSaveNotificationMessage}
-                disabled={adminState.savingNotificationMessage}
-              >
-                {adminState.savingNotificationMessage ? 'Tallennetaan...' : 'Tallenna'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
+      <AdminBoardSettingsCard
+        showHeaderIcons={showHeaderIcons}
+        registrationEnabled={adminState.registrationEnabled}
+        toggling={adminState.toggling}
+        notificationEnabled={adminState.notificationEnabled}
+        notificationToggling={adminState.notificationToggling}
+        notificationMessage={adminState.notificationMessage}
+        savingNotificationMessage={adminState.savingNotificationMessage}
+        onToggleRegistration={adminState.handleToggleRegistration}
+        onToggleNotification={adminState.handleToggleNotification}
+        onNotificationMessageChange={adminState.setNotificationMessage}
+        onSaveNotificationMessage={adminState.handleSaveNotificationMessage}
+      />
     ),
     users: (
       <UsersSection
@@ -277,46 +207,11 @@ export default function AdminPage() {
       />
     ),
     trophies: (
-      <Card>
-        <div className="section-head-row">
-          {showHeaderIcons && <Trophy size={24} className="text-yellow-600" />}
-          <h2 className="card-title mb-0">Pokaalit (Legacy baseline)</h2>
-        </div>
-
-        <p className="text-sm text-gray-600 mb-4">
-          Tunnistettu {adminState.trophyOverview.length} uniikkia kunniamerkkiä. Jaettuja merkkejä yhteensä {adminState.totalAwardedTrophies}.
-        </p>
-
-        <div className="space-y-2">
-          {adminState.trophyOverview.slice(0, 20).map((trophy) => (
-            <div key={trophy.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2">
-              <div className="min-w-0 flex items-center gap-2">
-                {trophyLocalIconUrl(trophy.icon_path) && (
-                  <img
-                    src={trophyLocalIconUrl(trophy.icon_path) as string}
-                    alt={trophy.name}
-                    className="w-4 h-5 object-contain flex-shrink-0"
-                  />
-                )}
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">{trophy.name}</p>
-                  <p className="text-muted-xs truncate">{trophy.code}</p>
-                </div>
-              </div>
-              <div className="text-right ml-4">
-                <p className="text-sm font-bold text-yellow-700">{trophy.points} p</p>
-                <p className="text-muted-xs">{trophy.awarded_count} käyttäjällä</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {adminState.trophyOverview.length > 20 && (
-          <p className="mt-4 text-muted-xs">
-            Näytetään 20 ensimmäistä. Loput löytyvät taulusta `admin_trophy_overview`.
-          </p>
-        )}
-      </Card>
+      <AdminTrophiesCard
+        showHeaderIcons={showHeaderIcons}
+        trophyOverview={adminState.trophyOverview}
+        totalAwardedTrophies={adminState.totalAwardedTrophies}
+      />
     ),
     levels: (
       <Card>
