@@ -50,7 +50,7 @@ export function PostEditForm({
           <button
             type="button"
             onClick={() => onEditImageUrlChange('')}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+            className="btn-image-remove"
           >
             <X size={14} />
           </button>
@@ -66,7 +66,7 @@ export function PostEditForm({
           }}
         >
           {({ open }) => (
-            <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+            <Button type="button" variant="outline" onClick={() => open()}>
               <ImagePlus size={16} />
               {editImageUrl ? 'Vaihda kuva' : 'Lisää kuva'}
             </Button>
@@ -77,7 +77,6 @@ export function PostEditForm({
         </Button>
         <Button
           variant="success"
-          className="flex items-center gap-2"
           onClick={onSave}
           disabled={editSaving || !editContent.trim()}
         >

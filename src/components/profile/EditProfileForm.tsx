@@ -293,7 +293,7 @@ export function EditProfileForm() {
                   <button
                     type="button"
                     onClick={() => setProfileImageUrl('')}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                    className="btn-image-remove"
                   >
                     <X size={14} />
                   </button>
@@ -312,7 +312,7 @@ export function EditProfileForm() {
                 }}
               >
                 {({ open }) => (
-                  <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                  <Button type="button" variant="outline" onClick={() => open()}>
                     <Camera size={16} />
                     {profileImageUrl ? 'Vaihda kuva' : 'Lataa kuva'}
                   </Button>
@@ -362,7 +362,6 @@ export function EditProfileForm() {
             type="submit"
             variant="primary"
             disabled={saving}
-            className="flex items-center gap-2"
           >
             <Save size={16} />
             {saving ? 'Tallennetaan...' : 'Tallenna'}
@@ -414,7 +413,6 @@ export function EditProfileForm() {
             type="submit"
             variant="primary"
             disabled={savingPassword}
-            className="flex items-center gap-2"
           >
             <Lock size={16} />
             {savingPassword ? 'Vaihdetaan...' : 'Vaihda salasana'}

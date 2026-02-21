@@ -52,7 +52,7 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
           <button
             type="button"
             onClick={() => setImageUrl('')}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+            className="btn-image-remove"
           >
             <X size={14} />
           </button>
@@ -70,7 +70,7 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
           }}
         >
           {({ open }) => (
-            <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+            <Button type="button" variant="outline" onClick={() => open()}>
               <ImagePlus size={16} />
               Lisää kuva
             </Button>
@@ -78,7 +78,7 @@ export function ReplyForm({ onSubmit, submitting }: ReplyFormProps) {
         </CldUploadWidget>
         <Button
           variant="primary"
-          className="composer-actions-submit flex items-center gap-2"
+          className="composer-actions-submit"
           onClick={handleSubmit}
           disabled={submitting || !content.trim()}
         >

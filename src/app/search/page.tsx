@@ -175,6 +175,10 @@ function SearchContent() {
   }, [profile, supabase]);
 
   useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       void performSearch(query);
     }, 0);

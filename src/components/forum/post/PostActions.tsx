@@ -37,7 +37,7 @@ export function PostActions({
   return (
     <div className="flex items-center gap-2 flex-shrink-0">
       <button
-        className={`inline-flex h-10 min-w-10 px-2 items-center justify-center rounded text-sm transition ${
+        className={`post-action-btn min-w-10 px-2 ${
           isCopied
             ? 'text-green-700 bg-green-100 hover:bg-green-100'
             : 'text-gray-500 hover:text-blue-700 hover:bg-gray-100'
@@ -48,7 +48,7 @@ export function PostActions({
         {isCopied ? <Check size={16} /> : <Link2 size={16} />}
       </button>
       <button
-        className={`inline-flex h-10 min-w-10 px-2 items-center justify-center gap-1 rounded text-sm transition ${
+        className={`post-action-btn min-w-10 px-2 gap-1 ${
           likeState.likedByMe
             ? 'text-red-600 bg-red-50 hover:bg-red-100'
             : 'text-gray-500 hover:text-red-600 hover:bg-gray-100'
@@ -63,7 +63,7 @@ export function PostActions({
       {canEdit && (
         <>
           <button
-            className="inline-flex h-10 w-10 items-center justify-center rounded text-gray-500 hover:text-yellow-600 hover:bg-gray-100 transition"
+            className="post-action-btn text-gray-500 hover:text-yellow-600 hover:bg-gray-100"
             onClick={onStartEdit}
             title="Muokkaa"
           >
@@ -82,7 +82,7 @@ export function PostActions({
               </div>
             ) : (
               <button
-                className="inline-flex h-10 w-10 items-center justify-center rounded text-gray-500 hover:text-red-600 hover:bg-gray-100 transition"
+                className="post-action-btn text-gray-500 hover:text-red-600 hover:bg-gray-100"
                 onClick={onRequestDelete}
                 title="Poista"
               >

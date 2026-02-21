@@ -8,9 +8,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = ({ children, variant = 'primary', size = 'md', onClick, className = '', ...props }: ButtonProps) => {
   const variants = {
-    primary: 'bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-bg-hover)] text-[var(--button-primary-text)]',
-    success: 'bg-green-600 hover:bg-green-700 text-white',
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
+    primary: 'bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-bg-hover)] text-[var(--button-primary-text)] border-2 border-transparent',
+    success: 'bg-green-600 hover:bg-green-700 text-white border-2 border-transparent',
+    danger: 'bg-red-600 hover:bg-red-700 text-white border-2 border-transparent',
     outline: 'border-2 border-gray-300 hover:border-gray-400 text-gray-700 bg-[var(--color-white)]'
   };
 
@@ -22,7 +22,7 @@ export const Button = ({ children, variant = 'primary', size = 'md', onClick, cl
   return (
     <button
       onClick={onClick}
-      className={`${sizes[size]} font-bold rounded transition ${variants[variant] || variants.primary} ${className}`}
+      className={`inline-flex items-center gap-2 ${sizes[size]} font-bold rounded transition ${variants[variant] || variants.primary} ${className}`}
       {...props}
     >
       {children}

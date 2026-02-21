@@ -936,6 +936,32 @@ a[href]:not([class]):hover {
   border-radius: 0.375rem;
 }
 
+/* Floating ×-button overlaid on an image preview */
+.btn-image-remove {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 9999px;
+  padding: 0.125rem;
+}
+.btn-image-remove:hover {
+  background-color: #dc2626;
+}
+
+/* Icon-only action button in post action rows */
+.post-action-btn {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  transition: background-color 150ms, color 150ms;
+}
+
 .text-highlight-static {
   color: var(--text-highlight-static);
   font-weight: 700;

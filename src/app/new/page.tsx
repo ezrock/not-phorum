@@ -142,7 +142,7 @@ export default function NewTopicPage() {
               <button
                 type="button"
                 onClick={() => setImageUrl('')}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                className="btn-image-remove"
               >
                 <X size={14} />
               </button>
@@ -161,7 +161,7 @@ export default function NewTopicPage() {
               }}
             >
               {({ open }) => (
-                <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => open()}>
+                <Button type="button" variant="outline" onClick={() => open()}>
                   <ImagePlus size={16} />
                   Lisää kuva
                 </Button>
@@ -171,7 +171,7 @@ export default function NewTopicPage() {
               type="submit"
               variant="primary"
               disabled={submitting}
-              className="composer-actions-submit flex items-center gap-2"
+              className="composer-actions-submit"
             >
               <Send size={16} />
               {submitting ? 'Luodaan...' : 'Luo lanka'}
