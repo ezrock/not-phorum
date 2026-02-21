@@ -256,7 +256,7 @@ export function EventsPanel() {
           {showHeaderIcons && <CalendarDays size={20} className="text-yellow-600" />}
           Tapahtumat
         </h2>
-        <Button type="button" variant="primary" onClick={openCreateModal}>
+        <Button type="button" variant="primary" size="sm" onClick={openCreateModal}>
           Lisää tapahtuma
         </Button>
       </div>

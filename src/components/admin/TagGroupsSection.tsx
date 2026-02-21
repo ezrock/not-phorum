@@ -118,7 +118,7 @@ export function TagGroupsSection({
           {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
           Tagiryhmät
         </h2>
-        <Button type="button" variant="primary" onClick={() => setAddGroupOpen(true)}>
+        <Button type="button" variant="primary" size="sm" onClick={() => setAddGroupOpen(true)}>
           Lisää tagiryhmä
         </Button>
       </div>

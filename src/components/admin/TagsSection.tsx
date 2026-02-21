@@ -119,7 +119,7 @@ export function TagsSection({
           {showHeaderIcons && <TagsIcon size={20} className="text-yellow-600" />}
           Tagit
         </h2>
-        <Button type="button" variant="primary" onClick={() => setAddTagOpen(true)}>
+        <Button type="button" variant="primary" size="sm" onClick={() => setAddTagOpen(true)}>
           Lisää tagi
         </Button>
       </div>
