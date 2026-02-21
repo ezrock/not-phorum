@@ -75,6 +75,7 @@ export function TagGroupsSection({
   onDeleteGroupAlias,
 }: TagGroupsSectionProps) {
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [addGroupOpen, setAddGroupOpen] = useState(false);
 
   const moveMemberTag = (
     groupId: number,
@@ -112,10 +113,15 @@ export function TagGroupsSection({
 
   return (
     <Card>
-      <h2 className="card-title flex items-center gap-2">
-        {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
-        Tagiryhmät
-      </h2>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="card-title mb-0 flex items-center gap-2">
+          {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
+          Tagiryhmät
+        </h2>
+        <Button type="button" variant="primary" onClick={() => setAddGroupOpen(true)}>
+          Lisää tagiryhmä
+        </Button>
+      </div>
       <p className="text-sm text-gray-600 mb-4">
         Ryhmät auttavat selaamaan tageja (esim. 8-bit, 16-bit), mutta ryhmiä ei voi valita keskustelun tageiksi.
       </p>
@@ -126,8 +132,9 @@ export function TagGroupsSection({
 
       <div className="mb-4">
         <AddItemPanel
-          triggerLabel="Lisää tagiryhmä"
           title="Luo uusi ryhmä"
+          isOpen={addGroupOpen}
+          onClose={() => setAddGroupOpen(false)}
           disableClose={processingGroupId === -1}
           onCancel={() => {
             onNewGroupNameChange('');

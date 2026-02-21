@@ -90,6 +90,7 @@ export function TagsSection({
   onDeleteTag,
 }: TagsSectionProps) {
   const [pendingDeleteTagId, setPendingDeleteTagId] = useState<number | null>(null);
+  const [addTagOpen, setAddTagOpen] = useState(false);
 
   const renderLegacyIcon = (path: string | null, alt: string) => (
     path ? (
@@ -113,10 +114,15 @@ export function TagsSection({
 
   return (
     <Card>
-      <h2 className="card-title flex items-center gap-2">
-        {showHeaderIcons && <TagsIcon size={20} className="text-yellow-600" />}
-        Tagit
-      </h2>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="card-title mb-0 flex items-center gap-2">
+          {showHeaderIcons && <TagsIcon size={20} className="text-yellow-600" />}
+          Tagit
+        </h2>
+        <Button type="button" variant="primary" onClick={() => setAddTagOpen(true)}>
+          Lisää tagi
+        </Button>
+      </div>
       <div className="mb-3 space-y-2 text-sm text-gray-600">
         <p>
           Tagit kuvaavat keskustelun aihetta. Uudet keskustelut ovat tagipohjaisia, ja jokaisella keskustelulla on yksi päätagi.
@@ -198,8 +204,9 @@ export function TagsSection({
         <AdminActionError message={tagActionError} className="mb-3" />
         <div className="mb-3">
           <AddItemPanel
-            triggerLabel="Lisää tagi"
             title="Lisää uusi tagi"
+            isOpen={addTagOpen}
+            onClose={() => setAddTagOpen(false)}
             disableClose={creatingTag}
             onCancel={() => {
               onNewTagNameChange('');

@@ -2,13 +2,17 @@ import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface AddItemPanelProps {
-  triggerLabel: string;
+  triggerLabel?: string;
   title: string;
   children: ReactNode;
   cancelLabel?: string;
   className?: string;
   disableClose?: boolean;
   onCancel?: () => void;
+  /** Controlled mode: open state managed by parent */
+  isOpen?: boolean;
+  /** Controlled mode: called when panel should close */
+  onClose?: () => void;
 }
 
 export function AddItemPanel({
@@ -19,17 +23,27 @@ export function AddItemPanel({
   className,
   disableClose = false,
   onCancel,
+  isOpen: controlledOpen,
+  onClose,
 }: AddItemPanelProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
 
   const handleCancel = () => {
     onCancel?.();
-    setOpen(false);
+    if (isControlled) {
+      onClose?.();
+    } else {
+      setInternalOpen(false);
+    }
   };
 
   if (!open) {
+    if (isControlled) return null;
     return (
-      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" onClick={() => setInternalOpen(true)}>
         {triggerLabel}
       </Button>
     );
