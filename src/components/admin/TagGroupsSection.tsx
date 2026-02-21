@@ -3,6 +3,7 @@ import { BarChart3 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
+import { AddItemPanel } from '@/components/ui/AddItemPanel';
 import { TokenInput, type TokenItem, type TokenOption } from '@/components/ui/TokenInput';
 import { AliasManager } from '@/components/admin/AliasManager';
 import { AdminActionError } from '@/components/admin/AdminActionError';
@@ -74,7 +75,6 @@ export function TagGroupsSection({
   onDeleteGroupAlias,
 }: TagGroupsSectionProps) {
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
-  const [showCreateGroupForm, setShowCreateGroupForm] = useState(false);
 
   const moveMemberTag = (
     groupId: number,
@@ -125,23 +125,18 @@ export function TagGroupsSection({
       <AdminActionError message={tagGroupActionError} className="mb-4" />
 
       <div className="mb-4">
-        {!showCreateGroupForm ? (
-          <Button type="button" variant="outline" onClick={() => setShowCreateGroupForm(true)}>
-            Lisää tagiryhmä
-          </Button>
-        ) : (
-          <div className="rounded border border-gray-200 bg-gray-50 p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-gray-800">Luo uusi ryhmä</h3>
-              <button
-                type="button"
-                className="admin-compact-btn bg-gray-200 text-gray-700 hover:bg-gray-300"
-                onClick={() => setShowCreateGroupForm(false)}
-                disabled={processingGroupId === -1}
-              >
-                Peruuta
-              </button>
-            </div>
+        <AddItemPanel
+          triggerLabel="Lisää tagiryhmä"
+          title="Luo uusi ryhmä"
+          disableClose={processingGroupId === -1}
+          onCancel={() => {
+            onNewGroupNameChange('');
+            onNewGroupSlugChange('');
+            onNewGroupDescriptionChange('');
+            onNewGroupSearchableChange(true);
+            onNewGroupKindChange('both');
+          }}
+        >
             <div className="grid gap-2 md:grid-cols-2">
               <Input
                 value={newGroupName}
@@ -186,8 +181,7 @@ export function TagGroupsSection({
             >
               {processingGroupId === -1 ? 'Luodaan...' : 'Luo ryhmä'}
             </Button>
-          </div>
-        )}
+        </AddItemPanel>
       </div>
 
       {tagGroups.length === 0 ? (

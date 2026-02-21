@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/button';
+import { AddItemPanel } from '@/components/ui/AddItemPanel';
 import { AdminActionError } from '@/components/admin/AdminActionError';
 import { AliasManager } from '@/components/admin/AliasManager';
 import type { AdminTagGroup, CanonicalTagOption, TagAliasRow, TagModerationAction, UnreviewedTag } from '@/components/admin/types';
@@ -195,27 +196,36 @@ export function TagsSection({
           Aliakset toimivat hakusynonyymeinä (esim. &quot;pleikka&quot; -&gt; PlayStation 5). Merge siirtää aliakset myös kohdetagille.
         </p>
         <AdminActionError message={tagActionError} className="mb-3" />
-        <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3">
-          <p className="mb-2 text-xs font-semibold text-gray-700">Lisää uusi tagi</p>
-          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <Input
-              value={newTagName}
-              onChange={(e) => onNewTagNameChange(e.target.value)}
-              placeholder="Tagin nimi"
-            />
-            <Input
-              value={newTagSlug}
-              onChange={(e) => onNewTagSlugChange(e.target.value)}
-              placeholder="Slug (valinnainen)"
-            />
-            <Button
-              type="button"
-              onClick={onCreateTag}
-              disabled={creatingTag || !newTagName.trim()}
-            >
-              {creatingTag ? 'Luodaan...' : 'Lisää tagi'}
-            </Button>
-          </div>
+        <div className="mb-3">
+          <AddItemPanel
+            triggerLabel="Lisää tagi"
+            title="Lisää uusi tagi"
+            disableClose={creatingTag}
+            onCancel={() => {
+              onNewTagNameChange('');
+              onNewTagSlugChange('');
+            }}
+          >
+            <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <Input
+                value={newTagName}
+                onChange={(e) => onNewTagNameChange(e.target.value)}
+                placeholder="Tagin nimi"
+              />
+              <Input
+                value={newTagSlug}
+                onChange={(e) => onNewTagSlugChange(e.target.value)}
+                placeholder="Slug (valinnainen)"
+              />
+              <Button
+                type="button"
+                onClick={onCreateTag}
+                disabled={creatingTag || !newTagName.trim()}
+              >
+                {creatingTag ? 'Luodaan...' : 'Lisää tagi'}
+              </Button>
+            </div>
+          </AddItemPanel>
         </div>
         <div className="mb-3">
           <Input
