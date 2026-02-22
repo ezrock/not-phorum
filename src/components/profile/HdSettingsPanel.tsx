@@ -88,7 +88,7 @@ export function HdSettingsPanel({ initialRetroEnabled, initialMidiEnabled }: HdS
       {success && <Alert variant="success">{success}</Alert>}
 
       <section className="section-block">
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="setting-toggle-row mt-4">
           <div className="flex items-center gap-3">
             {showSettingActionIcons && <Palette size={20} className="text-gray-600" />}
             <div>
@@ -106,19 +106,13 @@ export function HdSettingsPanel({ initialRetroEnabled, initialMidiEnabled }: HdS
             aria-label="Retro"
             disabled={saving}
             onClick={() => handleRetroToggle(!retroEnabled)}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              retroEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`toggle-btn ${retroEnabled ? 'toggle-btn--on' : 'toggle-btn--off'}`}
           >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                retroEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            <span className={`toggle-indicator ${retroEnabled ? 'toggle-indicator--on' : 'toggle-indicator--off'}`} />
           </button>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="setting-toggle-row mt-4">
           <div className="flex items-center gap-3">
             {showSettingActionIcons && <Music2 size={20} className="text-gray-600" />}
             <div>
@@ -136,15 +130,9 @@ export function HdSettingsPanel({ initialRetroEnabled, initialMidiEnabled }: HdS
             aria-label=".mid"
             disabled={saving}
             onClick={() => handleMidiToggle(!midiEnabled)}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              midiEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`toggle-btn ${midiEnabled ? 'toggle-btn--on' : 'toggle-btn--off'}`}
           >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                midiEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            <span className={`toggle-indicator ${midiEnabled ? 'toggle-indicator--on' : 'toggle-indicator--off'}`} />
           </button>
         </div>
       </section>

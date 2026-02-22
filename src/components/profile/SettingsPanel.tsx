@@ -474,7 +474,7 @@ export function SettingsPanel({
       <div>
 
       <section className="section-block">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="setting-toggle-row mb-4">
             <div className="flex items-center gap-3">
               {showSettingActionIcons && <Images size={20} className="text-gray-600" />}
               <div>
@@ -492,19 +492,13 @@ export function SettingsPanel({
               aria-label="Aiheikonit 2004 / 2026"
               disabled={savingSettings}
               onClick={() => handleLegacyTagIconsToggle(!legacyTagIconsEnabled)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                legacyTagIconsEnabled ? 'bg-green-500' : 'bg-gray-300'
-              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`toggle-btn ${legacyTagIconsEnabled ? 'toggle-btn--on' : 'toggle-btn--off'}`}
             >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  legacyTagIconsEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+              <span className={`toggle-indicator ${legacyTagIconsEnabled ? 'toggle-indicator--on' : 'toggle-indicator--off'}`} />
             </button>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="setting-toggle-row">
             <div className="flex items-center gap-3">
               {showSettingActionIcons && <RefreshCw size={20} className="text-gray-600" />}
               <div>
@@ -524,15 +518,9 @@ export function SettingsPanel({
               aria-label="Reaaliaikaiset päivitykset ketjuille ja viesteille"
               disabled={savingSettings}
               onClick={() => handleRealtimeToggle(!realtimeUpdatesEnabled)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                realtimeUpdatesEnabled ? 'bg-green-500' : 'bg-gray-300'
-              } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`toggle-btn ${realtimeUpdatesEnabled ? 'toggle-btn--on' : 'toggle-btn--off'}`}
             >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  realtimeUpdatesEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+              <span className={`toggle-indicator ${realtimeUpdatesEnabled ? 'toggle-indicator--on' : 'toggle-indicator--off'}`} />
             </button>
           </div>
         </section>

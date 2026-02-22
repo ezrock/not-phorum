@@ -13,7 +13,26 @@ import { getCloudinaryUploadPresetOrThrow, getProfileUploadWidgetOptions } from 
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { getFirstValidationError, rules, validate } from '@/lib/validation';
 
-export function EditProfileForm() {
+interface AdminTargetProfile {
+  username?: string;
+  display_name?: string | null;
+  profile_image_url?: string | null;
+  signature?: string | null;
+  show_signature?: boolean;
+  link_url?: string | null;
+  link_description?: string | null;
+  hide_email?: boolean;
+}
+
+export function EditProfileForm({
+  targetUserId,
+  targetProfileData,
+  onSave,
+}: {
+  targetUserId?: string;
+  targetProfileData?: AdminTargetProfile;
+  onSave?: () => void;
+} = {}) {
   const { currentUser, profile, supabase, refreshProfile } = useAuth();
   const showHeaderIcons = UI_ICON_SETTINGS.showHeaderIcons;
   const uploadPreset = getCloudinaryUploadPresetOrThrow();
@@ -25,16 +44,22 @@ export function EditProfileForm() {
     show_signature?: boolean;
     link_url?: string;
     link_description?: string;
+    hide_email?: boolean;
     is_admin?: boolean;
     realtime_updates_enabled?: boolean;
   } | null;
 
+  const isAdminEditMode = !!targetUserId;
+  const formSource: AdminTargetProfile | typeof typedProfile = targetProfileData ?? typedProfile;
+
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
+  const [targetEmail, setTargetEmail] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [signature, setSignature] = useState('');
   const [showSignature, setShowSignature] = useState(true);
+  const [hideEmail, setHideEmail] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkDescription, setLinkDescription] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,26 +72,35 @@ export function EditProfileForm() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
 
-  const isAdmin = typedProfile?.is_admin === true;
-  const usernameChanged = username.trim() !== (typedProfile?.username || '').trim();
+  const isAdmin = isAdminEditMode || typedProfile?.is_admin === true;
+  const originalUsername = (formSource?.username || '');
+  const usernameChanged = username.trim() !== originalUsername.trim();
 
   useEffect(() => {
-    if (typedProfile) {
-      setUsername(typedProfile.username || '');
-      setDisplayName(typedProfile.display_name || '');
-      setProfileImageUrl(typedProfile.profile_image_url || '');
-      setSignature(typedProfile.signature || '');
-      setShowSignature(typedProfile.show_signature ?? true);
-      setLinkUrl(typedProfile.link_url || '');
-      setLinkDescription(typedProfile.link_description || '');
+    if (formSource) {
+      setUsername(formSource.username || '');
+      setDisplayName(formSource.display_name || '');
+      setProfileImageUrl(formSource.profile_image_url || '');
+      setSignature(formSource.signature || '');
+      setShowSignature(formSource.show_signature ?? true);
+      setHideEmail(formSource.hide_email ?? false);
+      setLinkUrl(formSource.link_url || '');
+      setLinkDescription(formSource.link_description || '');
     }
-  }, [typedProfile]);
+  }, [formSource]);
 
   useEffect(() => {
     if (currentUser) {
       setEmail(currentUser.email || '');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!isAdminEditMode || !targetUserId) return;
+    supabase
+      .rpc('get_user_email', { target_user_id: targetUserId })
+      .then(({ data }) => setTargetEmail(data || ''));
+  }, [isAdminEditMode, targetUserId, supabase]);
 
   const validateProfileForm = () => {
     setError('');
@@ -102,45 +136,69 @@ export function EditProfileForm() {
     setSaving(true);
 
     try {
-      const updates: {
-        username?: string;
-        display_name: string | null;
-        profile_image_url: string | null;
-        signature: string | null;
-        show_signature: boolean;
-        realtime_updates_enabled: boolean;
-        link_url: string | null;
-        link_description: string | null;
-      } = {
-        display_name: displayName.trim() || null,
-        profile_image_url: profileImageUrl || null,
-        signature: signature.trim() || null,
-        show_signature: showSignature,
-        realtime_updates_enabled: typedProfile?.realtime_updates_enabled ?? false,
-        link_url: linkUrl.trim() || null,
-        link_description: linkDescription.trim() || null,
-      };
+      if (isAdminEditMode && targetUserId) {
+        const { error: rpcError } = await supabase.rpc('admin_update_profile', {
+          target_user_id:      targetUserId,
+          p_username:          allowUsernameChange ? username.trim() : originalUsername,
+          p_display_name:      displayName.trim() || null,
+          p_profile_image_url: profileImageUrl || null,
+          p_signature:         signature.trim() || null,
+          p_show_signature:    showSignature,
+          p_link_url:          linkUrl.trim() || null,
+          p_link_description:  linkDescription.trim() || null,
+          p_email:             targetEmail.trim() || null,
+          p_hide_email:        hideEmail,
+        });
+        if (rpcError) throw rpcError;
+      } else {
+        const updates: {
+          username?: string;
+          display_name: string | null;
+          profile_image_url: string | null;
+          signature: string | null;
+          show_signature: boolean;
+          hide_email: boolean;
+          realtime_updates_enabled: boolean;
+          link_url: string | null;
+          link_description: string | null;
+        } = {
+          display_name: displayName.trim() || null,
+          profile_image_url: profileImageUrl || null,
+          signature: signature.trim() || null,
+          show_signature: showSignature,
+          hide_email: hideEmail,
+          realtime_updates_enabled: typedProfile?.realtime_updates_enabled ?? false,
+          link_url: linkUrl.trim() || null,
+          link_description: linkDescription.trim() || null,
+        };
 
-      if (allowUsernameChange && isAdmin) {
-        updates.username = username.trim();
+        if (allowUsernameChange && isAdmin) {
+          updates.username = username.trim();
+        }
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', currentUser.id);
+
+        if (profileError) throw profileError;
+
+        if (email !== currentUser.email) {
+          const { error: emailError } = await supabase.auth.updateUser({ email });
+          if (emailError) throw emailError;
+        }
+
+        await refreshProfile();
       }
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', currentUser.id);
-
-      if (profileError) throw profileError;
-
-      if (email !== currentUser.email) {
-        const { error: emailError } = await supabase.auth.updateUser({ email });
-        if (emailError) throw emailError;
-      }
-
-      await refreshProfile();
+      onSave?.();
       setSuccess('Profiili päivitetty!');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Profiilin päivitys epäonnistui';
+      const message = err instanceof Error
+        ? err.message
+        : (err && typeof err === 'object' && 'message' in err)
+          ? String((err as { message: unknown }).message)
+          : 'Profiilin päivitys epäonnistui';
       setError(message);
     } finally {
       setSaving(false);
@@ -216,85 +274,59 @@ export function EditProfileForm() {
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        <form onSubmit={handleSaveProfile} className="space-y-4">
-          <div>
-            <label htmlFor="username" className="flex items-center gap-2 text-sm font-medium mb-1">
-              <span>Käyttäjätunnus</span>
-              {isAdmin && (
-                <span className="inline-flex items-center rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-                  Vain admin
-                </span>
-              )}
-            </label>
-            <Input
-              id="username"
-              value={username}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-              required
-              minLength={3}
-              maxLength={20}
-              disabled={!isAdmin}
-              className={!isAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
-            />
-            <p className="text-muted-xs mt-1">
-              {isAdmin
-                ? 'Käyttäjätunnuksen muutos vaatii erillisen vahvistuksen.'
-                : 'Käyttäjätunnusta voi muuttaa vain admin.'}
-            </p>
-          </div>
+        <form onSubmit={handleSaveProfile} className="mt-4">
 
+          {/* ── Käyttäjätiedot ─────────────────────────────── */}
           <div>
-            <label htmlFor="displayName" className="form-label">
-              Nimi
-            </label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
-              placeholder="Valinnainen näyttönimi"
-              maxLength={50}
-            />
-          </div>
+            <h3 className="form-section-title">Käyttäjätiedot</h3>
+            <div className="form-fields">
+              <div>
+                <label htmlFor="username" className="flex items-center gap-2 text-sm font-medium mb-1">
+                  <span>Käyttäjätunnus</span>
+                  {isAdmin && (
+                    <span className="inline-flex items-center rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                      Vain admin
+                    </span>
+                  )}
+                </label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+                  required
+                  minLength={3}
+                  maxLength={20}
+                  disabled={!isAdmin}
+                  className={!isAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
+                />
+                <p className="text-muted-xs mt-1">
+                  {isAdmin
+                    ? 'Käyttäjätunnuksen muutos vaatii erillisen vahvistuksen.'
+                    : 'Käyttäjätunnusta voi muuttaa vain admin.'}
+                </p>
+              </div>
 
-          <div>
-            <label htmlFor="signature" className="form-label">
-              Allekirjoitus
-            </label>
-            <textarea
-              id="signature"
-              value={signature}
-              onChange={(e) => setSignature(e.target.value)}
-              className="field-textarea field-textarea--profile-signature"
-              placeholder="Näkyy viestien alla"
-              maxLength={200}
-            />
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="checkbox"
-                id="showSignature"
-                checked={showSignature}
-                onChange={(e) => setShowSignature(e.target.checked)}
-                className="w-4 h-4 accent-yellow-400"
-              />
-              <label htmlFor="showSignature" className="text-sm text-gray-600">
-                Näytä allekirjoitus viesteissä
-              </label>
+              <div>
+                <label htmlFor="displayName" className="form-label">Nimi</label>
+                <Input
+                  id="displayName"
+                  value={displayName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
+                  placeholder="Valinnainen näyttönimi"
+                  maxLength={50}
+                />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Profiilikuva
-            </label>
+          {/* ── Profiilikuva ───────────────────────────────── */}
+          <div className="form-section">
+            <h3 className="form-section-title">Profiilikuva</h3>
             <div className="flex items-center gap-4">
               {profileImageUrl ? (
                 <div className="relative">
                   <img src={profileThumb(profileImageUrl)} alt="Profiilikuva" className="w-20 h-20 rounded-none object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setProfileImageUrl('')}
-                    className="btn-image-remove"
-                  >
+                  <button type="button" onClick={() => setProfileImageUrl('')} className="btn-image-remove">
                     <X size={14} />
                   </button>
                 </div>
@@ -319,57 +351,120 @@ export function EditProfileForm() {
                 )}
               </CldUploadWidget>
             </div>
-            {!profileImageUrl && <p className="text-xs text-gray-400 mt-1">Lisää profiilikuva näkyäksesi muille.</p>}
+            {!profileImageUrl && <p className="text-xs text-gray-400 mt-2">Lisää profiilikuva näkyäksesi muille.</p>}
           </div>
 
-          <div>
-            <label htmlFor="email" className="form-label">
-              Sähköposti
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+          {/* ── Esittely ───────────────────────────────────── */}
+          <div className="form-section">
+            <h3 className="form-section-title">Esittely</h3>
+            <div className="form-fields">
+              {/* Allekirjoitus + toggle – tightly grouped */}
+              <div className="form-field-group">
+                <div>
+                  <label htmlFor="signature" className="form-label">Allekirjoitus</label>
+                  <textarea
+                    id="signature"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    className="field-textarea field-textarea--profile-signature"
+                    placeholder="Näkyy viestien alla"
+                    maxLength={200}
+                  />
+                </div>
+                <div className="setting-toggle-row">
+                  <div>
+                    <p className="text-sm font-medium">Näytä allekirjoitus</p>
+                    <p className="text-muted-sm">{showSignature ? 'Näkyy viestien alla' : 'Piilotettu viesteissä'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={showSignature}
+                    aria-label="Näytä allekirjoitus"
+                    onClick={() => setShowSignature(!showSignature)}
+                    className={`toggle-btn ${showSignature ? 'toggle-btn--on' : 'toggle-btn--off'}`}
+                  >
+                    <span className={`toggle-indicator ${showSignature ? 'toggle-indicator--on' : 'toggle-indicator--off'}`} />
+                  </button>
+                </div>
+              </div>
 
-          <div>
-            <label className="form-label inline-flex items-center gap-1">
-              <LinkIcon size={14} />
-              Linkki
-            </label>
-            <div className="space-y-2">
-              <Input
-                id="linkUrl"
-                type="url"
-                value={linkUrl}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkUrl(e.target.value)}
-                placeholder="https://..."
-              />
-              <Input
-                id="linkDescription"
-                value={linkDescription}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkDescription(e.target.value)}
-                placeholder="Linkin kuvaus (esim. Oma blogi)"
-                maxLength={50}
-              />
+              {/* Linkki – more gap via form-fields, separate from signature group */}
+              <div>
+                <label className="form-label inline-flex items-center gap-1">
+                  <LinkIcon size={14} />
+                  Linkki
+                </label>
+                <div className="form-field-group mt-1">
+                  <Input
+                    id="linkUrl"
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkUrl(e.target.value)}
+                    placeholder="https://..."
+                  />
+                  <Input
+                    id="linkDescription"
+                    value={linkDescription}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkDescription(e.target.value)}
+                    placeholder="Linkin kuvaus (esim. Oma blogi)"
+                    maxLength={50}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={saving}
-          >
+          {/* ── Yhteystiedot ───────────────────────────────── */}
+          <div className="form-section">
+            <h3 className="form-section-title">Yhteystiedot</h3>
+            <div className="form-field-group">
+              <div>
+                <label htmlFor="email" className="form-label">Sähköposti</label>
+                {isAdminEditMode ? (
+                  <Input
+                    id="email"
+                    type="email"
+                    value={targetEmail}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetEmail(e.target.value)}
+                  />
+                ) : (
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                    required
+                  />
+                )}
+              </div>
+              <div className="setting-toggle-row">
+                <div>
+                  <p className="text-sm font-medium">Piilota sähköpostiosoite</p>
+                  <p className="text-muted-sm">{hideEmail ? 'Sähköposti piilotettu muilta' : 'Sähköposti näkyy profiilissa'}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hideEmail}
+                  aria-label="Piilota sähköpostiosoite"
+                  onClick={() => setHideEmail(!hideEmail)}
+                  className={`toggle-btn ${hideEmail ? 'toggle-btn--on' : 'toggle-btn--off'}`}
+                >
+                  <span className={`toggle-indicator ${hideEmail ? 'toggle-indicator--on' : 'toggle-indicator--off'}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <Button type="submit" variant="primary" disabled={saving} className="mt-6">
             <Save size={16} />
             {saving ? 'Tallennetaan...' : 'Tallenna'}
           </Button>
         </form>
       </Card>
 
-      <Card className="mt-6 mb-6">
+      {!isAdminEditMode && <Card className="mt-6 mb-6">
         <h2 className="card-title flex items-center gap-2">
           {showHeaderIcons && <Lock size={20} className="text-yellow-600" />}
           Vaihda salasana
@@ -418,7 +513,7 @@ export function EditProfileForm() {
             {savingPassword ? 'Vaihdetaan...' : 'Vaihda salasana'}
           </Button>
         </form>
-      </Card>
+      </Card>}
 
       {showUsernameConfirm && (
         <div className="modal-overlay">
@@ -427,7 +522,7 @@ export function EditProfileForm() {
             <p className="text-sm text-gray-600 mb-4">
               Olet muuttamassa käyttäjätunnusta:
               <br />
-              <span className="font-semibold text-gray-800">{typedProfile?.username}</span>
+              <span className="font-semibold text-gray-800">{originalUsername}</span>
               {' -> '}
               <span className="font-semibold text-gray-800">{username.trim()}</span>
             </p>

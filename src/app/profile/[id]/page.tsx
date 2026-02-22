@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
@@ -10,8 +10,11 @@ import { profileMedium } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { TrophiesCard } from '@/components/profile/TrophiesCard';
+import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { useProfileStats } from '@/hooks/useProfileStats';
 import { formatFinnishDate } from '@/lib/formatDate';
+
+type PublicProfileTab = 'profile' | 'edit';
 
 interface UserProfile {
   id: string;
@@ -24,6 +27,7 @@ interface UserProfile {
   show_signature: boolean;
   link_url: string | null;
   link_description: string | null;
+  hide_email: boolean;
   login_count: number;
   login_network_count: number;
 }
@@ -48,6 +52,7 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true);
   const [adminCount, setAdminCount] = useState(0);
   const [togglingAdmin, setTogglingAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState<PublicProfileTab>('profile');
 
   const { postCount, topicCount, trophies, mostPopularTopic, mostActiveTopic } = useProfileStats(userId);
 
@@ -58,27 +63,27 @@ export default function PublicProfilePage() {
     }
   }, [currentUser, userId, router]);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const [profileRes, adminRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, login_count, login_network_count')
-          .eq('id', userId)
-          .single(),
-        supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_admin', true),
-      ]);
+  const fetchProfile = useCallback(async () => {
+    const [profileRes, adminRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, hide_email, login_count, login_network_count')
+        .eq('id', userId)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_admin', true),
+    ]);
 
-      if (profileRes.data) setProfile(profileRes.data as UserProfile);
-      setAdminCount(adminRes.count || 0);
-      setLoading(false);
-    };
-
-    fetchProfile();
+    if (profileRes.data) setProfile(profileRes.data as UserProfile);
+    setAdminCount(adminRes.count || 0);
+    setLoading(false);
   }, [supabase, userId]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleToggleAdmin = async () => {
     if (!profile) return;
@@ -134,6 +139,26 @@ export default function PublicProfilePage() {
         </Link>
       </div>
 
+      {isCurrentUserAdmin && (
+        <div className="page-tabs mb-6">
+          <button
+            type="button"
+            className={`page-tab-button ${activeTab === 'profile' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            Profiili
+          </button>
+          <button
+            type="button"
+            className={`page-tab-button ${activeTab === 'edit' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('edit')}
+          >
+            Muokkaa
+          </button>
+        </div>
+      )}
+
+      {(!isCurrentUserAdmin || activeTab === 'profile') && <>
       {/* Profile Header + Stats */}
       <Card className="mb-6">
         <div className="flex items-center gap-4">
@@ -214,6 +239,15 @@ export default function PublicProfilePage() {
       <TrophiesCard trophies={trophies} />
 
       <TopFiveCard profileId={userId} />
+      </>}
+
+      {isCurrentUserAdmin && activeTab === 'edit' && (
+        <EditProfileForm
+          targetUserId={userId}
+          targetProfileData={profile ?? undefined}
+          onSave={fetchProfile}
+        />
+      )}
     </div>
   );
 }
