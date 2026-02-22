@@ -140,6 +140,7 @@ export default function MembersPage() {
           .from('profiles')
           .select('id, username, profile_image_url, created_at, is_admin')
           .eq('approval_status', 'approved')
+          .order('legacy_forum_user_id', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: true }),
         supabase
           .rpc('get_inactive_members_since', { input_days: 365 }),

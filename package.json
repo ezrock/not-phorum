@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "legacy:import-users": "node scripts/import-legacy-users.mjs",
     "lint:baseline": "eslint --format json --output-file docs/quality/baselines/eslint-baseline-current.json",
     "lint:baseline:summary": "node scripts/eslint-baseline-summary.mjs docs/quality/baselines/eslint-baseline-current.json docs/quality/eslint-baseline-summary.md",
     "lint:baseline:refresh": "npm run lint:baseline && npm run lint:baseline:summary",
