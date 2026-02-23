@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, BarChart3 } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { UI_ICON_SETTINGS } from '@/lib/uiSettings';
 import { EventsPanel } from '@/components/admin/EventsPanel';
 import { UsersSection } from '@/components/admin/UsersSection';
@@ -13,6 +13,7 @@ import { useAdminTagManagement } from '@/components/admin/useAdminTagManagement'
 import { useAdminPageState } from '@/components/admin/useAdminPageState';
 import { AdminBoardSettingsCard } from '@/components/admin/AdminBoardSettingsCard';
 import { AdminTrophiesCard } from '@/components/admin/AdminTrophiesCard';
+import { LevelsSection } from '@/components/admin/LevelsSection';
 
 type AdminTab = 'board' | 'users' | 'tags' | 'tag_groups' | 'trophies' | 'levels' | 'events';
 const ADMIN_TABS: AdminTab[] = ['board', 'events', 'trophies', 'users', 'tags', 'tag_groups', 'levels'];
@@ -213,15 +214,7 @@ export default function AdminPage() {
         totalAwardedTrophies={adminState.totalAwardedTrophies}
       />
     ),
-    levels: (
-      <Card>
-        <h2 className="card-title flex items-center gap-2">
-          {showHeaderIcons && <BarChart3 size={20} className="text-yellow-600" />}
-          Tasot
-        </h2>
-        <p className="text-muted-sm">Tasologiikka ja hallinta tulossa tähän korttiin.</p>
-      </Card>
-    ),
+    levels: <LevelsSection />,
     events: <EventsPanel />,
   };
 

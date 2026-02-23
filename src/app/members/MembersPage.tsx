@@ -143,18 +143,23 @@ export default function MembersPage() {
           .order('legacy_forum_user_id', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: true }),
         supabase
-          .rpc('get_inactive_members_since', { input_days: 365 }),
+          .rpc('get_inactive_members_since'),
         supabase
           .from('profile_trophies')
           .select('profile_id, trophy:trophies(id, code, name, points, icon_path)'),
       ]);
 
+      const inactive = (!inactiveRes.error && inactiveRes.data)
+        ? inactiveRes.data as InactiveMember[]
+        : [];
+
       if (!membersRes.error && membersRes.data) {
-        setMembers(membersRes.data);
+        const inactiveIds = new Set(inactive.map((m) => m.id));
+        setMembers(membersRes.data.filter((m) => !inactiveIds.has(m.id)));
       }
 
-      if (!inactiveRes.error && inactiveRes.data) {
-        setInactiveMembers(inactiveRes.data as InactiveMember[]);
+      if (inactive.length > 0) {
+        setInactiveMembers(inactive);
       }
 
       if (!trophiesRes.error && trophiesRes.data) {

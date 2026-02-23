@@ -102,7 +102,7 @@ async function main() {
   const [legacyRows, profileRows] = await Promise.all([
     getAllRows(
       "legacy_forum_auth_import",
-      "id,name,username,email,webpage,image,signature,hide_email,mood_updated_at"
+      "id,name,username,email,webpage,image,signature,hide_email,date_added"
     ),
     getAllRows("profiles", "id,username"),
   ]);
@@ -140,12 +140,13 @@ async function main() {
     const profileImageUrl = normalizeHttpUrl(row.image);
     const signature = normalizeNonEmpty(row.signature);
     const hideEmail = row.hide_email === true;
-    const createdAt = row.mood_updated_at ?? null;
-
+    const legacyCreatedAt = row.date_added > 0
+      ? new Date(row.date_added * 1000).toISOString()
+      : null;
     if (!APPLY) {
       console.log(
         `[DRY] id=${legacyUserId} username=${username} email=${initialEmail} ` +
-          `hide_email=${hideEmail} created_at=${createdAt ?? "NULL"}`
+          `hide_email=${hideEmail}`
       );
       continue;
     }
@@ -189,14 +190,11 @@ async function main() {
         link_url: linkUrl,
         hide_email: hideEmail,
         approval_status: "approved",
+        ...(legacyCreatedAt && { created_at: legacyCreatedAt }),
       };
       if (signature) {
         updates.show_signature = true;
       }
-      if (createdAt) {
-        updates.created_at = createdAt;
-      }
-
       const { error: updateError } = await supabase
         .from("profiles")
         .update(updates)
