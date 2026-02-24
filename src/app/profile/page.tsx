@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { profileMedium } from '@/lib/cloudinary';
 import { User, BarChart3 } from 'lucide-react';
-import { formatFinnishDate } from '@/lib/formatDate';
+import { formatJoinedDate, formatFinnishRelative } from '@/lib/formatDate';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { TrophiesCard } from '@/components/profile/TrophiesCard';
@@ -36,6 +36,8 @@ export default function ProfilePage() {
     hidden_tag_ids?: number[];
     hidden_tag_group_ids?: number[];
     legacy_tag_icons_enabled?: boolean;
+    legacy_forum_user_id?: number | null;
+    last_activity_at?: string | null;
   } | null;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
@@ -91,8 +93,13 @@ export default function ProfilePage() {
         <div className="min-w-0">
           <h1 className="text-3xl font-bold truncate font-mono">{typedProfile.username}</h1>
           <p className="text-muted-sm">
-            Liittymispäivä {typedProfile.created_at ? formatFinnishDate(typedProfile.created_at) : ''}
+            Liittymispäivä {typedProfile.created_at ? formatJoinedDate(typedProfile.created_at, typedProfile.legacy_forum_user_id) : ''}
           </p>
+          {typedProfile.last_activity_at && (
+            <p className="text-muted-sm mt-0.5">
+              Viimeksi aktiivinen {formatFinnishRelative(typedProfile.last_activity_at)}
+            </p>
+          )}
         </div>
       </div>
 

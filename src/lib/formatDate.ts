@@ -1,4 +1,20 @@
 /**
+ * Returns the join date for display.
+ * Users 1–44 in the legacy forum all share a bulk-migration timestamp
+ * (2005-07-05), so we show "2004–2005" instead of a misleading specific date.
+ * Everyone else gets a regular Finnish date.
+ */
+export function formatJoinedDate(
+  dateString: string,
+  legacyForumUserId: number | null | undefined
+): string {
+  if (legacyForumUserId != null && legacyForumUserId <= 44) {
+    return '2004–2005';
+  }
+  return formatFinnishDate(dateString);
+}
+
+/**
  * Simple Finnish date: "15.2.2026"
  */
 export function formatFinnishDate(dateString: string): string {

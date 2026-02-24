@@ -8,10 +8,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = ({ children, variant = 'primary', size = 'md', onClick, className = '', ...props }: ButtonProps) => {
   const variants = {
-    primary: 'bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-bg-hover)] text-[var(--button-primary-text)] border-2 border-transparent',
-    success: 'bg-green-600 hover:bg-green-700 text-white border-2 border-transparent',
-    danger: 'bg-red-600 hover:bg-red-700 text-white border-2 border-transparent',
-    outline: 'border-2 border-gray-300 hover:border-gray-400 text-gray-700 bg-[var(--color-white)]'
+    primary:
+      'bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-bg-hover)] text-[var(--button-primary-text)] [--button-icon-color:var(--button-primary-icon,var(--button-primary-text))] border-2 border-transparent',
+    success: 'bg-green-600 hover:bg-green-700 text-white [--button-icon-color:#ffffff] border-2 border-transparent',
+    danger: 'bg-red-600 hover:bg-red-700 text-white [--button-icon-color:#ffffff] border-2 border-transparent',
+    outline: 'border-2 border-gray-300 hover:border-gray-400 text-gray-700 [--button-icon-color:#374151] bg-[var(--color-white)]',
   };
 
   const sizes = {
@@ -22,7 +23,7 @@ export const Button = ({ children, variant = 'primary', size = 'md', onClick, cl
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 ${sizes[size]} font-bold rounded transition ${variants[variant] || variants.primary} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 text-center [&_.lucide]:text-[var(--button-icon-color)] ${sizes[size]} font-bold rounded transition ${variants[variant] || variants.primary} ${className}`}
       {...props}
     >
       {children}

@@ -5,14 +5,14 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Shield, Link as LinkIcon, User } from 'lucide-react';
+import { ArrowLeft, Shield, Link as LinkIcon, User } from 'lucide-react';
 import { profileMedium } from '@/lib/cloudinary';
 import { TopFiveCard } from '@/components/profile/TopFiveCard';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { TrophiesCard } from '@/components/profile/TrophiesCard';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { useProfileStats } from '@/hooks/useProfileStats';
-import { formatFinnishDate } from '@/lib/formatDate';
+import { formatJoinedDate, formatFinnishRelative } from '@/lib/formatDate';
 
 type PublicProfileTab = 'profile' | 'edit';
 
@@ -30,6 +30,8 @@ interface UserProfile {
   hide_email: boolean;
   login_count: number;
   login_network_count: number;
+  legacy_forum_user_id: number | null;
+  last_activity_at: string | null;
 }
 
 function safeHttpUrl(rawUrl: string | null): string | null {
@@ -67,7 +69,7 @@ export default function PublicProfilePage() {
     const [profileRes, adminRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, hide_email, login_count, login_network_count')
+        .select('id, username, display_name, profile_image_url, created_at, is_admin, signature, show_signature, link_url, link_description, hide_email, login_count, login_network_count, legacy_forum_user_id, last_activity_at')
         .eq('id', userId)
         .single(),
       supabase
@@ -161,7 +163,7 @@ export default function PublicProfilePage() {
       {(!isCurrentUserAdmin || activeTab === 'profile') && <>
       {/* Profile Header + Stats */}
       <Card className="mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-start gap-4">
           {profile.profile_image_url ? (
             <img src={profileMedium(profile.profile_image_url)} alt={profile.username} className="avatar-large" />
           ) : (
@@ -170,50 +172,52 @@ export default function PublicProfilePage() {
             </span>
           )}
           <div className="flex-1">
-            <h1 className="text-3xl font-bold">{profile.username}</h1>
-            {profile.display_name && (
-              <p className="text-sm text-gray-600">{profile.display_name}</p>
-            )}
-            <p className="flex items-center gap-1 text-muted-sm mt-1">
-              <Calendar size={14} />
-              Jäsen {formatFinnishDate(profile.created_at)} alkaen
-            </p>
-            <div className="flex items-center gap-2 mt-2">
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              {profile.username}
               {isCurrentUserAdmin && profile.is_admin && (
                 <span className="admin-badge">
                   <Shield size={12} />
                   Admin
                 </span>
               )}
-              {profileLink && (
-                <a
-                  href={profileLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-                >
-                  <LinkIcon size={12} />
-                  {profile.link_description || profileLink}
-                </a>
-              )}
-            </div>
+            </h1>
+            {profile.display_name && (
+              <p className="text-sm text-gray-600">{profile.display_name}</p>
+            )}
+            <p className="text-muted-sm mt-1">
+              Jäsen vuodesta {formatJoinedDate(profile.created_at, profile.legacy_forum_user_id)}
+            </p>
+            {profile.last_activity_at && (
+              <p className="text-muted-sm mt-0.5">
+                Viimeksi aktiivinen {formatFinnishRelative(profile.last_activity_at)}
+              </p>
+            )}
+            {profileLink && (
+              <a
+                href={profileLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 mt-1"
+              >
+                <LinkIcon size={12} />
+                {profile.link_description || profileLink}
+              </a>
+            )}
           </div>
           {isCurrentUserAdmin && (
-            <div className="flex-shrink-0">
-              <button
-                onClick={handleToggleAdmin}
-                disabled={togglingAdmin || (isLastAdmin ?? false)}
-                className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition ${
-                  profile.is_admin
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-green-100 text-green-700 hover:bg-green-200'
-                } ${(togglingAdmin || isLastAdmin) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={isLastAdmin ? 'Vähintään yksi admin tarvitaan' : ''}
-              >
-                <Shield size={16} />
-                {profile.is_admin ? 'Poista admin' : 'Tee admin'}
-              </button>
-            </div>
+            <button
+              onClick={handleToggleAdmin}
+              disabled={togglingAdmin || (isLastAdmin ?? false)}
+              className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition ${
+                profile.is_admin
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              } ${(togglingAdmin || isLastAdmin) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title={isLastAdmin ? 'Vähintään yksi admin tarvitaan' : ''}
+            >
+              <Shield size={16} />
+              {profile.is_admin ? 'Poista admin' : 'Tee admin'}
+            </button>
           )}
         </div>
 

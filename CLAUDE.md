@@ -1,6 +1,8 @@
-# Freak On! Forum
+# Project Guardrails & AI Agent Instructions for a gaming related message board.
 
-Finnish gaming community forum, originally founded 2004. Rebuilt with modern stack.
+This file governs all AI-assisted development on this project.
+It applies to Claude Code, Codex, and any other agentic tools.
+
 
 ## Tech Stack
 - **Next.js 16** (App Router), **React 19**, **TypeScript**, **Tailwind CSS 4**
@@ -8,6 +10,8 @@ Finnish gaming community forum, originally founded 2004. Rebuilt with modern sta
 - **Cloudinary**: Image uploads via `next-cloudinary` CldUploadWidget, URL-based transforms
 - **Vercel**: Hosting & deployment
 - **lucide-react**: Icons
+- **CI/CD:** GitHub Actions
+
 
 ## Project Structure
 ```

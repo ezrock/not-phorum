@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { profileThumb } from '@/lib/cloudinary';
 import { trophyLocalIconUrl, parseTrophies } from '@/lib/trophies';
 import type { Trophy, TrophyJoinRow } from '@/lib/trophies';
-import { formatFinnishDate } from '@/lib/formatDate';
+import { formatFinnishDate, formatFinnishRelative } from '@/lib/formatDate';
 
 interface Profile {
   id: string;
@@ -16,6 +16,8 @@ interface Profile {
   profile_image_url: string | null;
   created_at: string;
   is_admin: boolean;
+  legacy_forum_user_id: number | null;
+  last_activity_at: string | null;
 }
 
 interface InactiveMember {
@@ -61,9 +63,11 @@ function MemberCard({
                 </span>
               )}
             </h3>
-            <p className="text-muted-xs">
-              Liittynyt {formatFinnishDate(member.created_at)}
-            </p>
+            {member.last_activity_at && (
+              <p className="text-muted-xs">
+                Viimeksi aktiivinen {formatFinnishRelative(member.last_activity_at)}
+              </p>
+            )}
 
             {trophies.length ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -138,7 +142,7 @@ export default function MembersPage() {
       const [membersRes, inactiveRes, trophiesRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, username, profile_image_url, created_at, is_admin')
+          .select('id, username, profile_image_url, created_at, is_admin, legacy_forum_user_id, last_activity_at')
           .eq('approval_status', 'approved')
           .order('legacy_forum_user_id', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: true }),
