@@ -7,7 +7,7 @@ export const UI_ICON_SETTINGS = {
 
 export const UI_PAGING_SETTINGS = {
   forumInitialVisibleThreads: 20,
-  forumShowMoreStep: 25,
+  forumShowMoreStep: 20,
   forumUnreadBoostMaxThreads: 50,
   threadInitialVisibleMessages: 25,
   threadShowMoreStep: 25,
